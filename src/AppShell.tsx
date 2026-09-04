@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AUTH_KEY } from "./auth";
 
 const links = [
   { to: "/", label: "Обзор" },
   { to: "/companies", label: "Компании" },
+  { to: "/tariffs", label: "Тарифы" },
+  { to: "/packages", label: "Пакеты" },
   { to: "/users", label: "Пользователи" },
-  { to: "/roles", label: "Роли и права" },
-  { to: "/packages", label: "Пакеты / тарифы" },
+  { to: "/cities", label: "Города" },
 ];
 
 export function AppShell() {
@@ -54,7 +55,7 @@ export function AppShell() {
           Обзор
         </NavLink>
         <NavLink to="/companies">Компании</NavLink>
-        <NavLink to="/packages">Тарифы</NavLink>
+        <NavLink to="/packages">Пакеты</NavLink>
         <button type="button" className={more ? "active" : ""} onClick={() => setMore(true)}>
           Ещё
         </button>
@@ -81,13 +82,34 @@ export function AppShell() {
   );
 }
 
-export function PageHead({ title, sub }: { title: string; sub?: string }) {
+export function PageHead({
+  title,
+  sub,
+  actions,
+  onBack,
+}: {
+  title: string;
+  sub?: string;
+  actions?: ReactNode;
+  onBack?: () => void;
+}) {
   return (
     <div className="topbar">
       <div>
-        <h1>{title}</h1>
+        <div className="topbar-title">
+          {onBack && (
+            <button type="button" className="back-btn" onClick={onBack} aria-label="Назад">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+              Назад
+            </button>
+          )}
+          <h1>{title}</h1>
+        </div>
         <p className="sub">Super Admin · управление платформой{sub ? ` · ${sub}` : ""}</p>
       </div>
+      {actions && <div className="topbar-actions">{actions}</div>}
     </div>
   );
 }
