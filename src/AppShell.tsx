@@ -44,6 +44,20 @@ const links = [
   { to: "/cities", label: "Города", icon: MapPin },
 ];
 
+const titles: Record<string, string> = {
+  "/": "Обзор",
+  "/companies": "Компании",
+  "/tariffs": "Тарифы",
+  "/packages": "Пакеты",
+  "/users": "Пользователи",
+  "/cities": "Города",
+};
+
+function currentTitle(pathname: string) {
+  if (pathname.startsWith("/companies/")) return "Компания";
+  return titles[pathname] ?? "Панель управления";
+}
+
 export function AppShell() {
   const nav = useNavigate();
   const loc = useLocation();
@@ -61,18 +75,21 @@ export function AppShell() {
   return (
     <TooltipProvider delayDuration={0}>
       <SidebarProvider>
-        <Sidebar collapsible="none" className="hidden h-svh sticky top-0 min-[861px]:flex border-r-0">
-          <SidebarHeader className="px-3 pt-4 pb-2">
-            <div className="flex flex-col gap-0.5 px-1">
-              <strong className="font-serif text-2xl font-normal text-sidebar-foreground">
-                Developer ERP
-              </strong>
-              <i className="text-[13px] text-sidebar-primary italic">Super Admin</i>
+        <Sidebar collapsible="none" className="hidden h-svh sticky top-0 min-[861px]:flex border-r border-sidebar-border">
+          <SidebarHeader className="px-3 pt-4 pb-3">
+            <div className="flex items-center gap-2.5 px-1">
+              <span className="grid size-8 place-items-center rounded-md bg-sidebar-primary text-[11px] font-bold text-sidebar-primary-foreground">
+                SA
+              </span>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-sidebar-foreground">Developer ERP</div>
+                <div className="text-[11px] text-sidebar-foreground/50">Super Admin</div>
+              </div>
             </div>
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel className="px-3 text-[10px] tracking-[0.14em] uppercase text-sidebar-foreground/40">
+              <SidebarGroupLabel className="px-3 text-[11px] uppercase tracking-wider text-sidebar-foreground/40">
                 Платформа
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -92,13 +109,12 @@ export function AppShell() {
             </SidebarGroup>
           </SidebarContent>
           <SidebarFooter className="px-2 pb-4">
-            <p className="px-2 text-xs text-sidebar-foreground/55">Управление тенантами</p>
-            <ThemeToggle />
+            <ThemeToggle className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" />
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-accent-foreground"
+              className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               onClick={logout}
             >
               <LogOut />
@@ -107,6 +123,10 @@ export function AppShell() {
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="min-w-0 bg-background">
+          <header className="sticky top-0 z-10 flex h-12 items-center justify-between border-b bg-card px-6 max-[860px]:px-3">
+            <span className="text-sm font-medium">{currentTitle(loc.pathname)}</span>
+            <span className="text-xs text-muted-foreground">Admin</span>
+          </header>
           <div className="main-pad">
             <Outlet />
           </div>
@@ -133,8 +153,8 @@ export function AppShell() {
                   to={l.to}
                   end={l.to === "/"}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-xl px-3 py-3 font-semibold ${
-                      isActive ? "bg-sidebar text-sidebar-primary" : "bg-background"
+                    `flex items-center gap-2 rounded-md px-3 py-3 font-medium ${
+                      isActive ? "bg-muted text-foreground" : "text-muted-foreground"
                     }`
                   }
                 >
@@ -167,7 +187,7 @@ export function PageHead({
   onBack?: () => void;
 }) {
   return (
-    <div className="mb-5.5 flex flex-wrap items-start justify-between gap-4">
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
       <div>
         <div className="flex items-center gap-2.5">
           {onBack && (
@@ -175,11 +195,9 @@ export function PageHead({
               ← Назад
             </Button>
           )}
-          <h1 className="m-0 text-[28px] font-semibold tracking-[-0.03em] max-[860px]:text-[22px]">{title}</h1>
+          <h1 className="m-0 text-xl font-semibold tracking-tight max-[860px]:text-lg">{title}</h1>
         </div>
-        <p className="mt-1 mb-0 text-sm text-muted-foreground">
-          Super Admin · управление платформой{sub ? ` · ${sub}` : ""}
-        </p>
+        {sub && <p className="mt-1 mb-0 text-sm text-muted-foreground">{sub}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>

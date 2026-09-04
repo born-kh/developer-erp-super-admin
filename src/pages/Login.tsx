@@ -26,16 +26,16 @@ export function Login() {
     <div className="login">
       <div className="login-card">
         <div className="login-mark">
-          <span>Developer ERP</span>
-          <em>Super Admin</em>
+          <div className="login-mark-badge">SA</div>
+          <div>
+            <strong>Developer ERP</strong>
+            <span>Super Admin</span>
+          </div>
         </div>
-        <p className="lead">
-          Панель управления платформой: компании, тарифы, пользователи и глобальные роли.
-          Кабинет компании живёт в отдельном приложении.
-        </p>
+        <p className="lead">Войдите, чтобы управлять компаниями, тарифами и пользователями.</p>
         <form onSubmit={submit} className="grid gap-4">
           <div className="grid gap-1.5">
-            <Label className="text-xs text-white/60">Логин</Label>
+            <Label className="text-xs text-muted-foreground">Логин</Label>
             <Input
               type="text"
               autoComplete="username"
@@ -45,7 +45,7 @@ export function Login() {
             />
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-xs text-white/60">Пароль</Label>
+            <Label className="text-xs text-muted-foreground">Пароль</Label>
             <div className="password-input">
               <Input
                 type={showPassword ? "text" : "password"}
@@ -65,7 +65,7 @@ export function Login() {
               </button>
             </div>
           </div>
-          <Button type="submit" size="lg" className="mt-1 w-full">
+          <Button type="submit" size="lg" className="mt-1 w-full rounded-md">
             Войти
           </Button>
         </form>

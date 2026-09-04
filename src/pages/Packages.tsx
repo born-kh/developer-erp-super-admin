@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { ActiveBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 6;
@@ -132,37 +140,58 @@ export function Packages() {
           }
         />
       ) : (
-        <Card>
-          <CardContent className="px-4.5 py-1">
-            {pageItems.map((p) => (
-              <div className="pkg-row" key={p.id}>
-                <div className="pkg-row-main">
-                  <div className="pkg-row-title">
-                    <b>{p.name}</b>
+        <Card className="gap-0 overflow-hidden py-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Название</TableHead>
+                <TableHead>Возможности</TableHead>
+                <TableHead>Статус</TableHead>
+                <TableHead className="text-right">Действия</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageItems.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    <div className="font-medium">{p.name}</div>
+                    {p.description && (
+                      <div className="mt-0.5 max-w-md truncate text-xs text-muted-foreground">{p.description}</div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {p.modules.length === 0 ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {p.modules.slice(0, 3).map((m) => (
+                          <span className="tag-chip static" key={m}>
+                            {m}
+                          </span>
+                        ))}
+                        {p.modules.length > 3 && (
+                          <span className="text-xs text-muted-foreground">+{p.modules.length - 3}</span>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <ActiveBadge active={p.active} />
-                  </div>
-                  {p.description && <p className="text-sm text-muted-foreground pkg-row-desc">{p.description}</p>}
-                  {p.modules.length > 0 && (
-                    <div className="pkg-row-tags">
-                      {p.modules.map((m) => (
-                        <span className="tag-chip static" key={m}>
-                          {m}
-                        </span>
-                      ))}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="inline-flex gap-1.5">
+                      <Button type="button" variant="outline" size="sm" onClick={() => openEdit(p)}>
+                        Изменить
+                      </Button>
+                      <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteId(p.id)}>
+                        Удалить
+                      </Button>
                     </div>
-                  )}
-                </div>
-                <div className="owner-row-actions">
-                  <Button type="button" variant="outline" size="sm" onClick={() => openEdit(p)}>
-                    Изменить
-                  </Button>
-                  <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteId(p.id)}>
-                    Удалить
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </Card>
       )}
 

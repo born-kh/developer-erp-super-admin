@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { ActiveBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 8;
@@ -150,37 +159,59 @@ export function Tariffs() {
           }
         />
       ) : (
-        <div className="tariff-grid">
-          {pageItems.map((t) => (
-            <div
-              className="tariff-card"
-              key={t.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => openEdit(t)}
-              onKeyDown={(e) => e.key === "Enter" && openEdit(t)}
-            >
-              <div className="tariff-card-head">
-                <b>{t.name}</b>
-                <ActiveBadge active={t.active} />
-              </div>
-              <div className="tariff-card-price">{usd(t.price)} / мес</div>
-              {t.description && <p className="mt-1.5 text-sm text-muted-foreground pkg-row-desc">{t.description}</p>}
-              {t.packageIds.length > 0 && (
-                <div className="pkg-row-tags">
-                  {t.packageIds.map((id) => {
-                    const pkg = packages.find((p) => p.id === id);
-                    return (
-                      <span className="tag-chip static" key={id}>
-                        {pkg?.name ?? id}
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        <Card className="gap-0 overflow-hidden py-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Тариф</TableHead>
+                <TableHead>Цена</TableHead>
+                <TableHead>Пакеты</TableHead>
+                <TableHead>Статус</TableHead>
+                <TableHead className="text-right">Действия</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageItems.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell>
+                    <div className="font-medium">{t.name}</div>
+                    {t.description && (
+                      <div className="mt-0.5 max-w-md truncate text-xs text-muted-foreground">{t.description}</div>
+                    )}
+                  </TableCell>
+                  <TableCell className="tabular-nums font-medium">{usd(t.price)} / мес</TableCell>
+                  <TableCell>
+                    {t.packageIds.length === 0 ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {t.packageIds.slice(0, 3).map((id) => {
+                          const pkg = packages.find((p) => p.id === id);
+                          return (
+                            <span className="tag-chip static" key={id}>
+                              {pkg?.name ?? id}
+                            </span>
+                          );
+                        })}
+                        {t.packageIds.length > 3 && (
+                          <span className="text-xs text-muted-foreground">+{t.packageIds.length - 3}</span>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <ActiveBadge active={t.active} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button type="button" variant="outline" size="sm" onClick={() => openEdit(t)}>
+                      Изменить
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       <AppPagination page={current} pageCount={pageCount} onPage={setPage} />

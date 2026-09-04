@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 8;
@@ -133,29 +141,39 @@ export function Cities() {
           }
         />
       ) : (
-        <Card>
-          <CardContent className="px-4.5 py-1">
-            {pageItems.map((c) => {
-              const region = regions.find((r) => r.id === c.regionId);
-              return (
-                <div className="owner-row" key={c.id}>
-                  <div className="owner-row-main">
-                    <b>{c.name}</b>
-                    <div className="text-sm text-muted-foreground">{region?.name ?? "Без региона"}</div>
-                    {c.description && <p className="text-sm text-muted-foreground pkg-row-desc">{c.description}</p>}
-                  </div>
-                  <div className="owner-row-actions">
-                    <Button type="button" variant="outline" size="sm" onClick={() => openEdit(c)}>
-                      Изменить
-                    </Button>
-                    <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteId(c.id)}>
-                      Удалить
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
+        <Card className="gap-0 overflow-hidden py-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Город</TableHead>
+                <TableHead>Регион</TableHead>
+                <TableHead>Описание</TableHead>
+                <TableHead className="text-right">Действия</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageItems.map((c) => {
+                const region = regions.find((r) => r.id === c.regionId);
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{region?.name ?? "Без региона"}</TableCell>
+                    <TableCell className="max-w-xs truncate text-muted-foreground">{c.description || "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="inline-flex gap-1.5">
+                        <Button type="button" variant="outline" size="sm" onClick={() => openEdit(c)}>
+                          Изменить
+                        </Button>
+                        <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteId(c.id)}>
+                          Удалить
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </Card>
       )}
 

@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { CompanyStatusBadge, StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 8;
@@ -124,33 +133,53 @@ export function Companies() {
           }
         />
       ) : (
-        <div className="company-grid">
-          {pageItems.map((c) => (
-            <div
-              className="company-card"
-              key={c.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => nav(`/companies/${c.id}`)}
-              onKeyDown={(e) => e.key === "Enter" && nav(`/companies/${c.id}`)}
-            >
-              <div className="company-card-img">
-                <img src={c.image} alt={c.name} loading="lazy" />
-              </div>
-              <div className="company-card-body">
-                <b>{c.name}</b>
-                <div className="text-sm text-muted-foreground">{c.city}</div>
-                <div className="company-card-tags">
-                  <StatusBadge tone="success">{c.package}</StatusBadge>
-                  <CompanyStatusBadge status={c.status} />
-                </div>
-                <div className="text-muted-foreground company-card-users">
-                  {users.filter((u) => u.companyId === c.id).length} пользователей
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <Card className="gap-0 overflow-hidden py-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Компания</TableHead>
+                <TableHead>Город</TableHead>
+                <TableHead>Пакет</TableHead>
+                <TableHead>Статус</TableHead>
+                <TableHead>Пользователи</TableHead>
+                <TableHead>Создана</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageItems.map((c) => (
+                <TableRow
+                  key={c.id}
+                  className="cursor-pointer"
+                  tabIndex={0}
+                  onClick={() => nav(`/companies/${c.id}`)}
+                  onKeyDown={(e) => e.key === "Enter" && nav(`/companies/${c.id}`)}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={c.image}
+                        alt=""
+                        className="size-9 rounded-md object-cover bg-secondary"
+                      />
+                      <span className="font-medium">{c.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{c.city}</TableCell>
+                  <TableCell>
+                    <StatusBadge tone="success">{c.package}</StatusBadge>
+                  </TableCell>
+                  <TableCell>
+                    <CompanyStatusBadge status={c.status} />
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">
+                    {users.filter((u) => u.companyId === c.id).length}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">{c.createdAt}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       <AppPagination page={current} pageCount={pageCount} onPage={setPage} />

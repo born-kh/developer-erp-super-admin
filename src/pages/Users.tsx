@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Copy, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { type PlatformUser } from "../data/mock";
 import { useUsers } from "../data/usersStore";
@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const PAGE_SIZE = 12;
 
@@ -179,44 +188,47 @@ export function Users() {
           }
         />
       ) : (
-        <div className="user-grid">
-          {pageItems.map((u) => (
-            <div className="user-card" key={u.id}>
-              <div className="user-avatar-wrap">
-                <Avatar className="size-full rounded-full">
-                  <AvatarImage src={u.image} alt={u.name} />
-                  <AvatarFallback className="rounded-full bg-secondary text-2xl font-bold text-muted-foreground">
-                    {initials(u.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="user-avatar-overlay">
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="secondary"
-                    className="rounded-full"
-                    onClick={() => openEdit(u)}
-                    aria-label="Редактировать"
-                  >
-                    <Pencil />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="secondary"
-                    className="rounded-full text-destructive"
-                    onClick={() => setConfirmDeleteId(u.id)}
-                    aria-label="Удалить"
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-              </div>
-              <b className="text-sm leading-tight">{u.name}</b>
-              <div className="text-xs text-muted-foreground break-all">{u.email}</div>
-            </div>
-          ))}
-        </div>
+        <Card className="gap-0 overflow-hidden py-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Пользователь</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Логин</TableHead>
+                <TableHead className="text-right">Действия</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageItems.map((u) => (
+                <TableRow key={u.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-8">
+                        <AvatarImage src={u.image} alt={u.name} />
+                        <AvatarFallback className="bg-secondary text-xs font-semibold text-muted-foreground">
+                          {initials(u.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{u.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                  <TableCell className="text-muted-foreground">{u.login || "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="inline-flex gap-1.5">
+                      <Button type="button" variant="outline" size="sm" onClick={() => openEdit(u)}>
+                        Изменить
+                      </Button>
+                      <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteId(u.id)}>
+                        Удалить
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
