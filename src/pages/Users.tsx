@@ -1,8 +1,24 @@
 import { useMemo, useRef, useState } from "react";
+import { Copy, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { type PlatformUser } from "../data/mock";
 import { useUsers } from "../data/usersStore";
 import { randomPassword, slugify } from "../lib/format";
 import { PageHead } from "../AppShell";
+import { AppPagination } from "@/components/AppPagination";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
+import { Field } from "@/components/Field";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 const PAGE_SIZE = 12;
 
@@ -36,19 +52,27 @@ function initials(name: string) {
 export function Users() {
   const { users, addUser, updateUser, deleteUser } = useUsers();
   const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
 
   const [modal, setModal] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
   const [form, setForm] = useState<UserForm>(emptyUserForm);
   const [loginTouched, setLoginTouched] = useState(false);
-  const [passwordCopied, setPasswordCopied] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const pageCount = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(
+      (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.login ?? "").toLowerCase().includes(q),
+    );
+  }, [users, query]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pageCount);
   const pageItems = useMemo(
-    () => users.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
-    [users, current],
+    () => filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
+    [filtered, current],
   );
 
   const setField = <K extends keyof UserForm>(key: K, value: UserForm[K]) => {
@@ -65,7 +89,6 @@ export function Users() {
   const openCreate = () => {
     setForm({ ...emptyUserForm, password: randomPassword() });
     setLoginTouched(false);
-    setPasswordCopied(false);
     setModal({ mode: "create" });
   };
 
@@ -80,7 +103,6 @@ export function Users() {
       image: u.image ?? "",
     });
     setLoginTouched(true);
-    setPasswordCopied(false);
     setModal({ mode: "edit", id: u.id });
   };
 
@@ -94,8 +116,7 @@ export function Users() {
   const copyPassword = () => {
     if (!form.password) return;
     navigator.clipboard?.writeText(form.password).catch(() => {});
-    setPasswordCopied(true);
-    window.setTimeout(() => setPasswordCopied(false), 1500);
+    toast.success("Пароль скопирован");
   };
 
   const submit = () => {
@@ -110,8 +131,10 @@ export function Users() {
     };
     if (modal?.mode === "edit" && modal.id) {
       updateUser(modal.id, payload);
+      toast.success("Пользователь сохранён");
     } else {
       addUser({ ...payload, role: "user", companyId: "" });
+      toast.success("Пользователь создан");
     }
     setModal(null);
   };
@@ -119,6 +142,7 @@ export function Users() {
   const remove = (id: string) => {
     deleteUser(id);
     setConfirmDeleteId(null);
+    toast.success("Пользователь удалён");
   };
 
   return (
@@ -126,183 +150,144 @@ export function Users() {
       <PageHead
         title="Пользователи платформы"
         actions={
-          <button type="button" className="btn primary" onClick={openCreate}>
-            + Новый пользователь
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              className="w-56"
+              placeholder="Поиск по имени или email"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+            />
+            <Button type="button" onClick={openCreate}>
+              + Новый пользователь
+            </Button>
+          </div>
         }
       />
 
-      <div className="user-grid">
-        {pageItems.map((u) => {
-          const isConfirming = confirmDeleteId === u.id;
-          return (
+      {pageItems.length === 0 ? (
+        <EmptyState
+          title={query ? "Ничего не найдено." : "Пользователей пока нет."}
+          action={
+            !query ? (
+              <Button type="button" onClick={openCreate}>
+                Создать пользователя
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="user-grid">
+          {pageItems.map((u) => (
             <div className="user-card" key={u.id}>
               <div className="user-avatar-wrap">
-                {u.image ? (
-                  <img src={u.image} alt={u.name} />
-                ) : (
-                  <div className="user-avatar-fallback">{initials(u.name)}</div>
-                )}
+                <Avatar className="size-full rounded-full">
+                  <AvatarImage src={u.image} alt={u.name} />
+                  <AvatarFallback className="rounded-full bg-secondary text-2xl font-bold text-muted-foreground">
+                    {initials(u.name)}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="user-avatar-overlay">
-                  <button
+                  <Button
                     type="button"
-                    className="avatar-icon-btn"
+                    size="icon-sm"
+                    variant="secondary"
+                    className="rounded-full"
                     onClick={() => openEdit(u)}
                     aria-label="Редактировать"
                   >
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                    </svg>
-                  </button>
-                  <button
+                    <Pencil />
+                  </Button>
+                  <Button
                     type="button"
-                    className="avatar-icon-btn danger"
+                    size="icon-sm"
+                    variant="secondary"
+                    className="rounded-full text-destructive"
                     onClick={() => setConfirmDeleteId(u.id)}
                     aria-label="Удалить"
                   >
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 6h18" />
-                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" />
-                    </svg>
-                  </button>
+                    <Trash2 />
+                  </Button>
                 </div>
               </div>
-
-              {isConfirming ? (
-                <div className="user-card-confirm">
-                  <span>Удалить?</span>
-                  <div className="user-card-confirm-actions">
-                    <button type="button" className="btn btn-sm danger" onClick={() => remove(u.id)}>
-                      Да
-                    </button>
-                    <button type="button" className="btn btn-sm" onClick={() => setConfirmDeleteId(null)}>
-                      Нет
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <b>{u.name}</b>
-                  <div className="muted user-card-sub">{u.email}</div>
-                </>
-              )}
+              <b className="text-sm leading-tight">{u.name}</b>
+              <div className="text-xs text-muted-foreground break-all">{u.email}</div>
             </div>
-          );
-        })}
-      </div>
-
-      {pageCount > 1 && (
-        <div className="pagination">
-          <button type="button" disabled={current === 1} onClick={() => setPage((p) => p - 1)}>
-            Назад
-          </button>
-          {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={n === current ? "active" : ""}
-              onClick={() => setPage(n)}
-            >
-              {n}
-            </button>
           ))}
-          <button type="button" disabled={current === pageCount} onClick={() => setPage((p) => p + 1)}>
-            Вперёд
-          </button>
         </div>
       )}
 
-      {modal && (
-        <div className="modal-backdrop" onClick={() => setModal(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h2>{modal.mode === "edit" ? "Редактировать пользователя" : "Новый пользователь"}</h2>
-              <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Закрыть">
-                ✕
-              </button>
-            </div>
-            <div className="edit-form">
-              <label className="field">
-                <span className="field-label">Изображение</span>
-                <div className="image-pick">
-                  <div className="image-pick-preview">
-                    {form.image ? <img src={form.image} alt="" /> : <span>Нет фото</span>}
-                  </div>
-                  <button type="button" className="btn" onClick={() => fileInputRef.current?.click()}>
-                    Выбрать изображение
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={(e) => pickImage(e.target.files?.[0])}
-                  />
+      <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
+
+      <ConfirmDialog
+        open={Boolean(confirmDeleteId)}
+        onOpenChange={(open) => !open && setConfirmDeleteId(null)}
+        description="Пользователь будет удалён без возможности восстановления."
+        onConfirm={() => confirmDeleteId && remove(confirmDeleteId)}
+      />
+
+      <Dialog open={Boolean(modal)} onOpenChange={(open) => !open && setModal(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{modal?.mode === "edit" ? "Редактировать пользователя" : "Новый пользователь"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Field label="Изображение">
+              <div className="image-pick">
+                <div className="image-pick-preview">
+                  {form.image ? <img src={form.image} alt="" /> : <span>Нет фото</span>}
                 </div>
-              </label>
-              <div className="field-row">
-                <label className="field">
-                  <span className="field-label">Имя</span>
-                  <input value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} autoFocus />
-                </label>
-                <label className="field">
-                  <span className="field-label">Фамилия</span>
-                  <input value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} />
-                </label>
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                  Выбрать изображение
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => pickImage(e.target.files?.[0])}
+                />
               </div>
-              <label className="field">
-                <span className="field-label">Email</span>
-                <input value={form.email} onChange={(e) => setField("email", e.target.value)} />
-              </label>
-              <label className="field">
-                <span className="field-label">Логин</span>
-                <input value={form.login} onChange={(e) => setField("login", e.target.value)} />
-              </label>
-              <label className="field">
-                <span className="field-label">Пароль</span>
-                <div className="password-gen">
-                  <input value={form.password} onChange={(e) => setField("password", e.target.value)} />
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    onClick={copyPassword}
-                    aria-label="Копировать пароль"
-                    title={passwordCopied ? "Скопировано" : "Копировать пароль"}
-                  >
-                    {passwordCopied ? (
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
-                    ) : (
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="9" y="9" width="12" height="12" rx="2" />
-                        <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
-                      </svg>
-                    )}
-                  </button>
-                  <button type="button" className="btn btn-sm" onClick={() => setField("password", randomPassword())}>
-                    Сгенерировать
-                  </button>
-                </div>
-              </label>
+            </Field>
+            <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
+              <Field label="Имя">
+                <Input value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} autoFocus />
+              </Field>
+              <Field label="Фамилия">
+                <Input value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} />
+              </Field>
             </div>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn primary"
-                disabled={!form.firstName.trim()}
-                onClick={submit}
-              >
-                {modal.mode === "edit" ? "Сохранить" : "Создать"}
-              </button>
-              <button type="button" className="btn" onClick={() => setModal(null)}>
-                Отмена
-              </button>
-            </div>
+            <Field label="Email">
+              <Input value={form.email} onChange={(e) => setField("email", e.target.value)} />
+            </Field>
+            <Field label="Логин">
+              <Input value={form.login} onChange={(e) => setField("login", e.target.value)} />
+            </Field>
+            <Field label="Пароль">
+              <div className="password-gen">
+                <Input value={form.password} onChange={(e) => setField("password", e.target.value)} />
+                <Button type="button" variant="outline" size="icon" onClick={copyPassword} aria-label="Копировать пароль">
+                  <Copy />
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setField("password", randomPassword())}>
+                  <RefreshCw />
+                  Сгенерировать
+                </Button>
+              </div>
+            </Field>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setModal(null)}>
+              Отмена
+            </Button>
+            <Button type="button" disabled={!form.firstName.trim()} onClick={submit}>
+              {modal?.mode === "edit" ? "Сохранить" : "Создать"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

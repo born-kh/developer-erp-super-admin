@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { AUTH_KEY } from "../auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function Login() {
   const nav = useNavigate();
@@ -29,21 +33,21 @@ export function Login() {
           Панель управления платформой: компании, тарифы, пользователи и глобальные роли.
           Кабинет компании живёт в отдельном приложении.
         </p>
-        <form onSubmit={submit}>
-          <label className="field">
-            <span className="field-label">Логин</span>
-            <input
+        <form onSubmit={submit} className="grid gap-4">
+          <div className="grid gap-1.5">
+            <Label className="text-xs text-white/60">Логин</Label>
+            <Input
               type="text"
               autoComplete="username"
               placeholder="admin"
               value={login}
               onChange={(e) => setLogin(e.target.value)}
             />
-          </label>
-          <label className="field">
-            <span className="field-label">Пароль</span>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs text-white/60">Пароль</Label>
             <div className="password-input">
-              <input
+              <Input
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder="••••••••"
@@ -57,24 +61,13 @@ export function Login() {
                 aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
                 aria-pressed={showPassword}
               >
-                {showPassword ? (
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 3l18 18" />
-                    <path d="M10.58 10.58a3 3 0 0 0 4.24 4.24" />
-                    <path d="M9.88 5.09A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a13.16 13.16 0 0 1-3.17 4.09M6.61 6.61C4.02 8.28 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 3.39-.61" />
-                  </svg>
-                )}
+                {showPassword ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
               </button>
             </div>
-          </label>
-          <button className="primary" type="submit">
+          </div>
+          <Button type="submit" size="lg" className="mt-1 w-full">
             Войти
-          </button>
+          </Button>
         </form>
         <p className="hint">Демо-вход без пароля. Позже подключим backend.</p>
       </div>

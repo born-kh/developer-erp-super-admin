@@ -1,8 +1,32 @@
 import { useMemo, useState } from "react";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { type CityItem } from "../data/mock";
 import { useCityCatalog } from "../data/cityCatalogStore";
 import { useRegions } from "../data/regionsStore";
 import { PageHead } from "../AppShell";
+import { AppPagination } from "@/components/AppPagination";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
+import { Field } from "@/components/Field";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 8;
 
@@ -61,8 +85,10 @@ export function Cities() {
     };
     if (modal?.mode === "edit" && modal.id) {
       updateCity(modal.id, payload);
+      toast.success("Город сохранён");
     } else {
       addCity(payload);
+      toast.success("Город создан");
     }
     setModal(null);
   };
@@ -70,6 +96,7 @@ export function Cities() {
   const remove = (id: string) => {
     deleteCity(id);
     setConfirmDeleteId(null);
+    toast.success("Город удалён");
   };
 
   const openRegionModal = () => {
@@ -82,6 +109,7 @@ export function Cities() {
     const id = addRegion({ name: regionForm.name.trim(), description: regionForm.description });
     set("regionId", id);
     setRegionModalOpen(false);
+    toast.success("Регион создан");
   };
 
   return (
@@ -89,185 +117,131 @@ export function Cities() {
       <PageHead
         title="Города"
         actions={
-          <button type="button" className="btn primary" onClick={openCreate}>
+          <Button type="button" onClick={openCreate}>
             + Добавить город
-          </button>
+          </Button>
         }
       />
 
-      <div className="card">
-        {pageItems.length === 0 && <p className="muted">Городов пока нет.</p>}
-        {pageItems.map((c) => {
-          const region = regions.find((r) => r.id === c.regionId);
-          return (
-            <div className="owner-row" key={c.id}>
-              <div className="owner-row-main">
-                <b>{c.name}</b>
-                <div className="muted">{region?.name ?? "Без региона"}</div>
-                {c.description && <p className="muted pkg-row-desc">{c.description}</p>}
-              </div>
-              {confirmDeleteId === c.id ? (
-                <div className="owner-row-confirm">
-                  <span>Удалить?</span>
-                  <button type="button" className="btn btn-sm danger" onClick={() => remove(c.id)}>
-                    Да
-                  </button>
-                  <button type="button" className="btn btn-sm" onClick={() => setConfirmDeleteId(null)}>
-                    Отмена
-                  </button>
+      {pageItems.length === 0 ? (
+        <EmptyState
+          title="Городов пока нет."
+          action={
+            <Button type="button" onClick={openCreate}>
+              Добавить город
+            </Button>
+          }
+        />
+      ) : (
+        <Card>
+          <CardContent className="px-4.5 py-1">
+            {pageItems.map((c) => {
+              const region = regions.find((r) => r.id === c.regionId);
+              return (
+                <div className="owner-row" key={c.id}>
+                  <div className="owner-row-main">
+                    <b>{c.name}</b>
+                    <div className="text-sm text-muted-foreground">{region?.name ?? "Без региона"}</div>
+                    {c.description && <p className="text-sm text-muted-foreground pkg-row-desc">{c.description}</p>}
+                  </div>
+                  <div className="owner-row-actions">
+                    <Button type="button" variant="outline" size="sm" onClick={() => openEdit(c)}>
+                      Изменить
+                    </Button>
+                    <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteId(c.id)}>
+                      Удалить
+                    </Button>
+                  </div>
                 </div>
-              ) : (
-                <div className="owner-row-actions">
-                  <button type="button" className="btn btn-sm" onClick={() => openEdit(c)}>
-                    Изменить
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm danger"
-                    onClick={() => setConfirmDeleteId(c.id)}
-                  >
-                    Удалить
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {pageCount > 1 && (
-        <div className="pagination">
-          <button type="button" disabled={current === 1} onClick={() => setPage((p) => p - 1)}>
-            Назад
-          </button>
-          {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={n === current ? "active" : ""}
-              onClick={() => setPage(n)}
-            >
-              {n}
-            </button>
-          ))}
-          <button type="button" disabled={current === pageCount} onClick={() => setPage((p) => p + 1)}>
-            Вперёд
-          </button>
-        </div>
+              );
+            })}
+          </CardContent>
+        </Card>
       )}
 
-      {modal && (
-        <div className="modal-backdrop" onClick={() => setModal(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h2>{modal.mode === "edit" ? "Редактировать город" : "Новый город"}</h2>
-              <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Закрыть">
-                ✕
-              </button>
-            </div>
-            <div className="edit-form">
-              <label className="field">
-                <span className="field-label">Название</span>
-                <input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
-              </label>
-              <label className="field">
-                <span className="field-label">Регион</span>
-                <div className="region-pick">
-                  <select value={form.regionId} onChange={(e) => set("regionId", e.target.value)}>
-                    {regions.length === 0 && <option value="">Нет регионов</option>}
+      <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
+
+      <ConfirmDialog
+        open={Boolean(confirmDeleteId)}
+        onOpenChange={(open) => !open && setConfirmDeleteId(null)}
+        description="Город будет удалён из каталога."
+        onConfirm={() => confirmDeleteId && remove(confirmDeleteId)}
+      />
+
+      <Dialog open={Boolean(modal)} onOpenChange={(open) => !open && setModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{modal?.mode === "edit" ? "Редактировать город" : "Новый город"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Field label="Название">
+              <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
+            </Field>
+            <Field label="Регион">
+              <div className="region-pick">
+                <Select value={form.regionId || undefined} onValueChange={(v) => set("regionId", v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Нет регионов" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {regions.map((r) => (
-                      <option key={r.id} value={r.id}>
+                      <SelectItem key={r.id} value={r.id}>
                         {r.name}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    onClick={openRegionModal}
-                    aria-label="Добавить регион"
-                    title="Добавить регион"
-                  >
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                  </button>
-                </div>
-              </label>
-              <label className="field">
-                <span className="field-label">Описание</span>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => set("description", e.target.value)}
-                />
-              </label>
-            </div>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn primary"
-                disabled={!form.name.trim() || !form.regionId}
-                onClick={submit}
-              >
-                {modal.mode === "edit" ? "Сохранить" : "Создать"}
-              </button>
-              <button type="button" className="btn" onClick={() => setModal(null)}>
-                Отмена
-              </button>
-            </div>
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" size="icon" onClick={openRegionModal} aria-label="Добавить регион">
+                  <Plus />
+                </Button>
+              </div>
+            </Field>
+            <Field label="Описание">
+              <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
+            </Field>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setModal(null)}>
+              Отмена
+            </Button>
+            <Button type="button" disabled={!form.name.trim() || !form.regionId} onClick={submit}>
+              {modal?.mode === "edit" ? "Сохранить" : "Создать"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {regionModalOpen && (
-        <div className="modal-backdrop" onClick={() => setRegionModalOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h2>Новый регион</h2>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setRegionModalOpen(false)}
-                aria-label="Закрыть"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="edit-form">
-              <label className="field">
-                <span className="field-label">Название</span>
-                <input
-                  value={regionForm.name}
-                  onChange={(e) => setRegionForm((f) => ({ ...f, name: e.target.value }))}
-                  autoFocus
-                />
-              </label>
-              <label className="field">
-                <span className="field-label">Описание</span>
-                <textarea
-                  rows={3}
-                  value={regionForm.description}
-                  onChange={(e) => setRegionForm((f) => ({ ...f, description: e.target.value }))}
-                />
-              </label>
-            </div>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn primary"
-                disabled={!regionForm.name.trim()}
-                onClick={submitRegion}
-              >
-                Создать
-              </button>
-              <button type="button" className="btn" onClick={() => setRegionModalOpen(false)}>
-                Отмена
-              </button>
-            </div>
+      <Dialog open={regionModalOpen} onOpenChange={setRegionModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Новый регион</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Field label="Название">
+              <Input
+                value={regionForm.name}
+                onChange={(e) => setRegionForm((f) => ({ ...f, name: e.target.value }))}
+                autoFocus
+              />
+            </Field>
+            <Field label="Описание">
+              <Textarea
+                rows={3}
+                value={regionForm.description}
+                onChange={(e) => setRegionForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </Field>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRegionModalOpen(false)}>
+              Отмена
+            </Button>
+            <Button type="button" disabled={!regionForm.name.trim()} onClick={submitRegion}>
+              Создать
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

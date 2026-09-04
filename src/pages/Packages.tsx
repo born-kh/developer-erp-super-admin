@@ -1,7 +1,25 @@
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { type PackagePlan } from "../data/mock";
 import { usePackages } from "../data/packagesStore";
 import { PageHead } from "../AppShell";
+import { AppPagination } from "@/components/AppPagination";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
+import { Field } from "@/components/Field";
+import { ActiveBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 6;
 
@@ -79,8 +97,10 @@ export function Packages() {
     };
     if (modal?.mode === "edit" && modal.id) {
       updatePackage(modal.id, payload);
+      toast.success("Пакет сохранён");
     } else {
       addPackage(payload);
+      toast.success("Пакет создан");
     }
     setModal(null);
   };
@@ -88,6 +108,7 @@ export function Packages() {
   const remove = (id: string) => {
     deletePackage(id);
     setConfirmDeleteId(null);
+    toast.success("Пакет удалён");
   };
 
   return (
@@ -95,158 +116,124 @@ export function Packages() {
       <PageHead
         title="Пакеты"
         actions={
-          <button type="button" className="btn primary" onClick={openCreate}>
+          <Button type="button" onClick={openCreate}>
             + Добавить пакет
-          </button>
+          </Button>
         }
       />
 
-      <div className="card">
-        {pageItems.length === 0 && <p className="muted">Пакетов пока нет.</p>}
-        {pageItems.map((p) => (
-          <div className="pkg-row" key={p.id}>
-            <div className="pkg-row-main">
-              <div className="pkg-row-title">
-                <b>{p.name}</b>
-                <span className={`badge ${p.active ? "st-available" : "st-sold"}`}>
-                  {p.active ? "Активен" : "Отключен"}
-                </span>
-              </div>
-              {p.description && <p className="muted pkg-row-desc">{p.description}</p>}
-              {p.modules.length > 0 && (
-                <div className="pkg-row-tags">
-                  {p.modules.map((m) => (
-                    <span className="tag-chip static" key={m}>
-                      {m}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            {confirmDeleteId === p.id ? (
-              <div className="owner-row-confirm">
-                <span>Удалить?</span>
-                <button type="button" className="btn btn-sm danger" onClick={() => remove(p.id)}>
-                  Да
-                </button>
-                <button type="button" className="btn btn-sm" onClick={() => setConfirmDeleteId(null)}>
-                  Отмена
-                </button>
-              </div>
-            ) : (
-              <div className="owner-row-actions">
-                <button type="button" className="btn btn-sm" onClick={() => openEdit(p)}>
-                  Изменить
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm danger"
-                  onClick={() => setConfirmDeleteId(p.id)}
-                >
-                  Удалить
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {pageCount > 1 && (
-        <div className="pagination">
-          <button type="button" disabled={current === 1} onClick={() => setPage((p) => p - 1)}>
-            Назад
-          </button>
-          {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={n === current ? "active" : ""}
-              onClick={() => setPage(n)}
-            >
-              {n}
-            </button>
-          ))}
-          <button type="button" disabled={current === pageCount} onClick={() => setPage((p) => p + 1)}>
-            Вперёд
-          </button>
-        </div>
-      )}
-
-      {modal && (
-        <div className="modal-backdrop" onClick={() => setModal(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h2>{modal.mode === "edit" ? "Редактировать пакет" : "Новый пакет"}</h2>
-              <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Закрыть">
-                ✕
-              </button>
-            </div>
-            <div className="edit-form">
-              <label className="field">
-                <span className="field-label">Название</span>
-                <input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
-              </label>
-              <label className="field">
-                <span className="field-label">Возможности</span>
-                <div className="tag-input">
-                  {form.modules.length > 0 && (
-                    <div className="tag-list">
-                      {form.modules.map((m, i) => (
-                        <span className="tag-chip" key={`${m}-${i}`}>
+      {pageItems.length === 0 ? (
+        <EmptyState
+          title="Пакетов пока нет."
+          action={
+            <Button type="button" onClick={openCreate}>
+              Добавить пакет
+            </Button>
+          }
+        />
+      ) : (
+        <Card>
+          <CardContent className="px-4.5 py-1">
+            {pageItems.map((p) => (
+              <div className="pkg-row" key={p.id}>
+                <div className="pkg-row-main">
+                  <div className="pkg-row-title">
+                    <b>{p.name}</b>
+                    <ActiveBadge active={p.active} />
+                  </div>
+                  {p.description && <p className="text-sm text-muted-foreground pkg-row-desc">{p.description}</p>}
+                  {p.modules.length > 0 && (
+                    <div className="pkg-row-tags">
+                      {p.modules.map((m) => (
+                        <span className="tag-chip static" key={m}>
                           {m}
-                          <button type="button" onClick={() => removeModule(i)} aria-label="Удалить">
-                            ✕
-                          </button>
                         </span>
                       ))}
                     </div>
                   )}
-                  <div className="tag-add">
-                    <input
-                      value={moduleDraft}
-                      onChange={(e) => setModuleDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addModule();
-                        }
-                      }}
-                      placeholder="Введите и нажмите Enter"
-                    />
-                    <button type="button" className="btn btn-sm" onClick={addModule}>
-                      Добавить
-                    </button>
-                  </div>
                 </div>
-              </label>
-              <label className="field">
-                <span className="field-label">Описание</span>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => set("description", e.target.value)}
-                />
-              </label>
-              <label className="field toggle-field">
-                <input
-                  type="checkbox"
-                  checked={form.active}
-                  onChange={(e) => set("active", e.target.checked)}
-                />
-                <span>Пакет активен</span>
-              </label>
-            </div>
-            <div className="modal-actions">
-              <button type="button" className="btn primary" disabled={!form.name.trim()} onClick={submit}>
-                {modal.mode === "edit" ? "Сохранить" : "Создать"}
-              </button>
-              <button type="button" className="btn" onClick={() => setModal(null)}>
-                Отмена
-              </button>
-            </div>
-          </div>
-        </div>
+                <div className="owner-row-actions">
+                  <Button type="button" variant="outline" size="sm" onClick={() => openEdit(p)}>
+                    Изменить
+                  </Button>
+                  <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteId(p.id)}>
+                    Удалить
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
+
+      <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
+
+      <ConfirmDialog
+        open={Boolean(confirmDeleteId)}
+        onOpenChange={(open) => !open && setConfirmDeleteId(null)}
+        description="Пакет будет удалён без возможности восстановления."
+        onConfirm={() => confirmDeleteId && remove(confirmDeleteId)}
+      />
+
+      <Dialog open={Boolean(modal)} onOpenChange={(open) => !open && setModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{modal?.mode === "edit" ? "Редактировать пакет" : "Новый пакет"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Field label="Название">
+              <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
+            </Field>
+            <Field label="Возможности">
+              <div className="tag-input">
+                {form.modules.length > 0 && (
+                  <div className="tag-list">
+                    {form.modules.map((m, i) => (
+                      <span className="tag-chip" key={`${m}-${i}`}>
+                        {m}
+                        <button type="button" onClick={() => removeModule(i)} aria-label="Удалить">
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="tag-add">
+                  <Input
+                    value={moduleDraft}
+                    onChange={(e) => setModuleDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addModule();
+                      }
+                    }}
+                    placeholder="Введите и нажмите Enter"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={addModule}>
+                    Добавить
+                  </Button>
+                </div>
+              </div>
+            </Field>
+            <Field label="Описание">
+              <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
+            </Field>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Switch checked={form.active} onCheckedChange={(v) => set("active", v)} />
+              Пакет активен
+            </label>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setModal(null)}>
+              Отмена
+            </Button>
+            <Button type="button" disabled={!form.name.trim()} onClick={submit}>
+              {modal?.mode === "edit" ? "Сохранить" : "Создать"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -1,9 +1,33 @@
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { type TariffPlan } from "../data/mock";
 import { useTariffs } from "../data/tariffsStore";
 import { usePackages } from "../data/packagesStore";
 import { usd } from "../lib/format";
 import { PageHead } from "../AppShell";
+import { AppPagination } from "@/components/AppPagination";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
+import { Field } from "@/components/Field";
+import { ActiveBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 8;
 
@@ -30,7 +54,7 @@ export function Tariffs() {
 
   const [modal, setModal] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
   const [form, setForm] = useState<TariffForm>(emptyForm);
-  const [confirmDeleteId, setConfirmDeleteId] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const pageCount = Math.max(1, Math.ceil(tariffs.length / PAGE_SIZE));
   const current = Math.min(page, pageCount);
@@ -44,7 +68,7 @@ export function Tariffs() {
 
   const openCreate = () => {
     setForm(emptyForm);
-    setConfirmDeleteId(false);
+    setConfirmDelete(false);
     setModal({ mode: "create" });
   };
 
@@ -56,7 +80,7 @@ export function Tariffs() {
       active: t.active,
       packageIds: t.packageIds,
     });
-    setConfirmDeleteId(false);
+    setConfirmDelete(false);
     setModal({ mode: "edit", id: t.id });
   };
 
@@ -83,8 +107,10 @@ export function Tariffs() {
     };
     if (modal?.mode === "edit" && modal.id) {
       updateTariff(modal.id, payload);
+      toast.success("Тариф сохранён");
     } else {
       addTariff(payload);
+      toast.success("Тариф создан");
     }
     setModal(null);
   };
@@ -92,9 +118,10 @@ export function Tariffs() {
   const remove = () => {
     if (modal?.mode === "edit" && modal.id) {
       deleteTariff(modal.id);
+      toast.success("Тариф удалён");
     }
     setModal(null);
-    setConfirmDeleteId(false);
+    setConfirmDelete(false);
   };
 
   const selectedPackages = form.packageIds
@@ -107,174 +134,136 @@ export function Tariffs() {
       <PageHead
         title="Тарифы"
         actions={
-          <button type="button" className="btn primary" onClick={openCreate}>
+          <Button type="button" onClick={openCreate}>
             + Добавить тариф
-          </button>
+          </Button>
         }
       />
 
-      {pageItems.length === 0 && (
-        <div className="card">
-          <p className="muted">Тарифные планы пока не настроены.</p>
-        </div>
-      )}
-
-      <div className="tariff-grid">
-        {pageItems.map((t) => (
-          <div
-            className="tariff-card"
-            key={t.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => openEdit(t)}
-            onKeyDown={(e) => e.key === "Enter" && openEdit(t)}
-          >
-            <div className="tariff-card-head">
-              <b>{t.name}</b>
-              <span className={`badge ${t.active ? "st-available" : "st-sold"}`}>
-                {t.active ? "Активен" : "Отключен"}
-              </span>
-            </div>
-            <div className="tariff-card-price">{usd(t.price)} / мес</div>
-            {t.description && <p className="muted pkg-row-desc">{t.description}</p>}
-            {t.packageIds.length > 0 && (
-              <div className="pkg-row-tags">
-                {t.packageIds.map((id) => {
-                  const pkg = packages.find((p) => p.id === id);
-                  return (
-                    <span className="tag-chip static" key={id}>
-                      {pkg?.name ?? id}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {pageCount > 1 && (
-        <div className="pagination">
-          <button type="button" disabled={current === 1} onClick={() => setPage((p) => p - 1)}>
-            Назад
-          </button>
-          {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={n === current ? "active" : ""}
-              onClick={() => setPage(n)}
+      {pageItems.length === 0 ? (
+        <EmptyState
+          title="Тарифные планы пока не настроены."
+          action={
+            <Button type="button" onClick={openCreate}>
+              Добавить тариф
+            </Button>
+          }
+        />
+      ) : (
+        <div className="tariff-grid">
+          {pageItems.map((t) => (
+            <div
+              className="tariff-card"
+              key={t.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => openEdit(t)}
+              onKeyDown={(e) => e.key === "Enter" && openEdit(t)}
             >
-              {n}
-            </button>
+              <div className="tariff-card-head">
+                <b>{t.name}</b>
+                <ActiveBadge active={t.active} />
+              </div>
+              <div className="tariff-card-price">{usd(t.price)} / мес</div>
+              {t.description && <p className="mt-1.5 text-sm text-muted-foreground pkg-row-desc">{t.description}</p>}
+              {t.packageIds.length > 0 && (
+                <div className="pkg-row-tags">
+                  {t.packageIds.map((id) => {
+                    const pkg = packages.find((p) => p.id === id);
+                    return (
+                      <span className="tag-chip static" key={id}>
+                        {pkg?.name ?? id}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           ))}
-          <button type="button" disabled={current === pageCount} onClick={() => setPage((p) => p + 1)}>
-            Вперёд
-          </button>
         </div>
       )}
 
-      {modal && (
-        <div className="modal-backdrop" onClick={() => setModal(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h2>{modal.mode === "edit" ? "Редактировать тариф" : "Новый тариф"}</h2>
-              <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Закрыть">
-                ✕
-              </button>
+      <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
+
+      <Dialog open={Boolean(modal)} onOpenChange={(open) => !open && setModal(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{modal?.mode === "edit" ? "Редактировать тариф" : "Новый тариф"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
+              <Field label="Название">
+                <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
+              </Field>
+              <Field label="Цена, $/мес">
+                <Input type="number" min="0" value={form.price} onChange={(e) => set("price", e.target.value)} />
+              </Field>
             </div>
-            <div className="edit-form">
-              <div className="field-row">
-                <label className="field">
-                  <span className="field-label">Название</span>
-                  <input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
-                </label>
-                <label className="field">
-                  <span className="field-label">Цена, $/мес</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.price}
-                    onChange={(e) => set("price", e.target.value)}
-                  />
-                </label>
-              </div>
-              <label className="field">
-                <span className="field-label">Пакеты</span>
-                <div className="tag-input">
-                  {selectedPackages.length > 0 && (
-                    <div className="tag-list">
-                      {selectedPackages.map((p) => (
-                        <span className="tag-chip" key={p.id}>
-                          {p.name}
-                          <button type="button" onClick={() => removePackageFromForm(p.id)} aria-label="Удалить">
-                            ✕
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {availablePackages.length > 0 && (
-                    <select value="" onChange={(e) => addPackageToForm(e.target.value)}>
-                      <option value="" disabled>
-                        Выберите пакет…
-                      </option>
+            <Field label="Пакеты">
+              <div className="tag-input">
+                {selectedPackages.length > 0 && (
+                  <div className="tag-list">
+                    {selectedPackages.map((p) => (
+                      <span className="tag-chip" key={p.id}>
+                        {p.name}
+                        <button type="button" onClick={() => removePackageFromForm(p.id)} aria-label="Удалить">
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {availablePackages.length > 0 && (
+                  <Select key={form.packageIds.join(",")} onValueChange={addPackageToForm}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Выберите пакет…" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {availablePackages.map((p) => (
-                        <option key={p.id} value={p.id}>
+                        <SelectItem key={p.id} value={p.id}>
                           {p.name}
-                        </option>
+                        </SelectItem>
                       ))}
-                    </select>
-                  )}
-                </div>
-              </label>
-              <label className="field">
-                <span className="field-label">Описание</span>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => set("description", e.target.value)}
-                />
-              </label>
-              <label className="field toggle-field">
-                <input
-                  type="checkbox"
-                  checked={form.active}
-                  onChange={(e) => set("active", e.target.checked)}
-                />
-                <span>Тариф активен</span>
-              </label>
-            </div>
-            {confirmDeleteId ? (
-              <div className="confirm-box">
-                <p>Удалить тариф «{form.name}»? Это действие необратимо.</p>
-                <div className="confirm-box-actions">
-                  <button type="button" className="btn danger" onClick={remove}>
-                    Да, удалить
-                  </button>
-                  <button type="button" className="btn" onClick={() => setConfirmDeleteId(false)}>
-                    Отмена
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="modal-actions">
-                <button type="button" className="btn primary" disabled={!form.name.trim()} onClick={submit}>
-                  {modal.mode === "edit" ? "Сохранить" : "Создать"}
-                </button>
-                <button type="button" className="btn" onClick={() => setModal(null)}>
-                  Отмена
-                </button>
-                {modal.mode === "edit" && (
-                  <button type="button" className="btn danger" onClick={() => setConfirmDeleteId(true)}>
-                    Удалить
-                  </button>
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
-            )}
+            </Field>
+            <Field label="Описание">
+              <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
+            </Field>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Switch checked={form.active} onCheckedChange={(v) => set("active", v)} />
+              Тариф активен
+            </label>
           </div>
-        </div>
-      )}
+          <DialogFooter className="sm:justify-between">
+            {modal?.mode === "edit" ? (
+              <Button type="button" variant="destructive" onClick={() => setConfirmDelete(true)}>
+                Удалить
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setModal(null)}>
+                Отмена
+              </Button>
+              <Button type="button" disabled={!form.name.trim()} onClick={submit}>
+                {modal?.mode === "edit" ? "Сохранить" : "Создать"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Удалить тариф?"
+        description={`Удалить тариф «${form.name}»? Это действие необратимо.`}
+        onConfirm={remove}
+      />
     </>
   );
 }

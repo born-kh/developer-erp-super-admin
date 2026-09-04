@@ -1,20 +1,30 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { cities, users, type Company } from "../data/mock";
 import { useCompanies } from "../data/companiesStore";
 import { PageHead } from "../AppShell";
-
-const statusLabel: Record<string, string> = {
-  active: "Активна",
-  trial: "Триал",
-  suspended: "Приостановлена",
-};
-
-const statusClass: Record<string, string> = {
-  active: "st-available",
-  trial: "st-reserved",
-  suspended: "st-sold",
-};
+import { AppPagination } from "@/components/AppPagination";
+import { EmptyState } from "@/components/EmptyState";
+import { Field } from "@/components/Field";
+import { CompanyStatusBadge, StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 8;
 
@@ -35,15 +45,22 @@ export function Companies() {
   const nav = useNavigate();
   const { companies, addCompany } = useCompanies();
   const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<Omit<Company, "id">>(emptyForm);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const pageCount = Math.max(1, Math.ceil(companies.length / PAGE_SIZE));
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return companies;
+    return companies.filter((c) => c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q));
+  }, [companies, query]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pageCount);
   const pageItems = useMemo(
-    () => companies.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
-    [companies, current],
+    () => filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
+    [filtered, current],
   );
 
   const set = <K extends keyof Omit<Company, "id">>(key: K, value: Company[K]) =>
@@ -68,6 +85,7 @@ export function Companies() {
       image: form.image.trim() || `https://picsum.photos/seed/${encodeURIComponent(form.name)}/480/320`,
     });
     setShowCreate(false);
+    toast.success("Компания создана");
     nav(`/companies/${id}`);
   };
 
@@ -77,151 +95,158 @@ export function Companies() {
         title="Компании"
         sub="создание и управление тенантами"
         actions={
-          <button type="button" className="btn primary" onClick={openCreate}>
-            + Новая компания
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              className="w-56"
+              placeholder="Поиск по названию или городу"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+            />
+            <Button type="button" onClick={openCreate}>
+              + Новая компания
+            </Button>
+          </div>
         }
       />
-      <div className="company-grid">
-        {pageItems.map((c) => (
-          <div
-            className="company-card"
-            key={c.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => nav(`/companies/${c.id}`)}
-            onKeyDown={(e) => e.key === "Enter" && nav(`/companies/${c.id}`)}
-          >
-            <div className="company-card-img">
-              <img src={c.image} alt={c.name} loading="lazy" />
-            </div>
-            <div className="company-card-body">
-              <b>{c.name}</b>
-              <div className="muted">{c.city}</div>
-              <div className="company-card-tags">
-                <span className="badge st-available">{c.package}</span>
-                <span className={`badge ${statusClass[c.status]}`}>{statusLabel[c.status]}</span>
-              </div>
-              <div className="muted company-card-users">
-                {users.filter((u) => u.companyId === c.id).length} пользователей
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
 
-      {pageCount > 1 && (
-        <div className="pagination">
-          <button type="button" disabled={current === 1} onClick={() => setPage((p) => p - 1)}>
-            Назад
-          </button>
-          {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={n === current ? "active" : ""}
-              onClick={() => setPage(n)}
+      {pageItems.length === 0 ? (
+        <EmptyState
+          title={query ? "Ничего не найдено." : "Компаний пока нет."}
+          action={
+            !query ? (
+              <Button type="button" onClick={openCreate}>
+                Создать компанию
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="company-grid">
+          {pageItems.map((c) => (
+            <div
+              className="company-card"
+              key={c.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => nav(`/companies/${c.id}`)}
+              onKeyDown={(e) => e.key === "Enter" && nav(`/companies/${c.id}`)}
             >
-              {n}
-            </button>
+              <div className="company-card-img">
+                <img src={c.image} alt={c.name} loading="lazy" />
+              </div>
+              <div className="company-card-body">
+                <b>{c.name}</b>
+                <div className="text-sm text-muted-foreground">{c.city}</div>
+                <div className="company-card-tags">
+                  <StatusBadge tone="success">{c.package}</StatusBadge>
+                  <CompanyStatusBadge status={c.status} />
+                </div>
+                <div className="text-muted-foreground company-card-users">
+                  {users.filter((u) => u.companyId === c.id).length} пользователей
+                </div>
+              </div>
+            </div>
           ))}
-          <button type="button" disabled={current === pageCount} onClick={() => setPage((p) => p + 1)}>
-            Вперёд
-          </button>
         </div>
       )}
 
-      <p className="muted" style={{ marginTop: 16 }}>
+      <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
+
+      <p className="mt-4 text-sm text-muted-foreground">
         Данные компаний изолированы. Каждая компания работает только внутри своего пакета.
       </p>
 
-      {showCreate && (
-        <div className="modal-backdrop" onClick={() => setShowCreate(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h2>Новая компания</h2>
-              <button type="button" className="modal-close" onClick={() => setShowCreate(false)} aria-label="Закрыть">
-                ✕
-              </button>
-            </div>
-            <div className="edit-form">
-              <label className="field">
-                <span className="field-label">Название</span>
-                <input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
-              </label>
-              <label className="field">
-                <span className="field-label">Город</span>
-                <select value={form.city} onChange={(e) => set("city", e.target.value)}>
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Новая компания</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Field label="Название">
+              <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
+            </Field>
+            <Field label="Город">
+              <Select value={form.city} onValueChange={(v) => set("city", v)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
                   {cities.map((city) => (
-                    <option key={city} value={city}>
+                    <SelectItem key={city} value={city}>
                       {city}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-              </label>
-              <label className="field">
-                <span className="field-label">Изображение</span>
-                <div className="image-pick">
-                  <div className="image-pick-preview">
-                    {form.image ? <img src={form.image} alt="" /> : <span>Нет фото</span>}
-                  </div>
-                  <button type="button" className="btn" onClick={() => fileInputRef.current?.click()}>
-                    Выбрать изображение
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={(e) => pickImage(e.target.files?.[0])}
-                  />
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Изображение">
+              <div className="image-pick">
+                <div className="image-pick-preview">
+                  {form.image ? <img src={form.image} alt="" /> : <span>Нет фото</span>}
                 </div>
-              </label>
-              <div className="field-row">
-                <label className="field">
-                  <span className="field-label">Пакет</span>
-                  <select value={form.package} onChange={(e) => set("package", e.target.value as Company["package"])}>
-                    <option value="basic">basic</option>
-                    <option value="pro">pro</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span className="field-label">Статус</span>
-                  <select value={form.status} onChange={(e) => set("status", e.target.value as Company["status"])}>
-                    <option value="active">Активна</option>
-                    <option value="trial">Триал</option>
-                    <option value="suspended">Приостановлена</option>
-                  </select>
-                </label>
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                  Выбрать изображение
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => pickImage(e.target.files?.[0])}
+                />
               </div>
-              <label className="field">
-                <span className="field-label">Телефон</span>
-                <input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
-              </label>
-              <label className="field">
-                <span className="field-label">Email</span>
-                <input value={form.email} onChange={(e) => set("email", e.target.value)} />
-              </label>
-              <label className="field">
-                <span className="field-label">Адрес</span>
-                <input value={form.address} onChange={(e) => set("address", e.target.value)} />
-              </label>
-              <label className="field">
-                <span className="field-label">Описание</span>
-                <textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
-              </label>
+            </Field>
+            <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
+              <Field label="Пакет">
+                <Select value={form.package} onValueChange={(v) => set("package", v as Company["package"])}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="basic">basic</SelectItem>
+                    <SelectItem value="pro">pro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Статус">
+                <Select value={form.status} onValueChange={(v) => set("status", v as Company["status"])}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Активна</SelectItem>
+                    <SelectItem value="trial">Триал</SelectItem>
+                    <SelectItem value="suspended">Приостановлена</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
             </div>
-            <div className="modal-actions">
-              <button type="button" className="btn primary" disabled={!form.name.trim()} onClick={submitCreate}>
-                Создать
-              </button>
-              <button type="button" className="btn" onClick={() => setShowCreate(false)}>
-                Отмена
-              </button>
-            </div>
+            <Field label="Телефон">
+              <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+            </Field>
+            <Field label="Email">
+              <Input value={form.email} onChange={(e) => set("email", e.target.value)} />
+            </Field>
+            <Field label="Адрес">
+              <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
+            </Field>
+            <Field label="Описание">
+              <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
+            </Field>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>
+              Отмена
+            </Button>
+            <Button type="button" disabled={!form.name.trim()} onClick={submitCreate}>
+              Создать
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
