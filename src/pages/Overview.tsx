@@ -1,10 +1,10 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { income } from "../data/mock";
 import { useCompanies } from "../data/companiesStore";
 import { useUsers } from "../data/usersStore";
-import { usePackages } from "../data/packagesStore";
-import { useTariffs } from "../data/tariffsStore";
 import { useCityCatalog } from "../data/cityCatalogStore";
+import { listPackages, listTariffs } from "../lib/api";
 import { usd } from "../lib/format";
 import { PageHead } from "../AppShell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,13 +22,26 @@ import {
 export function Overview() {
   const { companies } = useCompanies();
   const { users } = useUsers();
-  const { packages } = usePackages();
-  const { tariffs } = useTariffs();
   const { cityCatalog } = useCityCatalog();
+  const [packageStats, setPackageStats] = useState({ total: 0, active: 0 });
+  const [tariffStats, setTariffStats] = useState({ total: 0, active: 0 });
+
+  useEffect(() => {
+    listPackages({ pageSize: 100 })
+      .then((res) => {
+        const items = res.items ?? [];
+        setPackageStats({ total: items.length, active: items.filter((p) => p.isActive).length });
+      })
+      .catch(() => {});
+    listTariffs({ pageSize: 100 })
+      .then((res) => {
+        const items = res.items ?? [];
+        setTariffStats({ total: items.length, active: items.filter((t) => t.isActive).length });
+      })
+      .catch(() => {});
+  }, []);
 
   const activeCompanies = companies.filter((c) => c.status === "active").length;
-  const activePackages = packages.filter((p) => p.active).length;
-  const activeTariffs = tariffs.filter((t) => t.active).length;
   const recent = [...companies]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 6);
@@ -37,8 +50,8 @@ export function Overview() {
     { label: "Компании", value: companies.length, hint: `${activeCompanies} активных` },
     { label: "Доход / мес", value: usd(income.thisMonth), hint: `прошлый: ${usd(income.lastMonth)}` },
     { label: "Пользователи", value: users.length, hint: "во всех тенантах" },
-    { label: "Пакеты", value: packages.length, hint: `${activePackages} активных` },
-    { label: "Тарифы", value: tariffs.length, hint: `${activeTariffs} активных` },
+    { label: "Пакеты", value: packageStats.total, hint: `${packageStats.active} активных` },
+    { label: "Тарифы", value: tariffStats.total, hint: `${tariffStats.active} активных` },
     { label: "Города", value: cityCatalog.length, hint: "каталог" },
   ];
 

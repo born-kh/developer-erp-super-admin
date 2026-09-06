@@ -9,8 +9,11 @@ import {
   MapPin,
   Users,
 } from "lucide-react";
-import { AUTH_KEY } from "./auth";
+import { clearTokens } from "./auth";
+import { useCurrentUser } from "./data/currentUserStore";
+import { initials } from "./lib/format";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -62,13 +65,15 @@ export function AppShell() {
   const nav = useNavigate();
   const loc = useLocation();
   const [more, setMore] = useState(false);
+  const { user, clear: clearCurrentUser } = useCurrentUser();
 
   useEffect(() => {
     setMore(false);
   }, [loc.pathname]);
 
   const logout = () => {
-    localStorage.removeItem(AUTH_KEY);
+    clearTokens();
+    clearCurrentUser();
     nav("/login");
   };
 
@@ -125,7 +130,15 @@ export function AppShell() {
         <SidebarInset className="min-w-0 bg-background">
           <header className="sticky top-0 z-10 flex h-12 items-center justify-between border-b bg-card px-6 max-[860px]:px-3">
             <span className="text-sm font-medium">{currentTitle(loc.pathname)}</span>
-            <span className="text-xs text-muted-foreground">Admin</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-foreground max-[500px]:hidden">
+                {user?.fullName || user?.email || ""}
+              </span>
+              <Avatar size="sm">
+                {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName ?? ""} />}
+                <AvatarFallback>{user?.fullName ? initials(user.fullName) : "?"}</AvatarFallback>
+              </Avatar>
+            </div>
           </header>
           <div className="main-pad">
             <Outlet />
