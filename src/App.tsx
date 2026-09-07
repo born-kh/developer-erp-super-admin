@@ -5,7 +5,6 @@ import { AppShell } from "./AppShell";
 import { CurrentUserProvider } from "./data/currentUserStore";
 import { CompaniesProvider } from "./data/companiesStore";
 import { UsersProvider } from "./data/usersStore";
-import { RegionsProvider } from "./data/regionsStore";
 import { CityCatalogProvider } from "./data/cityCatalogStore";
 import { ModuleSettingsProvider } from "./data/moduleSettingsStore";
 import { Login } from "./pages/Login";
@@ -23,6 +22,8 @@ import { Permissions } from "./pages/Permissions";
 import { Roles } from "./pages/Roles";
 import { RoleDetail } from "./pages/RoleDetail";
 import { Cities } from "./pages/Cities";
+import { ActivityLogs } from "./pages/ActivityLogs";
+import { ActivityLogDetail } from "./pages/ActivityLogDetail";
 
 function Guard({ children }: { children: ReactNode }) {
   if (!isAuthenticated()) return <Navigate to="/login" replace />;
@@ -34,8 +35,7 @@ export default function App() {
     <CurrentUserProvider>
       <CompaniesProvider>
         <UsersProvider>
-          <RegionsProvider>
-            <CityCatalogProvider>
+          <CityCatalogProvider>
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
@@ -61,10 +61,11 @@ export default function App() {
                   <Route path="/roles" element={<Roles />} />
                   <Route path="/roles/:id" element={<RoleDetail />} />
                   <Route path="/cities" element={<Cities />} />
+                  <Route path="/activity-logs" element={<ActivityLogs />} />
+                  <Route path="/activity-logs/:id" element={<ActivityLogDetail />} />
                 </Route>
               </Routes>
             </CityCatalogProvider>
-          </RegionsProvider>
         </UsersProvider>
       </CompaniesProvider>
     </CurrentUserProvider>

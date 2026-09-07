@@ -4,6 +4,7 @@ import {
   Boxes,
   Building2,
   CreditCard,
+  History,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -63,6 +64,7 @@ export function AppShell() {
     { to: "/permissions", label: t.nav.permissions, icon: ShieldCheck },
     { to: "/roles", label: t.nav.roles, icon: KeyRound },
     { to: "/cities", label: t.nav.cities, icon: MapPin },
+    { to: "/activity-logs", label: t.nav.activityLogs, icon: History },
   ];
 
   const titles: Record<string, string> = {
@@ -74,12 +76,14 @@ export function AppShell() {
     "/permissions": t.nav.permissions,
     "/roles": t.nav.roles,
     "/cities": t.nav.cities,
+    "/activity-logs": t.nav.activityLogs,
   };
 
   const currentTitle = (pathname: string) => {
     if (pathname.startsWith("/companies/")) return t.titles.companyDetail;
     if (pathname.startsWith("/packages/")) return t.titles.packageDetail;
     if (pathname.startsWith("/roles/")) return t.titles.roleDetail;
+    if (pathname.startsWith("/activity-logs/")) return t.activityLogs.title;
     if (pathname === "/profile") return t.sidebar.profile;
     return titles[pathname] ?? t.titles.dashboard;
   };

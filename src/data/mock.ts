@@ -46,55 +46,6 @@ export const income = {
   lastMonth: 4120,
 };
 
-export type Region = {
-  id: string;
-  name: string;
-  description?: string;
-};
-
-export const regions: Region[] = [
-  { id: "tashkent-region", name: "Ташкентская область", description: "Область, окружающая столицу Ташкент." },
-  { id: "samarkand-region", name: "Самаркандская область", description: "Область с центром в городе Самарканд." },
-  { id: "bukhara-region", name: "Бухарская область", description: "Область с центром в городе Бухара." },
-  {
-    id: "fergana-region",
-    name: "Ферганская область",
-    description: "Область в Ферганской долине с центром в городе Фергана.",
-  },
-  {
-    id: "namangan-region",
-    name: "Наманганская область",
-    description: "Область в Ферганской долине с центром в городе Наманган.",
-  },
-  {
-    id: "andijan-region",
-    name: "Андижанская область",
-    description: "Область в Ферганской долине с центром в городе Андижан.",
-  },
-  {
-    id: "khorezm-region",
-    name: "Хорезмская область",
-    description: "Область на северо-западе страны с центром в городе Ургенч.",
-  },
-  {
-    id: "karakalpakstan",
-    name: "Республика Каракалпакстан",
-    description: "Автономная республика на северо-западе Узбекистана с центром в городе Нукус.",
-  },
-  {
-    id: "kashkadarya-region",
-    name: "Кашкадарьинская область",
-    description: "Область на юге страны с центром в городе Карши.",
-  },
-  {
-    id: "surkhandarya-region",
-    name: "Сурхандарьинская область",
-    description: "Область на юге страны с центром в городе Термез.",
-  },
-  { id: "jizzakh-region", name: "Джизакская область", description: "Область с центром в городе Джизак." },
-  { id: "syrdarya-region", name: "Сырдарьинская область", description: "Область с центром в городе Гулистан." },
-];
-
 export type CityItem = {
   id: string;
   name: string;
@@ -351,11 +302,4 @@ export const users: PlatformUser[] = [
   { id: "u4", name: "Мадина Юсупова", email: "madina@oxa.uz", role: "cashier", companyId: "oxa" },
   { id: "u6", name: "Demo Owner", email: "owner@nurbuild.uz", role: "owner", companyId: "demo" },
   { id: "u7", name: "Саодат Каримова", email: "saodat@nurbuild.uz", role: "sales", companyId: "demo" },
-];
-
-export const roleCards = [
-  { title: "Super Admin", text: "Создание компаний, тарифы, глобальные пользователи" },
-  { title: "Админ компании", text: "Здания, роли внутри пакета, сотрудники своей компании" },
-  { title: "Продажи", text: "Шахматка, бронь, договоры, покупатели" },
-  { title: "Касса", text: "Приём платежей, календарь, история оплат" },
 ];

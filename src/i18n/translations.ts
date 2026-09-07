@@ -17,6 +17,7 @@ export type Dict = {
     cities: string;
     permissions: string;
     roles: string;
+    activityLogs: string;
   };
   titles: {
     companyDetail: string;
@@ -56,7 +57,6 @@ export type Dict = {
     confirmDelete: string;
     name: string;
     city: string;
-    region: string;
     status: string;
     description: string;
     email: string;
@@ -321,14 +321,74 @@ export type Dict = {
     addCity: string;
     noCitiesYet: string;
     addCityAction: string;
-    noRegion: string;
     deleteDesc: string;
     modalTitleEdit: string;
     modalTitleCreate: string;
-    noRegions: string;
-    addRegionLabel: string;
-    newRegionTitle: string;
-    toasts: { citySaved: string; cityCreated: string; cityDeleted: string; regionCreated: string };
+    nameLang: (lang: string) => string;
+    order: string;
+    errors: { loadCities: string; saveCity: string; deleteCity: string };
+    toasts: { citySaved: string; cityCreated: string; cityDeleted: string };
+  };
+  activityLogs: {
+    title: string;
+    filters: {
+      entityId: string;
+      entityIdPlaceholder: string;
+      activityCode: string;
+      activityCodePlaceholder: string;
+      creator: string;
+      creatorPlaceholder: string;
+      email: string;
+      emailPlaceholder: string;
+      ipAddress: string;
+      ipAddressPlaceholder: string;
+      serviceName: string;
+      serviceNamePlaceholder: string;
+      sessionId: string;
+      sessionIdPlaceholder: string;
+      requestId: string;
+      requestIdPlaceholder: string;
+      type: string;
+      typeNotSelected: string;
+      period: string;
+      periodFrom: string;
+      periodTo: string;
+      toggle: string;
+    };
+    types: {
+      created: string;
+      updated: string;
+      deleted: string;
+      viewed: string;
+    };
+    tableCreator: string;
+    tableActivity: string;
+    tableType: string;
+    tableService: string;
+    tableCreatedAt: string;
+    noLogsYet: string;
+    detail: {
+      module: string;
+      activityType: string;
+      code: string;
+      action: string;
+      creator: string;
+      email: string;
+      ipAddress: string;
+      date: string;
+      createdAtTime: (time: string) => string;
+      entityType: string;
+      systemName: string;
+      id: string;
+      entityId: string;
+      sessionId: string;
+      requestId: string;
+      data: string;
+      notAvailable: string;
+      copied: string;
+      notFound: string;
+    };
+    errors: { loadLogs: string; loadDetail: string };
   };
   resetPassword: {
     lead: string;
@@ -353,6 +413,7 @@ export const translations: Record<Language, Dict> = {
       cities: "Города",
       permissions: "Права доступа",
       roles: "Роли",
+      activityLogs: "Журнал активности",
     },
     titles: {
       companyDetail: "Компания",
@@ -392,7 +453,6 @@ export const translations: Record<Language, Dict> = {
       confirmDelete: "Да, удалить",
       name: "Название",
       city: "Город",
-      region: "Регион",
       status: "Статус",
       description: "Описание",
       email: "Email",
@@ -670,19 +730,82 @@ export const translations: Record<Language, Dict> = {
       addCity: "+ Добавить город",
       noCitiesYet: "Городов пока нет.",
       addCityAction: "Добавить город",
-      noRegion: "Без региона",
-      deleteDesc: "Город будет удалён из каталога.",
+      deleteDesc: "Город будет удалён без возможности восстановления.",
       modalTitleEdit: "Редактировать город",
       modalTitleCreate: "Новый город",
-      noRegions: "Нет регионов",
-      addRegionLabel: "Добавить регион",
-      newRegionTitle: "Новый регион",
+      nameLang: (lang) => `Название (${lang})`,
+      order: "Порядок",
+      errors: {
+        loadCities: "Не удалось загрузить города",
+        saveCity: "Не удалось сохранить город",
+        deleteCity: "Не удалось удалить город",
+      },
       toasts: {
         citySaved: "Город сохранён",
         cityCreated: "Город создан",
         cityDeleted: "Город удалён",
-        regionCreated: "Регион создан",
       },
+    },
+    activityLogs: {
+      title: "Журнал активности",
+      filters: {
+        entityId: "ID сущности",
+        entityIdPlaceholder: "Введите ID сущности",
+        activityCode: "Тип активности",
+        activityCodePlaceholder: "Введите тип активности",
+        creator: "Создатель",
+        creatorPlaceholder: "Введите имя пользователя",
+        email: "Эл. почта",
+        emailPlaceholder: "Введите адрес электронной почты",
+        ipAddress: "IP-адрес",
+        ipAddressPlaceholder: "Введите IP-адрес",
+        serviceName: "Название системы",
+        serviceNamePlaceholder: "Введите название системы",
+        sessionId: "Идентификатор сессии",
+        sessionIdPlaceholder: "Введите идентификатор сессии",
+        requestId: "Идентификатор запроса",
+        requestIdPlaceholder: "Введите идентификатор запроса",
+        type: "Тип",
+        typeNotSelected: "Не выбрано",
+        period: "Время действия",
+        periodFrom: "Начало периода",
+        periodTo: "Конец периода",
+        toggle: "Все фильтры",
+      },
+      types: {
+        created: "Создано",
+        updated: "Обновлено",
+        deleted: "Удалено",
+        viewed: "Просмотрено",
+      },
+      tableCreator: "Имя создателя",
+      tableActivity: "Название типа активности",
+      tableType: "Тип",
+      tableService: "Название системы",
+      tableCreatedAt: "Дата создания",
+      noLogsYet: "Записи не найдены.",
+      detail: {
+        module: "Модуль",
+        activityType: "Тип активности",
+        code: "Код",
+        action: "Действие",
+        creator: "Создатель",
+        email: "Эл. почта",
+        ipAddress: "IP-адрес",
+        date: "Дата",
+        createdAtTime: (time) => `Дата создания в ${time}`,
+        entityType: "Тип сущности",
+        systemName: "Название системы",
+        id: "ID",
+        entityId: "ID сущности",
+        sessionId: "Идентификатор сессии",
+        requestId: "Идентификатор запроса",
+        data: "Данные",
+        notAvailable: "—",
+        copied: "Скопировано",
+        notFound: "Запись не найдена.",
+      },
+      errors: { loadLogs: "Не удалось загрузить журнал активности", loadDetail: "Не удалось загрузить запись" },
     },
     resetPassword: {
       lead: "Придумайте новый пароль для входа.",
@@ -710,6 +833,7 @@ export const translations: Record<Language, Dict> = {
       cities: "Cities",
       permissions: "Permissions",
       roles: "Roles",
+      activityLogs: "Activity Log",
     },
     titles: {
       companyDetail: "Company",
@@ -749,7 +873,6 @@ export const translations: Record<Language, Dict> = {
       confirmDelete: "Yes, delete",
       name: "Name",
       city: "City",
-      region: "Region",
       status: "Status",
       description: "Description",
       email: "Email",
@@ -1027,19 +1150,82 @@ export const translations: Record<Language, Dict> = {
       addCity: "+ Add city",
       noCitiesYet: "No cities yet.",
       addCityAction: "Add city",
-      noRegion: "No region",
-      deleteDesc: "The city will be removed from the catalog.",
+      deleteDesc: "The city will be permanently deleted.",
       modalTitleEdit: "Edit city",
       modalTitleCreate: "New city",
-      noRegions: "No regions",
-      addRegionLabel: "Add region",
-      newRegionTitle: "New region",
+      nameLang: (lang) => `Name (${lang})`,
+      order: "Order",
+      errors: {
+        loadCities: "Failed to load cities",
+        saveCity: "Failed to save the city",
+        deleteCity: "Failed to delete the city",
+      },
       toasts: {
         citySaved: "City saved",
         cityCreated: "City created",
         cityDeleted: "City deleted",
-        regionCreated: "Region created",
       },
+    },
+    activityLogs: {
+      title: "Activity Log",
+      filters: {
+        entityId: "Entity ID",
+        entityIdPlaceholder: "Enter entity ID",
+        activityCode: "Activity type",
+        activityCodePlaceholder: "Enter activity type",
+        creator: "Creator",
+        creatorPlaceholder: "Enter user name",
+        email: "Email",
+        emailPlaceholder: "Enter email address",
+        ipAddress: "IP address",
+        ipAddressPlaceholder: "Enter IP address",
+        serviceName: "Service name",
+        serviceNamePlaceholder: "Enter service name",
+        sessionId: "Session ID",
+        sessionIdPlaceholder: "Enter session ID",
+        requestId: "Request ID",
+        requestIdPlaceholder: "Enter request ID",
+        type: "Type",
+        typeNotSelected: "Not selected",
+        period: "Time range",
+        periodFrom: "Period start",
+        periodTo: "Period end",
+        toggle: "All filters",
+      },
+      types: {
+        created: "Created",
+        updated: "Updated",
+        deleted: "Deleted",
+        viewed: "Viewed",
+      },
+      tableCreator: "Creator name",
+      tableActivity: "Activity type",
+      tableType: "Type",
+      tableService: "Service name",
+      tableCreatedAt: "Created at",
+      noLogsYet: "No records found.",
+      detail: {
+        module: "Module",
+        activityType: "Activity type",
+        code: "Code",
+        action: "Action",
+        creator: "Creator",
+        email: "Email",
+        ipAddress: "IP address",
+        date: "Date",
+        createdAtTime: (time) => `Created at ${time}`,
+        entityType: "Entity type",
+        systemName: "System name",
+        id: "ID",
+        entityId: "Entity ID",
+        sessionId: "Session ID",
+        requestId: "Request ID",
+        data: "Data",
+        notAvailable: "—",
+        copied: "Copied",
+        notFound: "Record not found.",
+      },
+      errors: { loadLogs: "Failed to load the activity log", loadDetail: "Failed to load the record" },
     },
     resetPassword: {
       lead: "Come up with a new sign-in password.",
@@ -1067,6 +1253,7 @@ export const translations: Record<Language, Dict> = {
       cities: "Шаҳрҳо",
       permissions: "Ҳуқуқҳои дастрасӣ",
       roles: "Нақшҳо",
+      activityLogs: "Рӯзномаи фаъолият",
     },
     titles: {
       companyDetail: "Ширкат",
@@ -1106,7 +1293,6 @@ export const translations: Record<Language, Dict> = {
       confirmDelete: "Ҳа, нест кардан",
       name: "Ном",
       city: "Шаҳр",
-      region: "Минтақа",
       status: "Ҳолат",
       description: "Тавсиф",
       email: "Email",
@@ -1384,19 +1570,82 @@ export const translations: Record<Language, Dict> = {
       addCity: "+ Иловаи шаҳр",
       noCitiesYet: "Ҳанӯз шаҳре нест.",
       addCityAction: "Иловаи шаҳр",
-      noRegion: "Бе минтақа",
-      deleteDesc: "Шаҳр аз феҳрист нест карда мешавад.",
+      deleteDesc: "Шаҳр бебозгашт нест карда мешавад.",
       modalTitleEdit: "Таҳрири шаҳр",
       modalTitleCreate: "Шаҳри нав",
-      noRegions: "Минтақа нест",
-      addRegionLabel: "Иловаи минтақа",
-      newRegionTitle: "Минтақаи нав",
+      nameLang: (lang) => `Ном (${lang})`,
+      order: "Тартиб",
+      errors: {
+        loadCities: "Боргирии шаҳрҳо ноком шуд",
+        saveCity: "Захираи шаҳр ноком шуд",
+        deleteCity: "Несткунии шаҳр ноком шуд",
+      },
       toasts: {
         citySaved: "Шаҳр захира шуд",
         cityCreated: "Шаҳр эҷод шуд",
         cityDeleted: "Шаҳр нест карда шуд",
-        regionCreated: "Минтақа эҷод шуд",
       },
+    },
+    activityLogs: {
+      title: "Рӯзномаи фаъолият",
+      filters: {
+        entityId: "ID-и объект",
+        entityIdPlaceholder: "ID-и объектро ворид кунед",
+        activityCode: "Навъи фаъолият",
+        activityCodePlaceholder: "Навъи фаъолиятро ворид кунед",
+        creator: "Эҷодкунанда",
+        creatorPlaceholder: "Номи корбарро ворид кунед",
+        email: "Email",
+        emailPlaceholder: "Суроғаи email-ро ворид кунед",
+        ipAddress: "Суроғаи IP",
+        ipAddressPlaceholder: "Суроғаи IP-ро ворид кунед",
+        serviceName: "Номи хидмат",
+        serviceNamePlaceholder: "Номи хидматро ворид кунед",
+        sessionId: "Идентификатори сессия",
+        sessionIdPlaceholder: "Идентификатори сессияро ворид кунед",
+        requestId: "Идентификатори дархост",
+        requestIdPlaceholder: "Идентификатори дархостро ворид кунед",
+        type: "Навъ",
+        typeNotSelected: "Интихоб нашудааст",
+        period: "Давраи амал",
+        periodFrom: "Огози давра",
+        periodTo: "Охири давра",
+        toggle: "Ҳамаи филтрҳо",
+      },
+      types: {
+        created: "Эҷод шуд",
+        updated: "Навсозӣ шуд",
+        deleted: "Нест карда шуд",
+        viewed: "Дида шуд",
+      },
+      tableCreator: "Номи эҷодкунанда",
+      tableActivity: "Номи навъи фаъолият",
+      tableType: "Навъ",
+      tableService: "Номи хидмат",
+      tableCreatedAt: "Санаи эҷод",
+      noLogsYet: "Сабт ёфт нашуд.",
+      detail: {
+        module: "Модул",
+        activityType: "Навъи фаъолият",
+        code: "Код",
+        action: "Амал",
+        creator: "Эҷодкунанда",
+        email: "Email",
+        ipAddress: "Суроғаи IP",
+        date: "Сана",
+        createdAtTime: (time) => `Санаи эҷод дар ${time}`,
+        entityType: "Навъи объект",
+        systemName: "Номи система",
+        id: "ID",
+        entityId: "ID-и объект",
+        sessionId: "Идентификатори сессия",
+        requestId: "Идентификатори дархост",
+        data: "Маълумот",
+        notAvailable: "—",
+        copied: "Нусхабардорӣ шуд",
+        notFound: "Сабт ёфт нашуд.",
+      },
+      errors: { loadLogs: "Боргирии рӯзномаи фаъолият ноком шуд", loadDetail: "Боргирии сабт ноком шуд" },
     },
     resetPassword: {
       lead: "Барои воридшавӣ пароли нави худро таъин кунед.",

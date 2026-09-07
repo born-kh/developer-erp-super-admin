@@ -1,3 +1,30 @@
+const DATE_LOCALES: Record<string, string> = { ru: "ru-RU", en: "en-US", tj: "tg-TJ" };
+
+export function formatDateTime(iso: string, language: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat(DATE_LOCALES[language] ?? language, {
+    dateStyle: "long",
+    timeStyle: "medium",
+  }).format(date);
+}
+
+export function formatDate(iso: string, language: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat(DATE_LOCALES[language] ?? language, {
+    dateStyle: "long",
+  }).format(date);
+}
+
+export function formatTime(iso: string, language: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat(DATE_LOCALES[language] ?? language, {
+    timeStyle: "short",
+  }).format(date);
+}
+
 export const usd = (n: number) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",

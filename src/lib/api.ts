@@ -9,6 +9,20 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 // The backend uses "tg" for Tajik, while the app's internal language code is "tj".
 const ACCEPT_LANGUAGE: Record<Language, string> = { ru: "ru", en: "en", tj: "tg" };
 
+// Browsers don't expose the client's public IP directly, so it's resolved once
+// via an external lookup and cached for the lifetime of the page.
+let clientIpPromise: Promise<string | null> | null = null;
+
+function getClientIp(): Promise<string | null> {
+  if (!clientIpPromise) {
+    clientIpPromise = fetch("https://api.ipify.org?format=json")
+      .then((res) => res.json())
+      .then((data) => (typeof data?.ip === "string" ? data.ip : null))
+      .catch(() => null);
+  }
+  return clientIpPromise;
+}
+
 export type TokenInfo = {
   accessToken: string;
   refreshToken: string;
@@ -56,11 +70,13 @@ export class ApiRequestError extends Error {
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let res: Response;
   try {
+    const clientIp = await getClientIp();
     res = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
         "Accept-Language": ACCEPT_LANGUAGE[getStoredLanguage()],
+        ...(clientIp ? { "X-Real-IP": clientIp } : {}),
         ...options.headers,
       },
     });
@@ -635,4 +651,116 @@ export function removeTariffPackages(tariffId: string, packageIds: string[]) {
     method: "DELETE",
     body: JSON.stringify(packageIds),
   });
+}
+
+export type CityListItem = {
+  id: string;
+  name?: string | null;
+  order: number;
+};
+
+export type CityDetail = {
+  id: string;
+  nameTranslations?: Record<string, string> | null;
+  order: number;
+};
+
+export type CreateCityInput = {
+  nameTranslations: Record<string, string>;
+};
+
+export type UpdateCityInput = {
+  order: number;
+  nameTranslations: Record<string, string>;
+};
+
+export function listCities(
+  params: { search?: string; page?: number; pageSize?: number } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.search) query.set("Search", params.search);
+  query.set("Page", String(params.page ?? 1));
+  query.set("PageSize", String(params.pageSize ?? 100));
+  return authRequest<PagedResult<CityListItem>>(`/core/api/cities?${query.toString()}`);
+}
+
+export function getCity(id: string) {
+  return authRequest<CityDetail>(`/core/api/cities/${id}`);
+}
+
+export function createCity(data: CreateCityInput) {
+  return authRequest<unknown>("/core/api/cities", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateCity(id: string, data: UpdateCityInput) {
+  return authRequest<unknown>(`/core/api/cities/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteCity(id: string) {
+  return authRequest<unknown>(`/core/api/cities/${id}`, { method: "DELETE" });
+}
+
+export type ActivityLogItem = {
+  id: string;
+  entityId?: string | null;
+  creatorId: string;
+  creatorName?: string | null;
+  activityCode?: string | null;
+  activityTitle?: string | null;
+  serviceName?: string | null;
+  type?: string | null;
+  createdAt: string;
+};
+
+export type ActivityLogDetail = ActivityLogItem & {
+  payload?: string | null;
+  entityType?: string | null;
+  sessionId?: string | null;
+  requestId?: string | null;
+  creatorEmail?: string | null;
+  creatorIpAddress?: string | null;
+};
+
+export function listActivityLogs(
+  params: {
+    entityId?: string;
+    activityCode?: string;
+    serviceName?: string;
+    sessionId?: string;
+    requestId?: string;
+    type?: string;
+    creatorId?: string;
+    creatorIpAddress?: string;
+    creatorEmail?: string;
+    createdFrom?: string;
+    createdTo?: string;
+    page?: number;
+    pageSize?: number;
+  } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.entityId) query.set("EntityId", params.entityId);
+  if (params.activityCode) query.set("ActivityCode", params.activityCode);
+  if (params.serviceName) query.set("ServiceName", params.serviceName);
+  if (params.sessionId) query.set("SessionId", params.sessionId);
+  if (params.requestId) query.set("RequestId", params.requestId);
+  if (params.type) query.set("Type", params.type);
+  if (params.creatorId) query.set("CreatorId", params.creatorId);
+  if (params.creatorIpAddress) query.set("CreatorIpAddress", params.creatorIpAddress);
+  if (params.creatorEmail) query.set("CreatorEmail", params.creatorEmail);
+  if (params.createdFrom) query.set("CreatedFrom", params.createdFrom);
+  if (params.createdTo) query.set("CreatedTo", params.createdTo);
+  query.set("Page", String(params.page ?? 1));
+  query.set("PageSize", String(params.pageSize ?? 100));
+  return authRequest<PagedResult<ActivityLogItem>>(`/core/api/activity-logs?${query.toString()}`);
+}
+
+export function getActivityLog(id: string) {
+  return authRequest<ActivityLogDetail>(`/core/api/activity-logs/${id}`);
 }

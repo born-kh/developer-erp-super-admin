@@ -1,10 +1,16 @@
-import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { type CityItem } from "../data/mock";
-import { useCityCatalog } from "../data/cityCatalogStore";
-import { useRegions } from "../data/regionsStore";
+import {
+  createCity,
+  deleteCity,
+  getCity,
+  listCities,
+  updateCity,
+  ApiRequestError,
+  type CityListItem,
+} from "../lib/api";
 import { useTranslation } from "../i18n/LanguageContext";
+import { useModuleSettings } from "../data/moduleSettingsStore";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -21,13 +27,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -35,91 +34,125 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
+
+type Translations = Record<string, string>;
 
 type CityForm = {
-  name: string;
-  regionId: string;
-  description: string;
+  nameTranslations: Translations;
+  order: string;
 };
 
-type RegionForm = {
-  name: string;
-  description: string;
-};
+const emptyTranslations = (langs: string[]): Translations =>
+  Object.fromEntries(langs.map((l) => [l, ""]));
 
-const emptyCityForm: CityForm = { name: "", regionId: "", description: "" };
-const emptyRegionForm: RegionForm = { name: "", description: "" };
+function toTranslations(source: Record<string, string> | null | undefined, langs: string[]): Translations {
+  return Object.fromEntries(langs.map((l) => [l, source?.[l] ?? ""]));
+}
+
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof ApiRequestError ? err.message : fallback;
+}
 
 export function Cities() {
   const { t } = useTranslation();
-  const { cityCatalog, addCity, updateCity, deleteCity } = useCityCatalog();
-  const { regions, addRegion } = useRegions();
+  const { settings } = useModuleSettings();
+  const langs = settings.supportedLanguages;
+  const defaultLang = settings.defaultLanguage;
+  const makeEmptyForm = (): CityForm => ({ nameTranslations: emptyTranslations(langs), order: "0" });
+
+  const [cities, setCities] = useState<CityListItem[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
   const [modal, setModal] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
-  const [form, setForm] = useState<CityForm>(emptyCityForm);
+  const [form, setForm] = useState<CityForm>(() => makeEmptyForm());
+  const [activeLang, setActiveLang] = useState<string>(defaultLang);
+  const [submitting, setSubmitting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const [regionModalOpen, setRegionModalOpen] = useState(false);
-  const [regionForm, setRegionForm] = useState<RegionForm>(emptyRegionForm);
+  const fetchCities = async (pageArg: number) => {
+    setLoadingList(true);
+    try {
+      const res = await listCities({ page: pageArg, pageSize: PAGE_SIZE });
+      setCities(res.items ?? []);
+      setHasNextPage(res.pagination.hasNextPage);
+      setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
+    } catch (err) {
+      toast.error(errorMessage(err, t.cities.errors.loadCities));
+    } finally {
+      setLoadingList(false);
+    }
+  };
 
-  const pageCount = Math.max(1, Math.ceil(cityCatalog.length / PAGE_SIZE));
-  const current = Math.min(page, pageCount);
-  const pageItems = useMemo(
-    () => cityCatalog.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
-    [cityCatalog, current],
-  );
+  useEffect(() => {
+    fetchCities(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
-  const set = <K extends keyof CityForm>(key: K, value: CityForm[K]) =>
-    setForm((f) => ({ ...f, [key]: value }));
+  const setName = (lang: string, value: string) =>
+    setForm((f) => ({ ...f, nameTranslations: { ...f.nameTranslations, [lang]: value } }));
 
   const openCreate = () => {
-    setForm({ ...emptyCityForm, regionId: regions[0]?.id ?? "" });
+    setForm(makeEmptyForm());
+    setActiveLang(defaultLang);
     setModal({ mode: "create" });
   };
 
-  const openEdit = (c: CityItem) => {
-    setForm({ name: c.name, regionId: c.regionId, description: c.description ?? "" });
-    setModal({ mode: "edit", id: c.id });
-  };
-
-  const submit = () => {
-    if (!form.name.trim() || !form.regionId) return;
-    const payload = {
-      name: form.name.trim(),
-      regionId: form.regionId,
-      description: form.description,
-    };
-    if (modal?.mode === "edit" && modal.id) {
-      updateCity(modal.id, payload);
-      toast.success(t.cities.toasts.citySaved);
-    } else {
-      addCity(payload);
-      toast.success(t.cities.toasts.cityCreated);
+  const openEdit = async (row: CityListItem) => {
+    setForm(makeEmptyForm());
+    setActiveLang(defaultLang);
+    setModal({ mode: "edit", id: row.id });
+    try {
+      const detail = await getCity(row.id);
+      setForm({
+        nameTranslations: toTranslations(detail.nameTranslations, langs),
+        order: String(detail.order),
+      });
+    } catch (err) {
+      toast.error(errorMessage(err, t.cities.errors.loadCities));
     }
-    setModal(null);
   };
 
-  const remove = (id: string) => {
-    deleteCity(id);
-    setConfirmDeleteId(null);
-    toast.success(t.cities.toasts.cityDeleted);
+  const collectTranslations = (translations: Translations) =>
+    Object.fromEntries(langs.filter((l) => translations[l]?.trim()).map((l) => [l, translations[l].trim()]));
+
+  const submit = async () => {
+    if (!form.nameTranslations[defaultLang]?.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      if (modal?.mode === "edit" && modal.id) {
+        await updateCity(modal.id, {
+          order: Number(form.order) || 0,
+          nameTranslations: collectTranslations(form.nameTranslations),
+        });
+        toast.success(t.cities.toasts.citySaved);
+      } else {
+        await createCity({ nameTranslations: collectTranslations(form.nameTranslations) });
+        toast.success(t.cities.toasts.cityCreated);
+      }
+      await fetchCities(page);
+      setModal(null);
+    } catch (err) {
+      toast.error(errorMessage(err, t.cities.errors.saveCity));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const openRegionModal = () => {
-    setRegionForm(emptyRegionForm);
-    setRegionModalOpen(true);
-  };
-
-  const submitRegion = () => {
-    if (!regionForm.name.trim()) return;
-    const id = addRegion({ name: regionForm.name.trim(), description: regionForm.description });
-    set("regionId", id);
-    setRegionModalOpen(false);
-    toast.success(t.cities.toasts.regionCreated);
+  const remove = async (id: string) => {
+    try {
+      await deleteCity(id);
+      toast.success(t.cities.toasts.cityDeleted);
+      await fetchCities(page);
+    } catch (err) {
+      toast.error(errorMessage(err, t.cities.errors.deleteCity));
+    } finally {
+      setConfirmDeleteId(null);
+    }
   };
 
   return (
@@ -133,7 +166,7 @@ export function Cities() {
         }
       />
 
-      {pageItems.length === 0 ? (
+      {!loadingList && cities.length === 0 ? (
         <EmptyState
           title={t.cities.noCitiesYet}
           action={
@@ -149,22 +182,25 @@ export function Cities() {
               <TableRow>
                 <TableHead className="w-10">{t.common.rowNumber}</TableHead>
                 <TableHead>{t.common.city}</TableHead>
-                <TableHead>{t.common.region}</TableHead>
-                <TableHead>{t.common.description}</TableHead>
+                <TableHead className="w-24">{t.cities.order}</TableHead>
                 <TableHead className="text-right">{t.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pageItems.map((c, index) => {
-                const region = regions.find((r) => r.id === c.regionId);
-                return (
+              {loadingList ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    {t.common.loading}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                cities.map((c, index) => (
                   <TableRow key={c.id}>
                     <TableCell className="tabular-nums text-muted-foreground">
-                      {(current - 1) * PAGE_SIZE + index + 1}
+                      {(page - 1) * PAGE_SIZE + index + 1}
                     </TableCell>
-                    <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{region?.name ?? t.cities.noRegion}</TableCell>
-                    <TableCell className="max-w-xs truncate text-muted-foreground">{c.description || "—"}</TableCell>
+                    <TableCell className="font-medium">{c.name || "—"}</TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">{c.order}</TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex gap-1.5">
                         <Button type="button" variant="outline" size="sm" onClick={() => openEdit(c)}>
@@ -176,14 +212,20 @@ export function Cities() {
                       </div>
                     </TableCell>
                   </TableRow>
-                );
-              })}
+                ))
+              )}
             </TableBody>
           </Table>
         </Card>
       )}
 
-      <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
+      <AppPagination
+        page={page}
+        onPage={setPage}
+        hasNextPage={hasNextPage}
+        hasPreviousPage={hasPreviousPage}
+        alwaysShow
+      />
 
       <ConfirmDialog
         open={Boolean(confirmDeleteId)}
@@ -198,70 +240,50 @@ export function Cities() {
             <DialogTitle>{modal?.mode === "edit" ? t.cities.modalTitleEdit : t.cities.modalTitleCreate}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <Field label={t.common.name}>
-              <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
+            <div className="flex gap-1">
+              {langs.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setActiveLang(l)}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                    activeLang === l
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {l.toUpperCase()}
+                  {l === defaultLang && !form.nameTranslations[defaultLang]?.trim() ? " *" : ""}
+                </button>
+              ))}
+            </div>
+            <Field label={t.cities.nameLang(activeLang.toUpperCase())}>
+              <Input
+                value={form.nameTranslations[activeLang] ?? ""}
+                onChange={(e) => setName(activeLang, e.target.value)}
+                autoFocus
+              />
             </Field>
-            <Field label={t.common.region}>
-              <div className="region-pick">
-                <Select value={form.regionId || undefined} onValueChange={(v) => set("regionId", v)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={t.cities.noRegions} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {regions.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        {r.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" size="icon" onClick={openRegionModal} aria-label={t.cities.addRegionLabel}>
-                  <Plus />
-                </Button>
-              </div>
-            </Field>
-            <Field label={t.common.description}>
-              <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
-            </Field>
+            {modal?.mode === "edit" && (
+              <Field label={t.cities.order}>
+                <Input
+                  type="number"
+                  value={form.order}
+                  onChange={(e) => setForm((f) => ({ ...f, order: e.target.value }))}
+                />
+              </Field>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setModal(null)}>
               {t.common.cancel}
             </Button>
-            <Button type="button" disabled={!form.name.trim() || !form.regionId} onClick={submit}>
+            <Button
+              type="button"
+              disabled={!form.nameTranslations[defaultLang]?.trim() || submitting}
+              onClick={submit}
+            >
               {modal?.mode === "edit" ? t.common.save : t.common.create}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={regionModalOpen} onOpenChange={setRegionModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t.cities.newRegionTitle}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3">
-            <Field label={t.common.name}>
-              <Input
-                value={regionForm.name}
-                onChange={(e) => setRegionForm((f) => ({ ...f, name: e.target.value }))}
-                autoFocus
-              />
-            </Field>
-            <Field label={t.common.description}>
-              <Textarea
-                rows={3}
-                value={regionForm.description}
-                onChange={(e) => setRegionForm((f) => ({ ...f, description: e.target.value }))}
-              />
-            </Field>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setRegionModalOpen(false)}>
-              {t.common.cancel}
-            </Button>
-            <Button type="button" disabled={!regionForm.name.trim()} onClick={submitRegion}>
-              {t.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>

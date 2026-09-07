@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
@@ -5,6 +6,7 @@ import {
   PaginationItem,
 } from "@/components/ui/pagination";
 import { useTranslation } from "@/i18n/LanguageContext";
+import { cn } from "@/lib/utils";
 
 export function AppPagination({
   page,
@@ -13,6 +15,7 @@ export function AppPagination({
   hasNextPage,
   hasPreviousPage,
   alwaysShow,
+  className,
 }: {
   page: number;
   /** Total number of pages, when known upfront (client-side pagination). */
@@ -23,6 +26,7 @@ export function AppPagination({
   hasPreviousPage?: boolean;
   /** Keep the control visible even when there is only one page. */
   alwaysShow?: boolean;
+  className?: string;
 }) {
   const { t } = useTranslation();
   const serverMode = pageCount === undefined;
@@ -33,35 +37,18 @@ export function AppPagination({
   const canGoNext = serverMode ? Boolean(hasNextPage) : page < pageCount;
 
   return (
-    <Pagination className="mt-4.5 justify-start">
+    <Pagination className={cn("mt-4.5 justify-center", className)}>
       <PaginationContent>
         <PaginationItem>
           <Button variant="outline" size="sm" disabled={!canGoBack} onClick={() => onPage(page - 1)}>
+            <ChevronLeft />
             {t.common.back}
           </Button>
         </PaginationItem>
-        {serverMode ? (
-          <PaginationItem>
-            <Button variant="default" size="icon-sm" disabled>
-              {page}
-            </Button>
-          </PaginationItem>
-        ) : (
-          Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
-            <PaginationItem key={n}>
-              <Button
-                variant={n === page ? "default" : "outline"}
-                size="icon-sm"
-                onClick={() => onPage(n)}
-              >
-                {n}
-              </Button>
-            </PaginationItem>
-          ))
-        )}
         <PaginationItem>
           <Button variant="outline" size="sm" disabled={!canGoNext} onClick={() => onPage(page + 1)}>
             {t.common.next}
+            <ChevronRight />
           </Button>
         </PaginationItem>
       </PaginationContent>
