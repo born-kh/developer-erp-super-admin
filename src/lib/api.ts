@@ -293,6 +293,79 @@ export function listRoles(params: { search?: string; page?: number; pageSize?: n
   return authRequest<PagedResult<RoleLookup>>(`/core/api/roles?${query.toString()}`);
 }
 
+export type RoleUser = {
+  userId: string;
+  fullName?: string | null;
+};
+
+export type RoleDetail = {
+  id: string;
+  code?: string | null;
+  titleTranslations?: Record<string, string> | null;
+  users?: RoleUser[] | null;
+};
+
+export type RoleInput = {
+  code: string;
+  titleTranslations: Record<string, string>;
+};
+
+export function getRole(id: string) {
+  return authRequest<RoleDetail>(`/core/api/roles/${id}`);
+}
+
+export function createRole(data: RoleInput) {
+  return authRequest<RoleDetail>("/core/api/roles", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateRole(id: string, data: RoleInput) {
+  return authRequest<RoleDetail>(`/core/api/roles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteRole(id: string) {
+  return authRequest<unknown>(`/core/api/roles/${id}`, { method: "DELETE" });
+}
+
+export function duplicateRole(id: string, data: RoleInput) {
+  return authRequest<RoleDetail>(`/core/api/roles/${id}/duplicate`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function removeRoleUser(roleId: string, userId: string) {
+  return authRequest<RoleDetail>(`/core/api/roles/${roleId}/users/${userId}`, { method: "DELETE" });
+}
+
+// The backend's OpenAPI schema for this endpoint is mislabeled (named after the
+// item type, no Page/PageSize params) but it returns a flat list, not a single item.
+export function getRolePermissions(roleId: string, search?: string) {
+  const query = new URLSearchParams();
+  if (search) query.set("Search", search);
+  const qs = query.toString();
+  return authRequest<PermissionLookup[]>(`/core/api/roles/${roleId}/permissions${qs ? `?${qs}` : ""}`);
+}
+
+export function addRolePermissions(roleId: string, permissionIds: string[]) {
+  return authRequest<{ changed: boolean }>(`/core/api/roles/${roleId}/permissions`, {
+    method: "POST",
+    body: JSON.stringify(permissionIds),
+  });
+}
+
+export function removeRolePermissions(roleId: string, permissionIds: string[]) {
+  return authRequest<{ changed: boolean }>(`/core/api/roles/${roleId}/permissions`, {
+    method: "DELETE",
+    body: JSON.stringify(permissionIds),
+  });
+}
+
 export type ModuleDefaultOptions = {
   defaultLanguage: string;
   nationalCurrencyCode: string;
@@ -424,6 +497,51 @@ export function listPermissionGroups() {
   return authRequest<PagedResult<PermissionGroupWithPermissions>>(
     "/core/api/permissions/group-with-permissions",
   );
+}
+
+export type PermissionGroupListItem = {
+  id: string;
+  code?: string | null;
+  title?: string | null;
+};
+
+export type PermissionGroupDetail = {
+  id: string;
+  code?: string | null;
+  titleTranslations?: Record<string, string> | null;
+};
+
+export type PermissionDetail = {
+  id: string;
+  code?: string | null;
+  group?: string | null;
+  titleTranslations?: Record<string, string> | null;
+};
+
+export function listPermissionGroupsFlat() {
+  return authRequest<PagedResult<PermissionGroupListItem>>("/core/api/permissions/groups");
+}
+
+export function getPermissionGroup(id: string) {
+  return authRequest<PermissionGroupDetail>(`/core/api/permissions/groups/${id}`);
+}
+
+export function updatePermissionGroup(id: string, titleTranslations: Record<string, string>) {
+  return authRequest<unknown>(`/core/api/permissions/groups/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ titleTranslations }),
+  });
+}
+
+export function getPermission(id: string) {
+  return authRequest<PermissionDetail>(`/core/api/permissions/${id}`);
+}
+
+export function updatePermission(id: string, titleTranslations: Record<string, string>) {
+  return authRequest<unknown>(`/core/api/permissions/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ titleTranslations }),
+  });
 }
 
 export type TariffListItem = {

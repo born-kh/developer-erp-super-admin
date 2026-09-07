@@ -113,6 +113,7 @@ export function UserDetail() {
   }
 
   const displayName = user.fullName || user.email || user.id;
+  const roleTitleById = new Map(allRoles.map((role) => [role.id, role.title]));
 
   const startEdit = () => {
     setForm({
@@ -299,7 +300,7 @@ export function UserDetail() {
             <div className="flex flex-wrap gap-1">
               {assignedRoles.map((r) => (
                 <span className="tag-chip static" key={r.roleId}>
-                  {r.title || r.code}
+                  {roleTitleById.get(r.roleId) || r.title || r.code}
                 </span>
               ))}
             </div>

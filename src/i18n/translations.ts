@@ -15,10 +15,13 @@ export type Dict = {
     packages: string;
     users: string;
     cities: string;
+    permissions: string;
+    roles: string;
   };
   titles: {
     companyDetail: string;
     packageDetail: string;
+    roleDetail: string;
     dashboard: string;
   };
   sidebar: {
@@ -77,6 +80,25 @@ export type Dict = {
     otherModule: string;
     noPermissions: string;
     noResults: string;
+  };
+  permissionsPage: {
+    title: string;
+    searchPlaceholder: string;
+    editGroup: string;
+    editPermission: string;
+    editGroupTitle: string;
+    editPermissionTitle: string;
+    code: string;
+    toasts: {
+      groupUpdated: string;
+      permissionUpdated: string;
+    };
+    errors: {
+      loadPermissions: string;
+      loadDetail: string;
+      saveGroup: string;
+      savePermission: string;
+    };
   };
   login: {
     lead: string;
@@ -225,6 +247,55 @@ export type Dict = {
       permissionsUpdated: string;
     };
   };
+  roles: {
+    title: string;
+    searchPlaceholder: string;
+    addRole: string;
+    addRoleAction: string;
+    noRolesYet: string;
+    tableRole: string;
+    tableCode: string;
+    modalTitleCreate: string;
+    code: string;
+    nameLang: (lang: string) => string;
+    errors: { loadRoles: string; saveRole: string };
+    toasts: { created: string };
+  };
+  roleDetail: {
+    notFoundTitle: string;
+    notFoundText: string;
+    backToList: string;
+    sub: string;
+    code: string;
+    assignedPermissions: string;
+    noPermissionsAssigned: string;
+    managePermissions: string;
+    managePermissionsTitle: string;
+    assignedUsers: string;
+    noUsersAssigned: string;
+    removeUserTitle: string;
+    removeUserDesc: (name: string) => string;
+    duplicateRole: string;
+    duplicateRoleTitle: string;
+    duplicateRoleDesc: string;
+    deleteRoleTitle: string;
+    deleteRoleDesc: (name: string) => string;
+    errors: {
+      saveRole: string;
+      deleteRole: string;
+      loadPermissions: string;
+      savePermissions: string;
+      duplicateRole: string;
+      removeUser: string;
+    };
+    toasts: {
+      saved: string;
+      deleted: string;
+      permissionsUpdated: string;
+      duplicated: string;
+      userRemoved: string;
+    };
+  };
   tariffs: {
     title: string;
     addTariff: string;
@@ -280,10 +351,13 @@ export const translations: Record<Language, Dict> = {
       packages: "Пакеты",
       users: "Пользователи",
       cities: "Города",
+      permissions: "Права доступа",
+      roles: "Роли",
     },
     titles: {
       companyDetail: "Компания",
       packageDetail: "Пакет",
+      roleDetail: "Роль",
       dashboard: "Панель управления",
     },
     sidebar: {
@@ -342,6 +416,25 @@ export const translations: Record<Language, Dict> = {
       otherModule: "Прочее",
       noPermissions: "Нет доступных прав.",
       noResults: "Ничего не найдено.",
+    },
+    permissionsPage: {
+      title: "Права доступа",
+      searchPlaceholder: "Поиск по группам и правам",
+      editGroup: "Изменить группу",
+      editPermission: "Изменить право",
+      editGroupTitle: "Редактировать группу прав",
+      editPermissionTitle: "Редактировать право",
+      code: "Код",
+      toasts: {
+        groupUpdated: "Группа обновлена",
+        permissionUpdated: "Право обновлено",
+      },
+      errors: {
+        loadPermissions: "Не удалось загрузить права доступа",
+        loadDetail: "Не удалось загрузить данные",
+        saveGroup: "Не удалось сохранить группу",
+        savePermission: "Не удалось сохранить право",
+      },
     },
     login: {
       lead: "Войдите, чтобы управлять компаниями, тарифами и пользователями.",
@@ -498,6 +591,55 @@ export const translations: Record<Language, Dict> = {
         permissionsUpdated: "Права обновлены",
       },
     },
+    roles: {
+      title: "Роли",
+      searchPlaceholder: "Поиск по роли или коду",
+      addRole: "+ Добавить роль",
+      addRoleAction: "Добавить роль",
+      noRolesYet: "Роли пока не созданы.",
+      tableRole: "Роль",
+      tableCode: "Код",
+      modalTitleCreate: "Новая роль",
+      code: "Код роли",
+      nameLang: (lang) => `Название (${lang})`,
+      errors: { loadRoles: "Не удалось загрузить роли", saveRole: "Не удалось сохранить роль" },
+      toasts: { created: "Роль создана" },
+    },
+    roleDetail: {
+      notFoundTitle: "Роль не найдена",
+      notFoundText: "Такой роли больше нет в списке.",
+      backToList: "К списку ролей",
+      sub: "информация о роли",
+      code: "Код роли",
+      assignedPermissions: "Назначенные права",
+      noPermissionsAssigned: "Права пока не назначены.",
+      managePermissions: "Управление правами",
+      managePermissionsTitle: "Управление правами роли",
+      assignedUsers: "Пользователи с этой ролью",
+      noUsersAssigned: "Роль пока никому не назначена.",
+      removeUserTitle: "Снять роль с пользователя?",
+      removeUserDesc: (name) => `Снять роль с «${name}»?`,
+      duplicateRole: "Дублировать",
+      duplicateRoleTitle: "Дублировать роль",
+      duplicateRoleDesc: "Создать копию роли с новым кодом и названием. Права будут скопированы.",
+      deleteRoleTitle: "Удалить роль?",
+      deleteRoleDesc: (name) => `Удалить роль «${name}»? Это действие необратимо.`,
+      errors: {
+        saveRole: "Не удалось сохранить роль",
+        deleteRole: "Не удалось удалить роль",
+        loadPermissions: "Не удалось загрузить права доступа",
+        savePermissions: "Не удалось сохранить права",
+        duplicateRole: "Не удалось дублировать роль",
+        removeUser: "Не удалось снять роль с пользователя",
+      },
+      toasts: {
+        saved: "Роль сохранена",
+        deleted: "Роль удалена",
+        permissionsUpdated: "Права обновлены",
+        duplicated: "Роль продублирована",
+        userRemoved: "Роль снята с пользователя",
+      },
+    },
     tariffs: {
       title: "Тарифы",
       addTariff: "+ Добавить тариф",
@@ -566,10 +708,13 @@ export const translations: Record<Language, Dict> = {
       packages: "Packages",
       users: "Users",
       cities: "Cities",
+      permissions: "Permissions",
+      roles: "Roles",
     },
     titles: {
       companyDetail: "Company",
       packageDetail: "Package",
+      roleDetail: "Role",
       dashboard: "Dashboard",
     },
     sidebar: {
@@ -628,6 +773,25 @@ export const translations: Record<Language, Dict> = {
       otherModule: "Other",
       noPermissions: "No permissions available.",
       noResults: "Nothing found.",
+    },
+    permissionsPage: {
+      title: "Permissions",
+      searchPlaceholder: "Search groups and permissions",
+      editGroup: "Edit group",
+      editPermission: "Edit permission",
+      editGroupTitle: "Edit permission group",
+      editPermissionTitle: "Edit permission",
+      code: "Code",
+      toasts: {
+        groupUpdated: "Group updated",
+        permissionUpdated: "Permission updated",
+      },
+      errors: {
+        loadPermissions: "Failed to load permissions",
+        loadDetail: "Failed to load data",
+        saveGroup: "Failed to save group",
+        savePermission: "Failed to save permission",
+      },
     },
     login: {
       lead: "Sign in to manage companies, tariffs and users.",
@@ -784,6 +948,55 @@ export const translations: Record<Language, Dict> = {
         permissionsUpdated: "Permissions updated",
       },
     },
+    roles: {
+      title: "Roles",
+      searchPlaceholder: "Search by role or code",
+      addRole: "+ Add role",
+      addRoleAction: "Add role",
+      noRolesYet: "No roles created yet.",
+      tableRole: "Role",
+      tableCode: "Code",
+      modalTitleCreate: "New role",
+      code: "Role code",
+      nameLang: (lang) => `Name (${lang})`,
+      errors: { loadRoles: "Failed to load roles", saveRole: "Failed to save role" },
+      toasts: { created: "Role created" },
+    },
+    roleDetail: {
+      notFoundTitle: "Role not found",
+      notFoundText: "This role is no longer in the list.",
+      backToList: "Back to roles",
+      sub: "role details",
+      code: "Role code",
+      assignedPermissions: "Assigned permissions",
+      noPermissionsAssigned: "No permissions assigned yet.",
+      managePermissions: "Manage permissions",
+      managePermissionsTitle: "Manage role permissions",
+      assignedUsers: "Users with this role",
+      noUsersAssigned: "This role isn't assigned to anyone yet.",
+      removeUserTitle: "Remove role from user?",
+      removeUserDesc: (name) => `Remove this role from "${name}"?`,
+      duplicateRole: "Duplicate",
+      duplicateRoleTitle: "Duplicate role",
+      duplicateRoleDesc: "Create a copy of this role with a new code and name. Permissions will be copied.",
+      deleteRoleTitle: "Delete role?",
+      deleteRoleDesc: (name) => `Delete role "${name}"? This action cannot be undone.`,
+      errors: {
+        saveRole: "Failed to save role",
+        deleteRole: "Failed to delete role",
+        loadPermissions: "Failed to load permissions",
+        savePermissions: "Failed to save permissions",
+        duplicateRole: "Failed to duplicate role",
+        removeUser: "Failed to remove role from user",
+      },
+      toasts: {
+        saved: "Role saved",
+        deleted: "Role deleted",
+        permissionsUpdated: "Permissions updated",
+        duplicated: "Role duplicated",
+        userRemoved: "Role removed from user",
+      },
+    },
     tariffs: {
       title: "Tariffs",
       addTariff: "+ Add tariff",
@@ -852,10 +1065,13 @@ export const translations: Record<Language, Dict> = {
       packages: "Бастаҳо",
       users: "Корбарон",
       cities: "Шаҳрҳо",
+      permissions: "Ҳуқуқҳои дастрасӣ",
+      roles: "Нақшҳо",
     },
     titles: {
       companyDetail: "Ширкат",
       packageDetail: "Баста",
+      roleDetail: "Нақш",
       dashboard: "Панели идоракунӣ",
     },
     sidebar: {
@@ -914,6 +1130,25 @@ export const translations: Record<Language, Dict> = {
       otherModule: "Дигар",
       noPermissions: "Ҳуқуқи дастрасӣ мавҷуд нест.",
       noResults: "Чизе ёфт нашуд.",
+    },
+    permissionsPage: {
+      title: "Ҳуқуқҳои дастрасӣ",
+      searchPlaceholder: "Ҷустуҷӯ дар гурӯҳҳо ва ҳуқуқҳо",
+      editGroup: "Таҳрири гурӯҳ",
+      editPermission: "Таҳрири ҳуқуқ",
+      editGroupTitle: "Таҳрири гурӯҳи ҳуқуқҳо",
+      editPermissionTitle: "Таҳрири ҳуқуқ",
+      code: "Код",
+      toasts: {
+        groupUpdated: "Гурӯҳ навсозӣ шуд",
+        permissionUpdated: "Ҳуқуқ навсозӣ шуд",
+      },
+      errors: {
+        loadPermissions: "Ҳуқуқҳоро бор карда натавонист",
+        loadDetail: "Маълумотро бор карда натавонист",
+        saveGroup: "Гурӯҳро захира карда натавонист",
+        savePermission: "Ҳуқуқро захира карда натавонист",
+      },
     },
     login: {
       lead: "Барои идоракунии ширкатҳо, тарифҳо ва корбарон ворид шавед.",
@@ -1068,6 +1303,55 @@ export const translations: Record<Language, Dict> = {
         saved: "Баста захира шуд",
         deleted: "Баста нест карда шуд",
         permissionsUpdated: "Ҳуқуқҳо навсозӣ шуданд",
+      },
+    },
+    roles: {
+      title: "Нақшҳо",
+      searchPlaceholder: "Ҷустуҷӯ аз рӯи нақш ё код",
+      addRole: "+ Иловаи нақш",
+      addRoleAction: "Иловаи нақш",
+      noRolesYet: "Ҳанӯз нақше эҷод нашудааст.",
+      tableRole: "Нақш",
+      tableCode: "Код",
+      modalTitleCreate: "Нақши нав",
+      code: "Коди нақш",
+      nameLang: (lang) => `Ном (${lang})`,
+      errors: { loadRoles: "Нақшҳоро бор карда натавонист", saveRole: "Нақшро захира карда натавонист" },
+      toasts: { created: "Нақш эҷод шуд" },
+    },
+    roleDetail: {
+      notFoundTitle: "Нақш ёфт нашуд",
+      notFoundText: "Чунин нақш дигар дар рӯйхат нест.",
+      backToList: "Ба рӯйхати нақшҳо",
+      sub: "маълумоти нақш",
+      code: "Коди нақш",
+      assignedPermissions: "Ҳуқуқҳои таъиншуда",
+      noPermissionsAssigned: "Ҳанӯз ҳуқуқе таъин нашудааст.",
+      managePermissions: "Идоракунии ҳуқуқҳо",
+      managePermissionsTitle: "Идоракунии ҳуқуқҳои нақш",
+      assignedUsers: "Корбарони соҳиби ин нақш",
+      noUsersAssigned: "Ин нақш ҳанӯз ба ҳеҷ кас таъин нашудааст.",
+      removeUserTitle: "Нақшро аз корбар гирем?",
+      removeUserDesc: (name) => `Нақшро аз «${name}» гирем?`,
+      duplicateRole: "Нусхабардорӣ",
+      duplicateRoleTitle: "Нусхабардории нақш",
+      duplicateRoleDesc: "Нусхаи нақшро бо коду номи нав эҷод кунед. Ҳуқуқҳо низ нусха бардошта мешаванд.",
+      deleteRoleTitle: "Нақшро нест кардан?",
+      deleteRoleDesc: (name) => `Нақши «${name}»-ро нест кардан? Ин амал баргарданашаванда аст.`,
+      errors: {
+        saveRole: "Нақшро захира карда натавонист",
+        deleteRole: "Нақшро нест карда натавонист",
+        loadPermissions: "Ҳуқуқҳоро бор карда натавонист",
+        savePermissions: "Ҳуқуқҳоро захира карда натавонист",
+        duplicateRole: "Нақшро нусхабардорӣ карда натавонист",
+        removeUser: "Нақшро аз корбар гирифта натавонист",
+      },
+      toasts: {
+        saved: "Нақш захира шуд",
+        deleted: "Нақш нест карда шуд",
+        permissionsUpdated: "Ҳуқуқҳо навсозӣ шуданд",
+        duplicated: "Нақш нусхабардорӣ шуд",
+        userRemoved: "Нақш аз корбар гирифта шуд",
       },
     },
     tariffs: {

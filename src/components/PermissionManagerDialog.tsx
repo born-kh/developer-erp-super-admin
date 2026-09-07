@@ -15,6 +15,7 @@ import type { PermissionGroupWithPermissions } from "@/lib/api";
 export function PermissionManagerDialog({
   open,
   onOpenChange,
+  title,
   groups,
   loadingGroups,
   assignedIds,
@@ -22,6 +23,7 @@ export function PermissionManagerDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  title?: string;
   groups: PermissionGroupWithPermissions[];
   loadingGroups?: boolean;
   assignedIds: string[];
@@ -67,7 +69,7 @@ export function PermissionManagerDialog({
     <Dialog open={open} onOpenChange={(next) => !submitting && onOpenChange(next)}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t.packageDetail.managePermissionsTitle}</DialogTitle>
+          <DialogTitle>{title ?? t.packageDetail.managePermissionsTitle}</DialogTitle>
         </DialogHeader>
         <PermissionsPicker
           groups={groups}

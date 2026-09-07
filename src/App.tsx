@@ -19,6 +19,9 @@ import { Profile } from "./pages/Profile";
 import { Packages } from "./pages/Packages";
 import { PackageDetail } from "./pages/PackageDetail";
 import { Tariffs } from "./pages/Tariffs";
+import { Permissions } from "./pages/Permissions";
+import { Roles } from "./pages/Roles";
+import { RoleDetail } from "./pages/RoleDetail";
 import { Cities } from "./pages/Cities";
 
 function Guard({ children }: { children: ReactNode }) {
@@ -54,6 +57,9 @@ export default function App() {
                   <Route path="/packages" element={<Packages />} />
                   <Route path="/packages/:id" element={<PackageDetail />} />
                   <Route path="/tariffs" element={<Tariffs />} />
+                  <Route path="/permissions" element={<Permissions />} />
+                  <Route path="/roles" element={<Roles />} />
+                  <Route path="/roles/:id" element={<RoleDetail />} />
                   <Route path="/cities" element={<Cities />} />
                 </Route>
               </Routes>

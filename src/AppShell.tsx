@@ -4,9 +4,11 @@ import {
   Boxes,
   Building2,
   CreditCard,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   MapPin,
+  ShieldCheck,
   User,
   Users,
 } from "lucide-react";
@@ -58,6 +60,8 @@ export function AppShell() {
     { to: "/tariffs", label: t.nav.tariffs, icon: CreditCard },
     { to: "/packages", label: t.nav.packages, icon: Boxes },
     { to: "/users", label: t.nav.users, icon: Users },
+    { to: "/permissions", label: t.nav.permissions, icon: ShieldCheck },
+    { to: "/roles", label: t.nav.roles, icon: KeyRound },
     { to: "/cities", label: t.nav.cities, icon: MapPin },
   ];
 
@@ -67,12 +71,15 @@ export function AppShell() {
     "/tariffs": t.nav.tariffs,
     "/packages": t.nav.packages,
     "/users": t.nav.users,
+    "/permissions": t.nav.permissions,
+    "/roles": t.nav.roles,
     "/cities": t.nav.cities,
   };
 
   const currentTitle = (pathname: string) => {
     if (pathname.startsWith("/companies/")) return t.titles.companyDetail;
     if (pathname.startsWith("/packages/")) return t.titles.packageDetail;
+    if (pathname.startsWith("/roles/")) return t.titles.roleDetail;
     if (pathname === "/profile") return t.sidebar.profile;
     return titles[pathname] ?? t.titles.dashboard;
   };
