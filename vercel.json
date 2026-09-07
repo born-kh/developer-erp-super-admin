@@ -1,3 +1,6 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/core/api/:path*", "destination": "http://195.246.102.223:9595/core/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

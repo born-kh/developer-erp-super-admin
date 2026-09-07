@@ -13,6 +13,15 @@ export default defineConfig({
       "@": path.resolve(root, "src"),
     },
   },
-  server: { port: 5174, host: "127.0.0.1" },
+  server: {
+    port: 5174,
+    host: "127.0.0.1",
+    proxy: {
+      "/core/api": {
+        target: "http://195.246.102.223:9595",
+        changeOrigin: true,
+      },
+    },
+  },
   preview: { port: 4174, host: "127.0.0.1" },
 });

@@ -1,6 +1,9 @@
 import { getAccessToken, getRefreshToken, setTokens, clearTokens, isAccessTokenExpired } from "../auth";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://195.246.102.223:9595";
+// Empty by default so requests go to the same origin and are proxied
+// server-side (see vercel.json / vite.config.ts), avoiding mixed-content
+// blocks when the app is served over HTTPS but the backend is plain HTTP.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export type TokenInfo = {
   accessToken: string;
