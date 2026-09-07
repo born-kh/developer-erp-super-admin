@@ -27,6 +27,7 @@ export type Dict = {
     logout: string;
     logoutConfirmTitle: string;
     logoutConfirmDescription: string;
+    profile: string;
   };
   bottomNav: {
     more: string;
@@ -38,6 +39,7 @@ export type Dict = {
     create: string;
     edit: string;
     delete: string;
+    close: string;
     back: string;
     next: string;
     actions: string;
@@ -67,6 +69,7 @@ export type Dict = {
     disabled: string;
     nothingFound: string;
     package: string;
+    rowNumber: string;
   };
   permissionsPicker: {
     filterPlaceholder: string;
@@ -176,6 +179,12 @@ export type Dict = {
     errors: { saveUser: string; deleteUser: string; loadRoles: string };
     toasts: { saved: string; deleted: string; rolesUpdated: string };
   };
+  profile: {
+    sub: string;
+    changeAvatar: string;
+    errors: { saveProfile: string };
+    toasts: { saved: string };
+  };
   packages: {
     title: string;
     addPackage: string;
@@ -283,6 +292,7 @@ export const translations: Record<Language, Dict> = {
       logout: "Выйти",
       logoutConfirmTitle: "Выйти из аккаунта?",
       logoutConfirmDescription: "Вам нужно будет снова войти, чтобы продолжить работу.",
+      profile: "Профиль",
     },
     bottomNav: {
       more: "Ещё",
@@ -294,6 +304,7 @@ export const translations: Record<Language, Dict> = {
       create: "Создать",
       edit: "Изменить",
       delete: "Удалить",
+      close: "Закрыть",
       back: "Назад",
       next: "Вперёд",
       actions: "Действия",
@@ -323,6 +334,7 @@ export const translations: Record<Language, Dict> = {
       disabled: "Отключен",
       nothingFound: "Ничего не найдено.",
       package: "Пакет",
+      rowNumber: "№",
     },
     permissionsPicker: {
       filterPlaceholder: "Фильтровать по категории",
@@ -439,6 +451,12 @@ export const translations: Record<Language, Dict> = {
         deleted: "Пользователь удалён",
         rolesUpdated: "Роли обновлены",
       },
+    },
+    profile: {
+      sub: "мой профиль",
+      changeAvatar: "Изменить фото",
+      errors: { saveProfile: "Не удалось сохранить профиль" },
+      toasts: { saved: "Профиль сохранён" },
     },
     packages: {
       title: "Пакеты",
@@ -560,6 +578,7 @@ export const translations: Record<Language, Dict> = {
       logout: "Log out",
       logoutConfirmTitle: "Log out of your account?",
       logoutConfirmDescription: "You'll need to sign in again to continue.",
+      profile: "Profile",
     },
     bottomNav: {
       more: "More",
@@ -571,6 +590,7 @@ export const translations: Record<Language, Dict> = {
       create: "Create",
       edit: "Edit",
       delete: "Delete",
+      close: "Close",
       back: "Back",
       next: "Next",
       actions: "Actions",
@@ -600,6 +620,7 @@ export const translations: Record<Language, Dict> = {
       disabled: "Disabled",
       nothingFound: "Nothing found.",
       package: "Package",
+      rowNumber: "#",
     },
     permissionsPicker: {
       filterPlaceholder: "Filter by category",
@@ -716,6 +737,12 @@ export const translations: Record<Language, Dict> = {
         deleted: "User deleted",
         rolesUpdated: "Roles updated",
       },
+    },
+    profile: {
+      sub: "my profile",
+      changeAvatar: "Change photo",
+      errors: { saveProfile: "Failed to save profile" },
+      toasts: { saved: "Profile saved" },
     },
     packages: {
       title: "Packages",
@@ -837,6 +864,7 @@ export const translations: Record<Language, Dict> = {
       logout: "Баромадан",
       logoutConfirmTitle: "Аз ҳисоб мебароед?",
       logoutConfirmDescription: "Барои идома додан бояд дубора ворид шавед.",
+      profile: "Профил",
     },
     bottomNav: {
       more: "Бештар",
@@ -848,6 +876,7 @@ export const translations: Record<Language, Dict> = {
       create: "Эҷод кардан",
       edit: "Таҳрир кардан",
       delete: "Нест кардан",
+      close: "Пӯшидан",
       back: "Бозгашт",
       next: "Баъдӣ",
       actions: "Амалҳо",
@@ -877,6 +906,7 @@ export const translations: Record<Language, Dict> = {
       disabled: "Ғайрифаъол",
       nothingFound: "Чизе ёфт нашуд.",
       package: "Баста",
+      rowNumber: "№",
     },
     permissionsPicker: {
       filterPlaceholder: "Аз рӯи категория филтр кунед",
@@ -993,6 +1023,12 @@ export const translations: Record<Language, Dict> = {
         deleted: "Корбар нест карда шуд",
         rolesUpdated: "Нақшҳо навсозӣ шуданд",
       },
+    },
+    profile: {
+      sub: "профили ман",
+      changeAvatar: "Тасвирро иваз кунед",
+      errors: { saveProfile: "Захираи профил ноком шуд" },
+      toasts: { saved: "Профил захира шуд" },
     },
     packages: {
       title: "Бастаҳо",

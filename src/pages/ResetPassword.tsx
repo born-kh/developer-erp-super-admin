@@ -51,9 +51,11 @@ export function ResetPassword() {
     <div className="login">
       <div className="login-card">
         <div className="login-mark">
-          <div className="login-mark-badge">SA</div>
+          <div className="login-logo-wrap">
+            <img src="/logo.png" alt="Enterprise Resource Planning" className="login-logo" />
+          </div>
           <div>
-            <strong>Developer ERP</strong>
+            <strong>Enterprise Resource Planning</strong>
             <span>Super Admin</span>
           </div>
         </div>

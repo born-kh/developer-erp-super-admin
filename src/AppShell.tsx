@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
+  User,
   Users,
 } from "lucide-react";
 import { clearTokens } from "./auth";
@@ -72,6 +73,7 @@ export function AppShell() {
   const currentTitle = (pathname: string) => {
     if (pathname.startsWith("/companies/")) return t.titles.companyDetail;
     if (pathname.startsWith("/packages/")) return t.titles.packageDetail;
+    if (pathname === "/profile") return t.sidebar.profile;
     return titles[pathname] ?? t.titles.dashboard;
   };
 
@@ -91,11 +93,11 @@ export function AppShell() {
         <Sidebar collapsible="none" className="hidden h-svh sticky top-0 min-[861px]:flex border-r border-sidebar-border">
           <SidebarHeader className="px-3 pt-4 pb-3">
             <div className="flex items-center gap-2.5 px-1">
-              <span className="grid size-8 place-items-center rounded-md bg-sidebar-primary text-[11px] font-bold text-sidebar-primary-foreground">
-                SA
-              </span>
+              <div className="grid size-8 shrink-0 place-items-center rounded-md bg-white p-1">
+                <img src="/logo.png" alt="Enterprise Resource Planning" className="size-full object-contain" />
+              </div>
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-sidebar-foreground">Developer ERP</div>
+                <div className="truncate text-sm font-semibold text-sidebar-foreground">ERP</div>
                 <div className="text-[11px] text-sidebar-foreground/50">Super Admin</div>
               </div>
             </div>
@@ -141,8 +143,8 @@ export function AppShell() {
                     <AvatarFallback>{user?.fullName ? initials(user.fullName) : "?"}</AvatarFallback>
                   </Avatar>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-64">
-                  <div className="flex items-center gap-3">
+                <PopoverContent align="end" className="w-64 p-2">
+                  <div className="flex items-center gap-3 px-2 py-2">
                     <Avatar className="size-10">
                       {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName ?? ""} />}
                       <AvatarFallback>{user?.fullName ? initials(user.fullName) : "?"}</AvatarFallback>
@@ -152,19 +154,29 @@ export function AppShell() {
                       <div className="truncate text-xs text-muted-foreground">{user?.email || "—"}</div>
                     </div>
                   </div>
-                  <Button
+                  <Separator className="my-2" />
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-3 w-full justify-start"
+                    className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-accent"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      nav("/profile");
+                    }}
+                  >
+                    <User className="size-4" />
+                    {t.sidebar.profile}
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-sm text-destructive hover:bg-destructive/10"
                     onClick={() => {
                       setUserMenuOpen(false);
                       setConfirmLogout(true);
                     }}
                   >
-                    <LogOut />
+                    <LogOut className="size-4" />
                     {t.sidebar.logout}
-                  </Button>
+                  </button>
                 </PopoverContent>
               </Popover>
             </div>

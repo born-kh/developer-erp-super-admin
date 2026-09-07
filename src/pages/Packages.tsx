@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 10;
 
 type Translations = Record<string, string>;
 
@@ -70,17 +70,21 @@ export function Packages() {
   const [packages, setPackages] = useState<PackageListItemWithGroups[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<PackageForm>(() => makeEmptyForm());
   const [activeLang, setActiveLang] = useState<string>(defaultLang);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchPackages = async () => {
+  const fetchPackages = async (pageArg: number) => {
     setLoadingList(true);
     try {
-      const list = await listPackagesAllIncludingPermissionGroups({ pageSize: 100 });
+      const list = await listPackagesAllIncludingPermissionGroups({ page: pageArg, pageSize: PAGE_SIZE });
       setPackages(list.items ?? []);
+      setHasNextPage(list.pagination.hasNextPage);
+      setHasPreviousPage(list.pagination.hasPreviousPage ?? pageArg > 1);
     } catch (err) {
       toast.error(errorMessage(err, t.packages.errors.loadPackages));
     } finally {
@@ -89,16 +93,9 @@ export function Packages() {
   };
 
   useEffect(() => {
-    fetchPackages();
+    fetchPackages(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const pageCount = Math.max(1, Math.ceil(packages.length / PAGE_SIZE));
-  const current = Math.min(page, pageCount);
-  const pageItems = useMemo(
-    () => packages.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
-    [packages, current],
-  );
+  }, [page]);
 
   const set = <K extends keyof PackageForm>(key: K, value: PackageForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -128,7 +125,9 @@ export function Packages() {
       descriptionTranslations: collectTranslations(form.description),
     };
     try {
-      const beforeIds = new Set(packages.map((p) => p.id));
+      const beforeIds = new Set(
+        (await listPackagesAllIncludingPermissionGroups({ pageSize: 100 })).items?.map((p) => p.id) ?? [],
+      );
       await createPackage(payload);
       const list = await listPackagesAllIncludingPermissionGroups({ pageSize: 100 });
       const created = (list.items ?? []).find((p) => !beforeIds.has(p.id));
@@ -137,7 +136,7 @@ export function Packages() {
       if (created) {
         nav(`/packages/${created.id}`);
       } else {
-        await fetchPackages();
+        await fetchPackages(page);
       }
     } catch (err) {
       toast.error(errorMessage(err, t.packages.errors.savePackage));
@@ -157,7 +156,7 @@ export function Packages() {
         }
       />
 
-      {!loadingList && pageItems.length === 0 ? (
+      {!loadingList && packages.length === 0 ? (
         <EmptyState
           title={t.packages.noPackagesYet}
           action={
@@ -171,6 +170,7 @@ export function Packages() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">{t.common.rowNumber}</TableHead>
                 <TableHead>{t.common.name}</TableHead>
                 <TableHead>{t.packages.tablePrice}</TableHead>
                 <TableHead>{t.packages.tablePermissionGroups}</TableHead>
@@ -181,12 +181,12 @@ export function Packages() {
             <TableBody>
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     {t.common.loading}
                   </TableCell>
                 </TableRow>
               ) : (
-                pageItems.map((p) => (
+                packages.map((p, index) => (
                   <TableRow
                     key={p.id}
                     className="cursor-pointer"
@@ -194,6 +194,9 @@ export function Packages() {
                     onClick={() => nav(`/packages/${p.id}`)}
                     onKeyDown={(e) => e.key === "Enter" && nav(`/packages/${p.id}`)}
                   >
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {(page - 1) * PAGE_SIZE + index + 1}
+                    </TableCell>
                     <TableCell>
                       <div className={p.title ? "font-medium" : "text-muted-foreground"}>
                         {p.title || "—"}
@@ -239,7 +242,13 @@ export function Packages() {
         </Card>
       )}
 
-      <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
+      <AppPagination
+        page={page}
+        onPage={setPage}
+        hasNextPage={hasNextPage}
+        hasPreviousPage={hasPreviousPage}
+        alwaysShow
+      />
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="sm:max-w-lg">

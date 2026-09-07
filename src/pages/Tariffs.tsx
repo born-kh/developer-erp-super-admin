@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   addTariffPackages,
@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 
 type Translations = Record<string, string>;
 
@@ -89,6 +89,8 @@ export function Tariffs() {
   const [loadingList, setLoadingList] = useState(true);
   const [allPackages, setAllPackages] = useState<PackageListItem[]>([]);
   const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
   const [modal, setModal] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
   const [form, setForm] = useState<TariffForm>(() => makeEmptyForm());
@@ -97,11 +99,13 @@ export function Tariffs() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const fetchTariffs = async () => {
+  const fetchTariffs = async (pageArg: number) => {
     setLoadingList(true);
     try {
-      const res = await listTariffsWithPackages({ pageSize: 100 });
+      const res = await listTariffsWithPackages({ page: pageArg, pageSize: PAGE_SIZE });
       setTariffs(res.items ?? []);
+      setHasNextPage(res.pagination.hasNextPage);
+      setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
     } catch (err) {
       toast.error(errorMessage(err, t.tariffs.errors.loadTariffs));
     } finally {
@@ -110,19 +114,16 @@ export function Tariffs() {
   };
 
   useEffect(() => {
-    fetchTariffs();
+    fetchTariffs(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  useEffect(() => {
     listPackages({ pageSize: 100 })
       .then((res) => setAllPackages(res.items ?? []))
       .catch((err) => toast.error(errorMessage(err, t.tariffs.errors.loadPackages)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const pageCount = Math.max(1, Math.ceil(tariffs.length / PAGE_SIZE));
-  const current = Math.min(page, pageCount);
-  const pageItems = useMemo(
-    () => tariffs.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
-    [tariffs, current],
-  );
 
   const set = <K extends keyof TariffForm>(key: K, value: TariffForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -192,7 +193,9 @@ export function Tariffs() {
         if (toRemove.length) await removeTariffPackages(modal.id, toRemove);
         toast.success(t.tariffs.toasts.saved);
       } else {
-        const beforeIds = new Set(tariffs.map((row) => row.id));
+        const beforeIds = new Set(
+          (await listTariffsWithPackages({ pageSize: 100 })).items?.map((row) => row.id) ?? [],
+        );
         await createTariff(payload);
         const list = await listTariffsWithPackages({ pageSize: 100 });
         const created = list.items?.find((row) => !beforeIds.has(row.id));
@@ -201,7 +204,7 @@ export function Tariffs() {
         }
         toast.success(t.tariffs.toasts.created);
       }
-      await fetchTariffs();
+      await fetchTariffs(page);
       setModal(null);
     } catch (err) {
       toast.error(errorMessage(err, t.tariffs.errors.saveTariff));
@@ -214,9 +217,9 @@ export function Tariffs() {
     if (modal?.mode !== "edit" || !modal.id) return;
     try {
       await deleteTariff(modal.id);
-      setTariffs((prev) => prev.filter((row) => row.id !== modal.id));
       toast.success(t.tariffs.toasts.deleted);
       setModal(null);
+      await fetchTariffs(page);
     } catch (err) {
       toast.error(errorMessage(err, t.tariffs.errors.deleteTariff));
     } finally {
@@ -240,7 +243,7 @@ export function Tariffs() {
         }
       />
 
-      {!loadingList && pageItems.length === 0 ? (
+      {!loadingList && tariffs.length === 0 ? (
         <EmptyState
           title={t.tariffs.noTariffsYet}
           action={
@@ -254,6 +257,7 @@ export function Tariffs() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">{t.common.rowNumber}</TableHead>
                 <TableHead>{t.tariffs.tableTariff}</TableHead>
                 <TableHead>{t.common.description}</TableHead>
                 <TableHead>{t.common.price}</TableHead>
@@ -265,15 +269,18 @@ export function Tariffs() {
             <TableBody>
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     {t.common.loading}
                   </TableCell>
                 </TableRow>
               ) : (
-                pageItems.map((row) => {
+                tariffs.map((row, index) => {
                   const pkgs = row.packages ?? [];
                   return (
                     <TableRow key={row.id}>
+                      <TableCell className="tabular-nums text-muted-foreground">
+                        {(page - 1) * PAGE_SIZE + index + 1}
+                      </TableCell>
                       <TableCell className="font-medium">{row.code}</TableCell>
                       <TableCell className="max-w-[220px]">
                         <div className={row.description ? "" : "text-muted-foreground"}>
@@ -321,7 +328,13 @@ export function Tariffs() {
         </Card>
       )}
 
-      <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
+      <AppPagination
+        page={page}
+        onPage={setPage}
+        hasNextPage={hasNextPage}
+        hasPreviousPage={hasPreviousPage}
+        alwaysShow
+      />
 
       <Dialog open={Boolean(modal)} onOpenChange={(open) => !open && setModal(null)}>
         <DialogContent className="sm:max-w-lg">

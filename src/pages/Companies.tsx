@@ -1,15 +1,14 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { cities, users, type Company } from "../data/mock";
+import { cities, type Company } from "../data/mock";
 import { useCompanies } from "../data/companiesStore";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
-import { CompanyStatusBadge, StatusBadge } from "@/components/StatusBadge";
+import { CompanyStatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -27,14 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 8;
@@ -136,57 +127,28 @@ export function Companies() {
           }
         />
       ) : (
-        <Card className="gap-0 overflow-hidden py-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t.companies.tableCompany}</TableHead>
-                <TableHead>{t.common.city}</TableHead>
-                <TableHead>{t.common.package}</TableHead>
-                <TableHead>{t.common.status}</TableHead>
-                <TableHead>{t.companies.tableUsers}</TableHead>
-                <TableHead>{t.common.created}</TableHead>
-                <TableHead className="w-8" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pageItems.map((c) => (
-                <TableRow
-                  key={c.id}
-                  className="cursor-pointer"
-                  tabIndex={0}
-                  onClick={() => nav(`/companies/${c.id}`)}
-                  onKeyDown={(e) => e.key === "Enter" && nav(`/companies/${c.id}`)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={c.image}
-                        alt=""
-                        className="size-9 rounded-md object-cover bg-secondary"
-                      />
-                      <span className="font-medium">{c.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{c.city}</TableCell>
-                  <TableCell>
-                    <StatusBadge tone="success">{c.package}</StatusBadge>
-                  </TableCell>
-                  <TableCell>
-                    <CompanyStatusBadge status={c.status} />
-                  </TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">
-                    {users.filter((u) => u.companyId === c.id).length}
-                  </TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">{c.createdAt}</TableCell>
-                  <TableCell className="w-8 text-muted-foreground">
-                    <ChevronRight className="size-4" />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        <div className="grid grid-cols-4 gap-4 max-[1200px]:grid-cols-3 max-[700px]:grid-cols-2 max-[420px]:grid-cols-1">
+          {pageItems.map((c) => (
+            <Card
+              key={c.id}
+              className="cursor-pointer gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md"
+              tabIndex={0}
+              onClick={() => nav(`/companies/${c.id}`)}
+              onKeyDown={(e) => e.key === "Enter" && nav(`/companies/${c.id}`)}
+            >
+              <div className="aspect-video w-full overflow-hidden bg-secondary">
+                <img src={c.image} alt="" className="size-full object-cover" />
+              </div>
+              <div className="grid gap-1 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="truncate font-medium">{c.name}</span>
+                  <CompanyStatusBadge status={c.status} />
+                </div>
+                <div className="truncate text-xs text-muted-foreground">{c.city}</div>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
 
       <AppPagination page={current} pageCount={pageCount} onPage={setPage} />

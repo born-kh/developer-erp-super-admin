@@ -15,6 +15,7 @@ import { Companies } from "./pages/Companies";
 import { CompanyDetail } from "./pages/CompanyDetail";
 import { Users } from "./pages/Users";
 import { UserDetail } from "./pages/UserDetail";
+import { Profile } from "./pages/Profile";
 import { Packages } from "./pages/Packages";
 import { PackageDetail } from "./pages/PackageDetail";
 import { Tariffs } from "./pages/Tariffs";
@@ -49,6 +50,7 @@ export default function App() {
                   <Route path="/companies/:id" element={<CompanyDetail />} />
                   <Route path="/users" element={<Users />} />
                   <Route path="/users/:id" element={<UserDetail />} />
+                  <Route path="/profile" element={<Profile />} />
                   <Route path="/packages" element={<Packages />} />
                   <Route path="/packages/:id" element={<PackageDetail />} />
                   <Route path="/tariffs" element={<Tariffs />} />

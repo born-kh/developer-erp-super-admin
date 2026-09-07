@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -31,7 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
 
 type UserForm = {
   firstName: string;
@@ -75,16 +75,21 @@ export function Users() {
   const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
+  const [committedQuery, setCommittedQuery] = useState("");
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<UserForm>(emptyUserForm);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (pageArg: number, searchArg: string) => {
     setLoadingList(true);
     try {
-      const res = await listUsers({ pageSize: 100 });
+      const res = await listUsers({ page: pageArg, pageSize: PAGE_SIZE, search: searchArg || undefined });
       setUsers(res.items ?? []);
+      setHasNextPage(res.pagination.hasNextPage);
+      setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
     } catch (err) {
       toast.error(errorMessage(err, t.users.errors.loadUsers));
     } finally {
@@ -93,24 +98,17 @@ export function Users() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    const handle = setTimeout(() => {
+      setCommittedQuery(query);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [query]);
+
+  useEffect(() => {
+    fetchUsers(page, committedQuery);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter(
-      (u) => (u.fullName ?? "").toLowerCase().includes(q) || (u.email ?? "").toLowerCase().includes(q),
-    );
-  }, [users, query]);
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const current = Math.min(page, pageCount);
-  const pageItems = useMemo(
-    () => filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
-    [filtered, current],
-  );
+  }, [page, committedQuery]);
 
   const setField = <K extends keyof UserForm>(key: K, value: UserForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -154,10 +152,7 @@ export function Users() {
               className="w-56"
               placeholder={t.users.searchPlaceholder}
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setQuery(e.target.value)}
             />
             <Button type="button" onClick={openCreate}>
               {t.users.newUser}
@@ -166,11 +161,11 @@ export function Users() {
         }
       />
 
-      {!loadingList && pageItems.length === 0 ? (
+      {!loadingList && users.length === 0 ? (
         <EmptyState
-          title={query ? t.common.nothingFound : t.users.noUsersYet}
+          title={committedQuery ? t.common.nothingFound : t.users.noUsersYet}
           action={
-            !query ? (
+            !committedQuery ? (
               <Button type="button" onClick={openCreate}>
                 {t.users.createUser}
               </Button>
@@ -182,6 +177,7 @@ export function Users() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">{t.common.rowNumber}</TableHead>
                 <TableHead>{t.users.tableUser}</TableHead>
                 <TableHead>{t.users.tableEmail}</TableHead>
                 <TableHead>{t.users.tableStatus}</TableHead>
@@ -191,12 +187,12 @@ export function Users() {
             <TableBody>
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     {t.common.loading}
                   </TableCell>
                 </TableRow>
               ) : (
-                pageItems.map((u) => (
+                users.map((u, index) => (
                   <TableRow
                     key={u.id}
                     className="cursor-pointer"
@@ -204,6 +200,9 @@ export function Users() {
                     onClick={() => nav(`/users/${u.id}`)}
                     onKeyDown={(e) => e.key === "Enter" && nav(`/users/${u.id}`)}
                   >
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {(page - 1) * PAGE_SIZE + index + 1}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="size-8">
@@ -230,7 +229,13 @@ export function Users() {
         </Card>
       )}
 
-      <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
+      <AppPagination
+        page={page}
+        onPage={setPage}
+        hasNextPage={hasNextPage}
+        hasPreviousPage={hasPreviousPage}
+        alwaysShow
+      />
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="sm:max-w-lg">

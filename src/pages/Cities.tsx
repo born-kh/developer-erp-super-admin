@@ -147,6 +147,7 @@ export function Cities() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">{t.common.rowNumber}</TableHead>
                 <TableHead>{t.common.city}</TableHead>
                 <TableHead>{t.common.region}</TableHead>
                 <TableHead>{t.common.description}</TableHead>
@@ -154,10 +155,13 @@ export function Cities() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pageItems.map((c) => {
+              {pageItems.map((c, index) => {
                 const region = regions.find((r) => r.id === c.regionId);
                 return (
                   <TableRow key={c.id}>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {(current - 1) * PAGE_SIZE + index + 1}
+                    </TableCell>
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell className="text-muted-foreground">{region?.name ?? t.cities.noRegion}</TableCell>
                     <TableCell className="max-w-xs truncate text-muted-foreground">{c.description || "—"}</TableCell>

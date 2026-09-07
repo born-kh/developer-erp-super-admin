@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Field } from "@/components/Field";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Dialog,
   DialogContent,
@@ -83,18 +84,19 @@ export function Login() {
 
   return (
     <div className="login">
-      <div className="absolute right-4 top-4">
+      <div className="absolute right-4 top-4 flex items-center gap-1.5">
+        <ThemeToggle iconOnly />
         <LanguageSwitcher />
       </div>
       <div className="login-card">
         <div className="login-mark">
-          <div className="login-mark-badge">SA</div>
+          <div className="login-logo-wrap">
+            <img src="/logo.png" alt="Enterprise Resource Planning" className="login-logo" />
+          </div>
           <div>
-            <strong>Developer ERP</strong>
-            <span>Super Admin</span>
+            <strong>Enterprise Resource Planning</strong>
           </div>
         </div>
-        <p className="lead">{t.login.lead}</p>
         <form onSubmit={submit} className="grid gap-4">
           <div className="grid gap-1.5">
             <Label className="text-xs text-muted-foreground">{t.login.email}</Label>
