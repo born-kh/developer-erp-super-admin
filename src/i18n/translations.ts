@@ -25,6 +25,8 @@ export type Dict = {
     lightTheme: string;
     darkTheme: string;
     logout: string;
+    logoutConfirmTitle: string;
+    logoutConfirmDescription: string;
   };
   bottomNav: {
     more: string;
@@ -147,13 +149,32 @@ export type Dict = {
     noUsersYet: string;
     createUser: string;
     tableUser: string;
-    tableLogin: string;
-    deleteDesc: string;
-    modalTitleEdit: string;
+    tableEmail: string;
+    tableStatus: string;
     modalTitleCreate: string;
     firstName: string;
     lastName: string;
-    toasts: { saved: string; created: string; deleted: string };
+    middleName: string;
+    nickName: string;
+    avatarUrl: string;
+    userActive: string;
+    errors: { loadUsers: string; saveUser: string };
+    toasts: { created: string };
+  };
+  userDetail: {
+    notFoundTitle: string;
+    notFoundText: string;
+    backToList: string;
+    sub: string;
+    assignedRoles: string;
+    noRolesAssigned: string;
+    manageRoles: string;
+    manageRolesTitle: string;
+    noRolesAvailable: string;
+    deleteUserTitle: string;
+    deleteUserDesc: (name: string) => string;
+    errors: { saveUser: string; deleteUser: string; loadRoles: string };
+    toasts: { saved: string; deleted: string; rolesUpdated: string };
   };
   packages: {
     title: string;
@@ -260,6 +281,8 @@ export const translations: Record<Language, Dict> = {
       lightTheme: "Светлая тема",
       darkTheme: "Тёмная тема",
       logout: "Выйти",
+      logoutConfirmTitle: "Выйти из аккаунта?",
+      logoutConfirmDescription: "Вам нужно будет снова войти, чтобы продолжить работу.",
     },
     bottomNav: {
       more: "Ещё",
@@ -382,13 +405,40 @@ export const translations: Record<Language, Dict> = {
       noUsersYet: "Пользователей пока нет.",
       createUser: "Создать пользователя",
       tableUser: "Пользователь",
-      tableLogin: "Логин",
-      deleteDesc: "Пользователь будет удалён без возможности восстановления.",
-      modalTitleEdit: "Редактировать пользователя",
+      tableEmail: "Email",
+      tableStatus: "Статус",
       modalTitleCreate: "Новый пользователь",
       firstName: "Имя",
       lastName: "Фамилия",
-      toasts: { saved: "Пользователь сохранён", created: "Пользователь создан", deleted: "Пользователь удалён" },
+      middleName: "Отчество",
+      nickName: "Никнейм",
+      avatarUrl: "Ссылка на аватар",
+      userActive: "Пользователь активен",
+      errors: { loadUsers: "Не удалось загрузить пользователей", saveUser: "Не удалось сохранить пользователя" },
+      toasts: { created: "Пользователь создан" },
+    },
+    userDetail: {
+      notFoundTitle: "Пользователь не найден",
+      notFoundText: "Такого пользователя не существует или он был удалён.",
+      backToList: "К списку пользователей",
+      sub: "карточка пользователя",
+      assignedRoles: "Роли",
+      noRolesAssigned: "Роли не назначены.",
+      manageRoles: "Управлять ролями",
+      manageRolesTitle: "Роли пользователя",
+      noRolesAvailable: "Роли ещё не созданы.",
+      deleteUserTitle: "Удалить пользователя?",
+      deleteUserDesc: (name: string) => `Удалить пользователя «${name}»? Это действие необратимо.`,
+      errors: {
+        saveUser: "Не удалось сохранить пользователя",
+        deleteUser: "Не удалось удалить пользователя",
+        loadRoles: "Не удалось загрузить роли",
+      },
+      toasts: {
+        saved: "Пользователь сохранён",
+        deleted: "Пользователь удалён",
+        rolesUpdated: "Роли обновлены",
+      },
     },
     packages: {
       title: "Пакеты",
@@ -508,6 +558,8 @@ export const translations: Record<Language, Dict> = {
       lightTheme: "Light theme",
       darkTheme: "Dark theme",
       logout: "Log out",
+      logoutConfirmTitle: "Log out of your account?",
+      logoutConfirmDescription: "You'll need to sign in again to continue.",
     },
     bottomNav: {
       more: "More",
@@ -630,13 +682,40 @@ export const translations: Record<Language, Dict> = {
       noUsersYet: "No users yet.",
       createUser: "Create user",
       tableUser: "User",
-      tableLogin: "Login",
-      deleteDesc: "The user will be permanently deleted.",
-      modalTitleEdit: "Edit user",
+      tableEmail: "Email",
+      tableStatus: "Status",
       modalTitleCreate: "New user",
       firstName: "First name",
       lastName: "Last name",
-      toasts: { saved: "User saved", created: "User created", deleted: "User deleted" },
+      middleName: "Middle name",
+      nickName: "Nickname",
+      avatarUrl: "Avatar URL",
+      userActive: "User is active",
+      errors: { loadUsers: "Failed to load users", saveUser: "Failed to save user" },
+      toasts: { created: "User created" },
+    },
+    userDetail: {
+      notFoundTitle: "User not found",
+      notFoundText: "This user does not exist or has been deleted.",
+      backToList: "Back to users",
+      sub: "user profile",
+      assignedRoles: "Roles",
+      noRolesAssigned: "No roles assigned.",
+      manageRoles: "Manage roles",
+      manageRolesTitle: "User roles",
+      noRolesAvailable: "No roles have been created yet.",
+      deleteUserTitle: "Delete user?",
+      deleteUserDesc: (name: string) => `Delete user "${name}"? This action cannot be undone.`,
+      errors: {
+        saveUser: "Failed to save user",
+        deleteUser: "Failed to delete user",
+        loadRoles: "Failed to load roles",
+      },
+      toasts: {
+        saved: "User saved",
+        deleted: "User deleted",
+        rolesUpdated: "Roles updated",
+      },
     },
     packages: {
       title: "Packages",
@@ -756,6 +835,8 @@ export const translations: Record<Language, Dict> = {
       lightTheme: "Мавзӯи равшан",
       darkTheme: "Мавзӯи торик",
       logout: "Баромадан",
+      logoutConfirmTitle: "Аз ҳисоб мебароед?",
+      logoutConfirmDescription: "Барои идома додан бояд дубора ворид шавед.",
     },
     bottomNav: {
       more: "Бештар",
@@ -878,13 +959,40 @@ export const translations: Record<Language, Dict> = {
       noUsersYet: "Ҳанӯз корбаре нест.",
       createUser: "Эҷоди корбар",
       tableUser: "Корбар",
-      tableLogin: "Логин",
-      deleteDesc: "Корбар бе имконияти барқарорсозӣ нест карда мешавад.",
-      modalTitleEdit: "Таҳрири корбар",
+      tableEmail: "Email",
+      tableStatus: "Ҳолат",
       modalTitleCreate: "Корбари нав",
       firstName: "Ном",
       lastName: "Насаб",
-      toasts: { saved: "Корбар захира шуд", created: "Корбар эҷод шуд", deleted: "Корбар нест карда шуд" },
+      middleName: "Номи падар",
+      nickName: "Тахаллус",
+      avatarUrl: "Пайванди аватар",
+      userActive: "Корбар фаъол аст",
+      errors: { loadUsers: "Боргирии корбарон ноком шуд", saveUser: "Захираи корбар ноком шуд" },
+      toasts: { created: "Корбар эҷод шуд" },
+    },
+    userDetail: {
+      notFoundTitle: "Корбар ёфт нашуд",
+      notFoundText: "Ин корбар вуҷуд надорад ё нест карда шудааст.",
+      backToList: "Ба рӯйхати корбарон",
+      sub: "профили корбар",
+      assignedRoles: "Нақшҳо",
+      noRolesAssigned: "Нақш таъин нашудааст.",
+      manageRoles: "Идоракунии нақшҳо",
+      manageRolesTitle: "Нақшҳои корбар",
+      noRolesAvailable: "Ҳанӯз нақше эҷод нашудааст.",
+      deleteUserTitle: "Корбарро нест кунам?",
+      deleteUserDesc: (name: string) => `Корбари «${name}»-ро нест кунам? Ин амал бебозгашт аст.`,
+      errors: {
+        saveUser: "Захираи корбар ноком шуд",
+        deleteUser: "Несткунии корбар ноком шуд",
+        loadRoles: "Боргирии нақшҳо ноком шуд",
+      },
+      toasts: {
+        saved: "Корбар захира шуд",
+        deleted: "Корбар нест карда шуд",
+        rolesUpdated: "Нақшҳо навсозӣ шуданд",
+      },
     },
     packages: {
       title: "Бастаҳо",

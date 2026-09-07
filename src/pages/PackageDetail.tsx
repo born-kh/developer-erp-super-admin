@@ -238,37 +238,37 @@ export function PackageDetail() {
         <CardContent>
           {editing && form ? (
             <div className="grid gap-3">
-              <div className="flex gap-1">
-                {langs.map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => setActiveLang(l)}
-                    className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
-                      activeLang === l
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-input text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {l.toUpperCase()}
-                    {l === defaultLang && !form.title[defaultLang]?.trim() ? " *" : ""}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
+              <div className="grid gap-3 rounded-md border p-3">
+                <div className="flex gap-1">
+                  {langs.map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setActiveLang(l)}
+                      className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                        activeLang === l
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-input text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {l.toUpperCase()}
+                      {l === defaultLang && !form.title[defaultLang]?.trim() ? " *" : ""}
+                    </button>
+                  ))}
+                </div>
                 <Field label={t.packages.nameLang(activeLang.toUpperCase())}>
                   <Input value={form.title[activeLang] ?? ""} onChange={(e) => setTitleLang(activeLang, e.target.value)} />
                 </Field>
-                <Field label={t.common.price}>
-                  <Input type="number" min="0" value={form.cost} onChange={(e) => setField("cost", e.target.value)} />
+                <Field label={t.packages.descLang(activeLang.toUpperCase())}>
+                  <Textarea
+                    rows={3}
+                    value={form.description[activeLang] ?? ""}
+                    onChange={(e) => setDescriptionLang(activeLang, e.target.value)}
+                  />
                 </Field>
               </div>
-              <Field label={t.packages.descLang(activeLang.toUpperCase())}>
-                <Textarea
-                  rows={3}
-                  value={form.description[activeLang] ?? ""}
-                  onChange={(e) => setDescriptionLang(activeLang, e.target.value)}
-                />
+              <Field label={t.common.price}>
+                <Input type="number" min="0" value={form.cost} onChange={(e) => setField("cost", e.target.value)} />
               </Field>
               <label className="flex items-center gap-2 text-sm font-medium">
                 <Switch checked={form.active} onCheckedChange={(v) => setField("active", v)} />
@@ -277,22 +277,43 @@ export function PackageDetail() {
             </div>
           ) : (
             <>
-              <div className="mb-2.5 flex gap-1.5">
+              <div className="mb-3 flex gap-1.5">
                 <ActiveBadge active={pkg.isActive} />
               </div>
-              <p className="mb-4 text-muted-foreground leading-relaxed">{pkg.description?.[defaultLang] || "—"}</p>
-              <dl className="detail-dl">
-                <div>
-                  <dt>{t.common.price}</dt>
-                  <dd>{pkg.cost}</dd>
-                </div>
-                {langs.map((l) => (
-                  <div key={l}>
-                    <dt>{t.packages.nameLang(l.toUpperCase())}</dt>
-                    <dd>{pkg.title?.[l] || "—"}</dd>
+              <div className="grid gap-3">
+                <div className="rounded-md border p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t.common.name}
                   </div>
-                ))}
-              </dl>
+                  <dl className="detail-dl">
+                    {langs.map((l) => (
+                      <div key={l}>
+                        <dt>{l.toUpperCase()}</dt>
+                        <dd>{pkg.title?.[l] || "—"}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t.common.description}
+                  </div>
+                  <dl className="detail-dl">
+                    {langs.map((l) => (
+                      <div key={l}>
+                        <dt>{l.toUpperCase()}</dt>
+                        <dd>{pkg.description?.[l] || "—"}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t.common.price}
+                  </dt>
+                  <dd className="mt-1 font-semibold">{pkg.cost}</dd>
+                </div>
+              </div>
             </>
           )}
         </CardContent>

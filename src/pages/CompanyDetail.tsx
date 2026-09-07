@@ -328,7 +328,7 @@ export function CompanyDetail() {
             <Field label={t.common.phone}>
               <Input value={ownerForm.phone} onChange={(e) => setOwnerField("phone", e.target.value)} />
             </Field>
-            <Field label={t.users.tableLogin}>
+            <Field label={t.companyDetail.loginLabel}>
               <Input value={ownerForm.login} onChange={(e) => setOwnerField("login", e.target.value)} />
             </Field>
             <Field label={t.login.password}>

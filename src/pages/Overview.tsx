@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { income } from "../data/mock";
 import { useCompanies } from "../data/companiesStore";
-import { useUsers } from "../data/usersStore";
 import { useCityCatalog } from "../data/cityCatalogStore";
-import { listPackages, listTariffs } from "../lib/api";
+import { listPackages, listTariffs, listUsers } from "../lib/api";
 import { usd } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
@@ -23,10 +22,10 @@ import {
 export function Overview() {
   const { t } = useTranslation();
   const { companies } = useCompanies();
-  const { users } = useUsers();
   const { cityCatalog } = useCityCatalog();
   const [packageStats, setPackageStats] = useState({ total: 0, active: 0 });
   const [tariffStats, setTariffStats] = useState({ total: 0, active: 0 });
+  const [userCount, setUserCount] = useState(0);
 
   useEffect(() => {
     listPackages({ pageSize: 100 })
@@ -41,6 +40,9 @@ export function Overview() {
         setTariffStats({ total: items.length, active: items.filter((t) => t.isActive).length });
       })
       .catch(() => {});
+    listUsers({ pageSize: 100 })
+      .then((res) => setUserCount((res.items ?? []).length))
+      .catch(() => {});
   }, []);
 
   const activeCompanies = companies.filter((c) => c.status === "active").length;
@@ -51,7 +53,7 @@ export function Overview() {
   const kpis = [
     { label: t.nav.companies, value: companies.length, hint: `${activeCompanies} ${t.overview.activeSuffix}` },
     { label: t.overview.incomeMonth, value: usd(income.thisMonth), hint: `${t.overview.lastMonthPrefix} ${usd(income.lastMonth)}` },
-    { label: t.overview.users, value: users.length, hint: t.overview.allTenants },
+    { label: t.overview.users, value: userCount, hint: t.overview.allTenants },
     { label: t.nav.packages, value: packageStats.total, hint: `${packageStats.active} ${t.overview.activeSuffix}` },
     { label: t.nav.tariffs, value: tariffStats.total, hint: `${tariffStats.active} ${t.overview.activeSuffix}` },
     { label: t.nav.cities, value: cityCatalog.length, hint: t.overview.catalog },

@@ -38,21 +38,3 @@ export function isAccessTokenExpired(): boolean {
   if (Number.isNaN(expiryMs)) return false;
   return Date.now() + EXPIRY_BUFFER_MS >= expiryMs;
 }
-
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const payload = token.split(".")[1];
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
-    return JSON.parse(atob(padded));
-  } catch {
-    return null;
-  }
-}
-
-export function getUserIdFromAccessToken(): string | null {
-  const token = getAccessToken();
-  if (!token) return null;
-  const sub = decodeJwtPayload(token)?.sub;
-  return typeof sub === "string" ? sub : null;
-}

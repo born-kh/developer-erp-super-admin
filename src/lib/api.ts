@@ -185,6 +185,114 @@ export function getUserById(id: string) {
   return authRequest<UserDetail>(`/core/api/users/${id}`);
 }
 
+export type UserListItem = {
+  id: string;
+  fullName?: string | null;
+  nickName?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
+  createdAt: string;
+  active: boolean;
+};
+
+export type CreateUserInput = {
+  firstName: string;
+  lastName?: string | null;
+  middleName?: string | null;
+  nickName?: string | null;
+  email: string;
+  password?: string | null;
+  avatarUrl?: string | null;
+  active: boolean;
+};
+
+export type UpdateUserInput = {
+  firstName: string;
+  lastName: string;
+  middleName?: string | null;
+  nickName?: string | null;
+  email: string;
+  avatarUrl?: string | null;
+  active: boolean;
+};
+
+export type UserRole = {
+  roleId: string;
+  code?: string | null;
+  title?: string | null;
+  description?: string | null;
+};
+
+export function listUsers(
+  params: { search?: string; isActive?: boolean; role?: string; page?: number; pageSize?: number } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.search) query.set("Search", params.search);
+  if (params.isActive !== undefined) query.set("IsActive", String(params.isActive));
+  if (params.role) query.set("Role", params.role);
+  query.set("Page", String(params.page ?? 1));
+  query.set("PageSize", String(params.pageSize ?? 100));
+  return authRequest<PagedResult<UserListItem>>(`/core/api/users?${query.toString()}`);
+}
+
+export function createUser(data: CreateUserInput) {
+  return authRequest<UserDetail>("/core/api/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateUser(id: string, data: UpdateUserInput) {
+  return authRequest<unknown>(`/core/api/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteUser(id: string) {
+  return authRequest<unknown>(`/core/api/users/${id}`, { method: "DELETE" });
+}
+
+export function activateUser(id: string) {
+  return authRequest<unknown>(`/core/api/users/${id}/activate`, { method: "PUT" });
+}
+
+export function deactivateUser(id: string) {
+  return authRequest<unknown>(`/core/api/users/${id}/deactivate`, { method: "PUT" });
+}
+
+export function getUserRoles(userId: string) {
+  return authRequest<PagedResult<UserRole>>(`/core/api/users/${userId}/roles`);
+}
+
+export function assignUserRoles(userId: string, roleIds: string[]) {
+  return authRequest<{ changed: boolean }>(`/core/api/users/${userId}/roles`, {
+    method: "POST",
+    body: JSON.stringify({ roleIds }),
+  });
+}
+
+export function unassignUserRoles(userId: string, roleIds: string[]) {
+  return authRequest<{ changed: boolean }>(`/core/api/users/${userId}/roles`, {
+    method: "DELETE",
+    body: JSON.stringify(roleIds),
+  });
+}
+
+export type RoleLookup = {
+  id: string;
+  code?: string | null;
+  title?: string | null;
+};
+
+export function listRoles(params: { search?: string; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.search) query.set("Search", params.search);
+  query.set("Page", String(params.page ?? 1));
+  query.set("PageSize", String(params.pageSize ?? 100));
+  return authRequest<PagedResult<RoleLookup>>(`/core/api/roles?${query.toString()}`);
+}
+
 export type ModuleDefaultOptions = {
   defaultLanguage: string;
   nationalCurrencyCode: string;

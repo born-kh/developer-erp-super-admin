@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import {
   createPackage,
@@ -9,6 +10,7 @@ import {
 } from "../lib/api";
 import { useTranslation } from "../i18n/LanguageContext";
 import { useModuleSettings } from "../data/moduleSettingsStore";
+import { usd } from "../lib/format";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { EmptyState } from "@/components/EmptyState";
@@ -173,12 +175,13 @@ export function Packages() {
                 <TableHead>{t.packages.tablePrice}</TableHead>
                 <TableHead>{t.packages.tablePermissionGroups}</TableHead>
                 <TableHead>{t.common.status}</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     {t.common.loading}
                   </TableCell>
                 </TableRow>
@@ -201,22 +204,32 @@ export function Packages() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="tabular-nums">{p.cost}</TableCell>
+                    <TableCell className="tabular-nums font-medium">
+                      {usd(p.cost)} {t.tariffs.perMonth}
+                    </TableCell>
                     <TableCell>
                       {p.permissionGroupCodes.length === 0 ? (
                         <span className="text-muted-foreground">—</span>
                       ) : (
                         <div className="flex flex-wrap gap-1">
-                          {p.permissionGroupCodes.map((code) => (
+                          {p.permissionGroupCodes.slice(0, 3).map((code) => (
                             <span className="tag-chip static" key={code}>
                               {code}
                             </span>
                           ))}
+                          {p.permissionGroupCodes.length > 3 && (
+                            <span className="tag-chip static text-muted-foreground">
+                              +{p.permissionGroupCodes.length - 3}
+                            </span>
+                          )}
                         </div>
                       )}
                     </TableCell>
                     <TableCell>
                       <ActiveBadge active={p.isActive} />
+                    </TableCell>
+                    <TableCell className="w-8 text-muted-foreground">
+                      <ChevronRight className="size-4" />
                     </TableCell>
                   </TableRow>
                 ))
@@ -234,24 +247,24 @@ export function Packages() {
             <DialogTitle>{t.packages.modalTitleCreate}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <div className="flex gap-1">
-              {langs.map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setActiveLang(l)}
-                  className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
-                    activeLang === l
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-input text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {l.toUpperCase()}
-                  {l === defaultLang && !form.title[defaultLang]?.trim() ? " *" : ""}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
+            <div className="grid gap-3 rounded-md border p-3">
+              <div className="flex gap-1">
+                {langs.map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => setActiveLang(l)}
+                    className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                      activeLang === l
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-input text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {l.toUpperCase()}
+                    {l === defaultLang && !form.title[defaultLang]?.trim() ? " *" : ""}
+                  </button>
+                ))}
+              </div>
               <Field label={t.packages.nameLang(activeLang.toUpperCase())}>
                 <Input
                   value={form.title[activeLang] ?? ""}
@@ -259,20 +272,20 @@ export function Packages() {
                   autoFocus
                 />
               </Field>
-              <Field label={t.common.price}>
-                <Input
-                  type="number"
-                  min="0"
-                  value={form.cost}
-                  onChange={(e) => set("cost", e.target.value)}
+              <Field label={t.packages.descLang(activeLang.toUpperCase())}>
+                <Textarea
+                  rows={3}
+                  value={form.description[activeLang] ?? ""}
+                  onChange={(e) => setDescription(activeLang, e.target.value)}
                 />
               </Field>
             </div>
-            <Field label={t.packages.descLang(activeLang.toUpperCase())}>
-              <Textarea
-                rows={3}
-                value={form.description[activeLang] ?? ""}
-                onChange={(e) => setDescription(activeLang, e.target.value)}
+            <Field label={t.common.price}>
+              <Input
+                type="number"
+                min="0"
+                value={form.cost}
+                onChange={(e) => set("cost", e.target.value)}
               />
             </Field>
             <label className="flex items-center gap-2 text-sm font-medium">

@@ -6,8 +6,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getAccessToken, getUserIdFromAccessToken } from "../auth";
-import { getUserById, type UserDetail } from "../lib/api";
+import { getAccessToken } from "../auth";
+import { getCurrentUser, type UserDetail } from "../lib/api";
 
 const STORAGE_KEY = "derp-sa-current-user";
 
@@ -34,15 +34,14 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
-    const id = getUserIdFromAccessToken();
-    if (!id) return;
+    if (!getAccessToken()) return;
     setLoading(true);
     try {
-      const detail = await getUserById(id);
+      const detail = await getCurrentUser();
       setUser(detail);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(detail));
     } catch {
-      // getUserById already handles token refresh / forced logout on failure
+      // getCurrentUser already handles token refresh / forced logout on failure
     } finally {
       setLoading(false);
     }

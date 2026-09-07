@@ -299,7 +299,7 @@ export function Tariffs() {
                               </span>
                             ))}
                             {pkgs.length > 3 && (
-                              <span className="text-xs text-muted-foreground">+{pkgs.length - 3}</span>
+                              <span className="tag-chip static text-muted-foreground">+{pkgs.length - 3}</span>
                             )}
                           </div>
                         )}

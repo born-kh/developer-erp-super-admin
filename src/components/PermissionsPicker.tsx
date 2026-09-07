@@ -89,7 +89,7 @@ export function PermissionsPicker({
             const moduleOpen = Boolean(q) || !closedModules.has(m.key);
             return (
               <Collapsible key={m.key} open={moduleOpen} onOpenChange={() => toggleModule(m.key)}>
-                <CollapsibleTrigger className="flex w-full items-center gap-2 border-b bg-muted/50 px-3 py-2 text-left text-sm font-medium last:border-b-0">
+                <CollapsibleTrigger className="flex w-full items-center gap-2 border-b bg-muted/50 px-3 py-2 text-left text-sm font-semibold last:border-b-0">
                   {moduleOpen ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />}
                   {m.key}
                 </CollapsibleTrigger>
@@ -104,24 +104,21 @@ export function PermissionsPicker({
                     const someSelected = selectedCount > 0 && !allSelected;
                     return (
                       <Collapsible key={code} open={groupOpen} onOpenChange={() => toggleGroupOpen(code)}>
-                        <CollapsibleTrigger className="flex w-full items-center gap-2 border-b bg-muted/20 px-3 py-2 text-left text-sm">
+                        <CollapsibleTrigger className="flex w-full items-center gap-2 border-b bg-muted/20 py-2 pr-3 pl-7 text-left text-sm font-semibold">
                           {groupOpen ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />}
                           {g.title}
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="border-b bg-background px-3 py-3">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <span className="text-sm font-semibold">{g.title}</span>
-                            <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                              {t.permissionsPicker.selectAll} ({permIds.length})
-                              <Checkbox
-                                checked={allSelected ? true : someSelected ? "indeterminate" : false}
-                                onCheckedChange={(checked) => onToggleGroup(permIds, checked === true)}
-                              />
-                            </label>
-                          </div>
+                        <CollapsibleContent className="border-b bg-background py-3 pr-3 pl-11">
+                          <label className="mb-2 flex items-center justify-end gap-2 text-xs font-normal text-muted-foreground">
+                            {t.permissionsPicker.selectAll} ({permIds.length})
+                            <Checkbox
+                              checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                              onCheckedChange={(checked) => onToggleGroup(permIds, checked === true)}
+                            />
+                          </label>
                           <div className="grid gap-1.5">
                             {perms.map((perm) => (
-                              <label key={perm.id} className="flex items-center gap-2 text-sm">
+                              <label key={perm.id} className="flex items-center gap-2 text-sm font-normal text-foreground/90">
                                 <Checkbox
                                   checked={selectedIds.includes(perm.id)}
                                   onCheckedChange={() => onTogglePermission(perm.id)}

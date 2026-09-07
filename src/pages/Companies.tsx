@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { cities, users, type Company } from "../data/mock";
 import { useCompanies } from "../data/companiesStore";
@@ -145,6 +146,7 @@ export function Companies() {
                 <TableHead>{t.common.status}</TableHead>
                 <TableHead>{t.companies.tableUsers}</TableHead>
                 <TableHead>{t.common.created}</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -177,6 +179,9 @@ export function Companies() {
                     {users.filter((u) => u.companyId === c.id).length}
                   </TableCell>
                   <TableCell className="tabular-nums text-muted-foreground">{c.createdAt}</TableCell>
+                  <TableCell className="w-8 text-muted-foreground">
+                    <ChevronRight className="size-4" />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

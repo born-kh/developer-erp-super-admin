@@ -1,15 +1,15 @@
-import { useMemo, useRef, useState } from "react";
-import { Copy, RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { type PlatformUser } from "../data/mock";
-import { useUsers } from "../data/usersStore";
-import { randomPassword, slugify } from "../lib/format";
+import { createUser, listUsers, ApiRequestError, type UserListItem } from "../lib/api";
+import { randomPassword } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
+import { ActiveBadge } from "@/components/StatusBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -35,19 +36,23 @@ const PAGE_SIZE = 12;
 type UserForm = {
   firstName: string;
   lastName: string;
+  middleName: string;
+  nickName: string;
   email: string;
-  login: string;
+  avatarUrl: string;
   password: string;
-  image: string;
+  active: boolean;
 };
 
 const emptyUserForm: UserForm = {
   firstName: "",
   lastName: "",
+  middleName: "",
+  nickName: "",
   email: "",
-  login: "",
+  avatarUrl: "",
   password: "",
-  image: "",
+  active: true,
 };
 
 function initials(name: string) {
@@ -59,23 +64,44 @@ function initials(name: string) {
     .join("");
 }
 
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof ApiRequestError ? err.message : fallback;
+}
+
 export function Users() {
+  const nav = useNavigate();
   const { t } = useTranslation();
-  const { users, addUser, updateUser, deleteUser } = useUsers();
+  const [users, setUsers] = useState<UserListItem[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
 
-  const [modal, setModal] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<UserForm>(emptyUserForm);
-  const [loginTouched, setLoginTouched] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchUsers = async () => {
+    setLoadingList(true);
+    try {
+      const res = await listUsers({ pageSize: 100 });
+      setUsers(res.items ?? []);
+    } catch (err) {
+      toast.error(errorMessage(err, t.users.errors.loadUsers));
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return users;
     return users.filter(
-      (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.login ?? "").toLowerCase().includes(q),
+      (u) => (u.fullName ?? "").toLowerCase().includes(q) || (u.email ?? "").toLowerCase().includes(q),
     );
   }, [users, query]);
 
@@ -86,74 +112,36 @@ export function Users() {
     [filtered, current],
   );
 
-  const setField = <K extends keyof UserForm>(key: K, value: UserForm[K]) => {
-    setForm((f) => {
-      const next = { ...f, [key]: value };
-      if ((key === "firstName" || key === "lastName") && !loginTouched) {
-        next.login = slugify(`${next.firstName} ${next.lastName}`.trim());
-      }
-      return next;
-    });
-    if (key === "login") setLoginTouched(true);
-  };
+  const setField = <K extends keyof UserForm>(key: K, value: UserForm[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
 
   const openCreate = () => {
     setForm({ ...emptyUserForm, password: randomPassword() });
-    setLoginTouched(false);
-    setModal({ mode: "create" });
+    setShowCreate(true);
   };
 
-  const openEdit = (u: PlatformUser) => {
-    const [firstName, ...rest] = u.name.split(" ");
-    setForm({
-      firstName: firstName ?? "",
-      lastName: rest.join(" "),
-      email: u.email,
-      login: u.login ?? "",
-      password: u.password ?? "",
-      image: u.image ?? "",
-    });
-    setLoginTouched(true);
-    setModal({ mode: "edit", id: u.id });
-  };
-
-  const pickImage = (file: File | undefined) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setField("image", String(reader.result));
-    reader.readAsDataURL(file);
-  };
-
-  const copyPassword = () => {
-    if (!form.password) return;
-    navigator.clipboard?.writeText(form.password).catch(() => {});
-    toast.success(t.common.passwordCopied);
-  };
-
-  const submit = () => {
-    const name = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
-    if (!name) return;
-    const payload = {
-      name,
-      email: form.email,
-      login: form.login,
-      password: form.password,
-      image: form.image,
-    };
-    if (modal?.mode === "edit" && modal.id) {
-      updateUser(modal.id, payload);
-      toast.success(t.users.toasts.saved);
-    } else {
-      addUser({ ...payload, role: "user", companyId: "" });
+  const submit = async () => {
+    if (!form.firstName.trim() || !form.email.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const created = await createUser({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim() || null,
+        middleName: form.middleName.trim() || null,
+        nickName: form.nickName.trim() || null,
+        email: form.email.trim(),
+        avatarUrl: form.avatarUrl.trim() || null,
+        password: form.password.trim() || null,
+        active: form.active,
+      });
       toast.success(t.users.toasts.created);
+      setShowCreate(false);
+      nav(`/users/${created.id}`);
+    } catch (err) {
+      toast.error(errorMessage(err, t.users.errors.saveUser));
+    } finally {
+      setSubmitting(false);
     }
-    setModal(null);
-  };
-
-  const remove = (id: string) => {
-    deleteUser(id);
-    setConfirmDeleteId(null);
-    toast.success(t.users.toasts.deleted);
   };
 
   return (
@@ -178,7 +166,7 @@ export function Users() {
         }
       />
 
-      {pageItems.length === 0 ? (
+      {!loadingList && pageItems.length === 0 ? (
         <EmptyState
           title={query ? t.common.nothingFound : t.users.noUsersYet}
           action={
@@ -195,39 +183,48 @@ export function Users() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t.users.tableUser}</TableHead>
-                <TableHead>{t.common.email}</TableHead>
-                <TableHead>{t.users.tableLogin}</TableHead>
-                <TableHead className="text-right">{t.common.actions}</TableHead>
+                <TableHead>{t.users.tableEmail}</TableHead>
+                <TableHead>{t.users.tableStatus}</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pageItems.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="size-8">
-                        <AvatarImage src={u.image} alt={u.name} />
-                        <AvatarFallback className="bg-secondary text-xs font-semibold text-muted-foreground">
-                          {initials(u.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{u.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                  <TableCell className="text-muted-foreground">{u.login || "—"}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="inline-flex gap-1.5">
-                      <Button type="button" variant="outline" size="sm" onClick={() => openEdit(u)}>
-                        {t.common.edit}
-                      </Button>
-                      <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteId(u.id)}>
-                        {t.common.delete}
-                      </Button>
-                    </div>
+              {loadingList ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    {t.common.loading}
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                pageItems.map((u) => (
+                  <TableRow
+                    key={u.id}
+                    className="cursor-pointer"
+                    tabIndex={0}
+                    onClick={() => nav(`/users/${u.id}`)}
+                    onKeyDown={(e) => e.key === "Enter" && nav(`/users/${u.id}`)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="size-8">
+                          <AvatarImage src={u.avatarUrl ?? undefined} alt={u.fullName ?? ""} />
+                          <AvatarFallback className="bg-secondary text-xs font-semibold text-muted-foreground">
+                            {initials(u.fullName ?? "")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{u.fullName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                    <TableCell>
+                      <ActiveBadge active={u.active} />
+                    </TableCell>
+                    <TableCell className="w-8 text-muted-foreground">
+                      <ChevronRight className="size-4" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </Card>
@@ -235,36 +232,12 @@ export function Users() {
 
       <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
 
-      <ConfirmDialog
-        open={Boolean(confirmDeleteId)}
-        onOpenChange={(open) => !open && setConfirmDeleteId(null)}
-        description={t.users.deleteDesc}
-        onConfirm={() => confirmDeleteId && remove(confirmDeleteId)}
-      />
-
-      <Dialog open={Boolean(modal)} onOpenChange={(open) => !open && setModal(null)}>
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{modal?.mode === "edit" ? t.users.modalTitleEdit : t.users.modalTitleCreate}</DialogTitle>
+            <DialogTitle>{t.users.modalTitleCreate}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <Field label={t.common.image}>
-              <div className="image-pick">
-                <div className="image-pick-preview">
-                  {form.image ? <img src={form.image} alt="" /> : <span>{t.common.noPhoto}</span>}
-                </div>
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                  {t.common.chooseImage}
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(e) => pickImage(e.target.files?.[0])}
-                />
-              </div>
-            </Field>
             <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
               <Field label={t.users.firstName}>
                 <Input value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} autoFocus />
@@ -273,31 +246,34 @@ export function Users() {
                 <Input value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} />
               </Field>
             </div>
+            <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
+              <Field label={t.users.middleName}>
+                <Input value={form.middleName} onChange={(e) => setField("middleName", e.target.value)} />
+              </Field>
+              <Field label={t.users.nickName}>
+                <Input value={form.nickName} onChange={(e) => setField("nickName", e.target.value)} />
+              </Field>
+            </div>
             <Field label={t.common.email}>
               <Input value={form.email} onChange={(e) => setField("email", e.target.value)} />
             </Field>
-            <Field label={t.users.tableLogin}>
-              <Input value={form.login} onChange={(e) => setField("login", e.target.value)} />
+            <Field label={t.users.avatarUrl}>
+              <Input value={form.avatarUrl} onChange={(e) => setField("avatarUrl", e.target.value)} />
             </Field>
             <Field label={t.login.password}>
-              <div className="password-gen">
-                <Input value={form.password} onChange={(e) => setField("password", e.target.value)} />
-                <Button type="button" variant="outline" size="icon" onClick={copyPassword} aria-label={t.common.copyPassword}>
-                  <Copy />
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => setField("password", randomPassword())}>
-                  <RefreshCw />
-                  {t.common.generate}
-                </Button>
-              </div>
+              <Input value={form.password} onChange={(e) => setField("password", e.target.value)} />
             </Field>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Switch checked={form.active} onCheckedChange={(v) => setField("active", v)} />
+              {t.users.userActive}
+            </label>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setModal(null)}>
+            <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>
               {t.common.cancel}
             </Button>
-            <Button type="button" disabled={!form.firstName.trim()} onClick={submit}>
-              {modal?.mode === "edit" ? t.common.save : t.common.create}
+            <Button type="button" disabled={!form.firstName.trim() || !form.email.trim() || submitting} onClick={submit}>
+              {t.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>

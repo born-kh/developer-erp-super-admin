@@ -13,10 +13,12 @@ import { clearTokens } from "./auth";
 import { useCurrentUser } from "./data/currentUserStore";
 import { initials } from "./lib/format";
 import { useTranslation } from "./i18n/LanguageContext";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -44,6 +46,8 @@ export function AppShell() {
   const nav = useNavigate();
   const loc = useLocation();
   const [more, setMore] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const { user, clear: clearCurrentUser } = useCurrentUser();
   const { t } = useTranslation();
 
@@ -117,32 +121,52 @@ export function AppShell() {
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
-          <SidebarFooter className="px-2 pb-4">
-            <ThemeToggle className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              onClick={logout}
-            >
-              <LogOut />
-              {t.sidebar.logout}
-            </Button>
+          <SidebarFooter className="px-3 pb-4">
+            <p className="text-[11px] text-sidebar-foreground/40">© {new Date().getFullYear()} erp.tj</p>
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="min-w-0 bg-background">
           <header className="sticky top-0 z-10 flex h-12 items-center justify-between border-b bg-card px-6 max-[860px]:px-3">
             <span className="text-sm font-medium">{currentTitle(loc.pathname)}</span>
             <div className="flex items-center gap-2">
+              <ThemeToggle iconOnly />
               <LanguageSwitcher />
-              <span className="text-xs font-medium text-foreground max-[500px]:hidden">
-                {user?.fullName || user?.email || ""}
-              </span>
-              <Avatar size="sm">
-                {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName ?? ""} />}
-                <AvatarFallback>{user?.fullName ? initials(user.fullName) : "?"}</AvatarFallback>
-              </Avatar>
+              <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
+                <PopoverTrigger className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-accent">
+                  <span className="text-xs font-medium text-foreground max-[500px]:hidden">
+                    {user?.fullName || user?.email || ""}
+                  </span>
+                  <Avatar size="sm">
+                    {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName ?? ""} />}
+                    <AvatarFallback>{user?.fullName ? initials(user.fullName) : "?"}</AvatarFallback>
+                  </Avatar>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-64">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="size-10">
+                      {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName ?? ""} />}
+                      <AvatarFallback>{user?.fullName ? initials(user.fullName) : "?"}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold">{user?.fullName || "—"}</div>
+                      <div className="truncate text-xs text-muted-foreground">{user?.email || "—"}</div>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 w-full justify-start"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setConfirmLogout(true);
+                    }}
+                  >
+                    <LogOut />
+                    {t.sidebar.logout}
+                  </Button>
+                </PopoverContent>
+              </Popover>
             </div>
           </header>
           <div className="main-pad">
@@ -189,6 +213,14 @@ export function AppShell() {
             </nav>
           </SheetContent>
         </Sheet>
+        <ConfirmDialog
+          open={confirmLogout}
+          onOpenChange={setConfirmLogout}
+          title={t.sidebar.logoutConfirmTitle}
+          description={t.sidebar.logoutConfirmDescription}
+          confirmLabel={t.sidebar.logout}
+          onConfirm={logout}
+        />
       </SidebarProvider>
     </TooltipProvider>
   );
