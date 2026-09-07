@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cities, users, type Company } from "../data/mock";
 import { useCompanies } from "../data/companiesStore";
+import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { EmptyState } from "@/components/EmptyState";
@@ -52,6 +53,7 @@ const emptyForm: Omit<Company, "id"> = {
 
 export function Companies() {
   const nav = useNavigate();
+  const { t } = useTranslation();
   const { companies, addCompany } = useCompanies();
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -94,20 +96,20 @@ export function Companies() {
       image: form.image.trim() || `https://picsum.photos/seed/${encodeURIComponent(form.name)}/480/320`,
     });
     setShowCreate(false);
-    toast.success("Компания создана");
+    toast.success(t.companies.created);
     nav(`/companies/${id}`);
   };
 
   return (
     <>
       <PageHead
-        title="Компании"
-        sub="создание и управление тенантами"
+        title={t.companies.title}
+        sub={t.companies.sub}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Input
               className="w-56"
-              placeholder="Поиск по названию или городу"
+              placeholder={t.companies.searchPlaceholder}
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -115,7 +117,7 @@ export function Companies() {
               }}
             />
             <Button type="button" onClick={openCreate}>
-              + Новая компания
+              {t.companies.newCompany}
             </Button>
           </div>
         }
@@ -123,11 +125,11 @@ export function Companies() {
 
       {pageItems.length === 0 ? (
         <EmptyState
-          title={query ? "Ничего не найдено." : "Компаний пока нет."}
+          title={query ? t.common.nothingFound : t.companies.noCompaniesYet}
           action={
             !query ? (
               <Button type="button" onClick={openCreate}>
-                Создать компанию
+                {t.companies.createCompany}
               </Button>
             ) : undefined
           }
@@ -137,12 +139,12 @@ export function Companies() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Компания</TableHead>
-                <TableHead>Город</TableHead>
-                <TableHead>Пакет</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead>Пользователи</TableHead>
-                <TableHead>Создана</TableHead>
+                <TableHead>{t.companies.tableCompany}</TableHead>
+                <TableHead>{t.common.city}</TableHead>
+                <TableHead>{t.common.package}</TableHead>
+                <TableHead>{t.common.status}</TableHead>
+                <TableHead>{t.companies.tableUsers}</TableHead>
+                <TableHead>{t.common.created}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -184,20 +186,18 @@ export function Companies() {
 
       <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
 
-      <p className="mt-4 text-sm text-muted-foreground">
-        Данные компаний изолированы. Каждая компания работает только внутри своего пакета.
-      </p>
+      <p className="mt-4 text-sm text-muted-foreground">{t.companies.isolationNote}</p>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Новая компания</DialogTitle>
+            <DialogTitle>{t.companies.dialogTitle}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <Field label="Название">
+            <Field label={t.common.name}>
               <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
             </Field>
-            <Field label="Город">
+            <Field label={t.common.city}>
               <Select value={form.city} onValueChange={(v) => set("city", v)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -211,13 +211,13 @@ export function Companies() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Изображение">
+            <Field label={t.common.image}>
               <div className="image-pick">
                 <div className="image-pick-preview">
-                  {form.image ? <img src={form.image} alt="" /> : <span>Нет фото</span>}
+                  {form.image ? <img src={form.image} alt="" /> : <span>{t.common.noPhoto}</span>}
                 </div>
                 <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                  Выбрать изображение
+                  {t.common.chooseImage}
                 </Button>
                 <input
                   ref={fileInputRef}
@@ -229,7 +229,7 @@ export function Companies() {
               </div>
             </Field>
             <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
-              <Field label="Пакет">
+              <Field label={t.common.package}>
                 <Select value={form.package} onValueChange={(v) => set("package", v as Company["package"])}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -240,38 +240,38 @@ export function Companies() {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Статус">
+              <Field label={t.common.status}>
                 <Select value={form.status} onValueChange={(v) => set("status", v as Company["status"])}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Активна</SelectItem>
-                    <SelectItem value="trial">Триал</SelectItem>
-                    <SelectItem value="suspended">Приостановлена</SelectItem>
+                    <SelectItem value="active">{t.common.statusActive}</SelectItem>
+                    <SelectItem value="trial">{t.common.statusTrial}</SelectItem>
+                    <SelectItem value="suspended">{t.common.statusSuspended}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
             </div>
-            <Field label="Телефон">
+            <Field label={t.common.phone}>
               <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
             </Field>
-            <Field label="Email">
+            <Field label={t.common.email}>
               <Input value={form.email} onChange={(e) => set("email", e.target.value)} />
             </Field>
-            <Field label="Адрес">
+            <Field label={t.common.address}>
               <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
             </Field>
-            <Field label="Описание">
+            <Field label={t.common.description}>
               <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
             </Field>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button type="button" disabled={!form.name.trim()} onClick={submitCreate}>
-              Создать
+              {t.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -5,10 +5,12 @@ import { toast } from "sonner";
 import { setTokens } from "../auth";
 import { useCurrentUser } from "../data/currentUserStore";
 import { login as loginRequest, forgotPassword, ApiRequestError } from "../lib/api";
+import { useTranslation } from "../i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Field } from "@/components/Field";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +22,7 @@ import {
 export function Login() {
   const nav = useNavigate();
   const { refresh: refreshCurrentUser } = useCurrentUser();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +38,7 @@ export function Login() {
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
     if (!trimmedEmail || !trimmedPassword) {
-      toast.error("Заполните email и пароль");
+      toast.error(t.login.fillFields);
       return;
     }
     setSubmitting(true);
@@ -45,7 +48,7 @@ export function Login() {
       await refreshCurrentUser();
       nav("/");
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : "Не удалось войти";
+      const message = err instanceof ApiRequestError ? err.message : t.login.loginFailed;
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -62,16 +65,16 @@ export function Login() {
     if (forgotSubmitting) return;
     const trimmedEmail = forgotEmail.trim();
     if (!trimmedEmail) {
-      toast.error("Введите email");
+      toast.error(t.login.forgotEmailRequired);
       return;
     }
     setForgotSubmitting(true);
     try {
       await forgotPassword(trimmedEmail);
-      toast.success("Если email существует, на него отправлена ссылка для сброса пароля");
+      toast.success(t.login.forgotSuccess);
       setForgotOpen(false);
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : "Не удалось отправить запрос";
+      const message = err instanceof ApiRequestError ? err.message : t.login.forgotFailed;
       toast.error(message);
     } finally {
       setForgotSubmitting(false);
@@ -80,6 +83,9 @@ export function Login() {
 
   return (
     <div className="login">
+      <div className="absolute right-4 top-4">
+        <LanguageSwitcher />
+      </div>
       <div className="login-card">
         <div className="login-mark">
           <div className="login-mark-badge">SA</div>
@@ -88,10 +94,10 @@ export function Login() {
             <span>Super Admin</span>
           </div>
         </div>
-        <p className="lead">Войдите, чтобы управлять компаниями, тарифами и пользователями.</p>
+        <p className="lead">{t.login.lead}</p>
         <form onSubmit={submit} className="grid gap-4">
           <div className="grid gap-1.5">
-            <Label className="text-xs text-muted-foreground">Email</Label>
+            <Label className="text-xs text-muted-foreground">{t.login.email}</Label>
             <Input
               type="email"
               autoComplete="username"
@@ -103,13 +109,13 @@ export function Login() {
           </div>
           <div className="grid gap-1.5">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">Пароль</Label>
+              <Label className="text-xs text-muted-foreground">{t.login.password}</Label>
               <button
                 type="button"
                 className="text-xs font-medium text-primary hover:underline"
                 onClick={openForgot}
               >
-                Забыли пароль?
+                {t.login.forgotPassword}
               </button>
             </div>
             <div className="password-input">
@@ -125,7 +131,7 @@ export function Login() {
                 type="button"
                 className="eye-toggle"
                 onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                aria-label={showPassword ? t.login.hidePassword : t.login.showPassword}
                 aria-pressed={showPassword}
               >
                 {showPassword ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
@@ -134,7 +140,7 @@ export function Login() {
           </div>
           <Button type="submit" size="lg" className="mt-1 w-full rounded-md" disabled={submitting}>
             {submitting && <Loader2 className="size-4 animate-spin" />}
-            Войти
+            {t.login.submit}
           </Button>
         </form>
       </div>
@@ -142,10 +148,10 @@ export function Login() {
       <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Восстановление пароля</DialogTitle>
+            <DialogTitle>{t.login.forgotTitle}</DialogTitle>
           </DialogHeader>
           <form onSubmit={submitForgot} className="grid gap-3">
-            <Field label="Email">
+            <Field label={t.login.email}>
               <Input
                 type="email"
                 autoComplete="username"
@@ -159,10 +165,10 @@ export function Login() {
             <DialogFooter>
               <Button type="submit" disabled={forgotSubmitting}>
                 {forgotSubmitting && <Loader2 className="size-4 animate-spin" />}
-                Отправить
+                {t.login.send}
               </Button>
               <Button type="button" variant="outline" onClick={() => setForgotOpen(false)}>
-                Отмена
+                {t.login.cancel}
               </Button>
             </DialogFooter>
           </form>

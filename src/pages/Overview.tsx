@@ -6,6 +6,7 @@ import { useUsers } from "../data/usersStore";
 import { useCityCatalog } from "../data/cityCatalogStore";
 import { listPackages, listTariffs } from "../lib/api";
 import { usd } from "../lib/format";
+import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/table";
 
 export function Overview() {
+  const { t } = useTranslation();
   const { companies } = useCompanies();
   const { users } = useUsers();
   const { cityCatalog } = useCityCatalog();
@@ -47,17 +49,17 @@ export function Overview() {
     .slice(0, 6);
 
   const kpis = [
-    { label: "Компании", value: companies.length, hint: `${activeCompanies} активных` },
-    { label: "Доход / мес", value: usd(income.thisMonth), hint: `прошлый: ${usd(income.lastMonth)}` },
-    { label: "Пользователи", value: users.length, hint: "во всех тенантах" },
-    { label: "Пакеты", value: packageStats.total, hint: `${packageStats.active} активных` },
-    { label: "Тарифы", value: tariffStats.total, hint: `${tariffStats.active} активных` },
-    { label: "Города", value: cityCatalog.length, hint: "каталог" },
+    { label: t.nav.companies, value: companies.length, hint: `${activeCompanies} ${t.overview.activeSuffix}` },
+    { label: t.overview.incomeMonth, value: usd(income.thisMonth), hint: `${t.overview.lastMonthPrefix} ${usd(income.lastMonth)}` },
+    { label: t.overview.users, value: users.length, hint: t.overview.allTenants },
+    { label: t.nav.packages, value: packageStats.total, hint: `${packageStats.active} ${t.overview.activeSuffix}` },
+    { label: t.nav.tariffs, value: tariffStats.total, hint: `${tariffStats.active} ${t.overview.activeSuffix}` },
+    { label: t.nav.cities, value: cityCatalog.length, hint: t.overview.catalog },
   ];
 
   return (
     <>
-      <PageHead title="Обзор платформы" />
+      <PageHead title={t.overview.title} />
       <div className="grid grid-cols-6 gap-3 max-[1200px]:grid-cols-3 max-[860px]:grid-cols-2">
         {kpis.map((k) => (
           <Card key={k.label} className="kpi gap-0 py-3">
@@ -72,26 +74,26 @@ export function Overview() {
 
       <Card className="mt-4 gap-0 overflow-hidden py-0">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h3 className="m-0 text-sm font-semibold">Последние компании</h3>
+          <h3 className="m-0 text-sm font-semibold">{t.overview.recentCompanies}</h3>
           <Button asChild variant="ghost" size="sm">
-            <Link to="/companies">Все</Link>
+            <Link to="/companies">{t.overview.viewAll}</Link>
           </Button>
         </div>
         {recent.length === 0 ? (
           <p className="px-4 py-6 text-sm text-muted-foreground">
-            Компаний пока нет.{" "}
+            {t.overview.noCompanies}{" "}
             <Link to="/companies" className="font-medium text-primary underline-offset-4 hover:underline">
-              Создать тенанта
+              {t.overview.createTenant}
             </Link>
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Название</TableHead>
-                <TableHead>Город</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead>Создана</TableHead>
+                <TableHead>{t.common.name}</TableHead>
+                <TableHead>{t.common.city}</TableHead>
+                <TableHead>{t.common.status}</TableHead>
+                <TableHead>{t.common.created}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

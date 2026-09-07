@@ -12,7 +12,9 @@ import {
 import { clearTokens } from "./auth";
 import { useCurrentUser } from "./data/currentUserStore";
 import { initials } from "./lib/format";
+import { useTranslation } from "./i18n/LanguageContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -38,34 +40,36 @@ import {
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const links = [
-  { to: "/", label: "Обзор", icon: LayoutDashboard },
-  { to: "/companies", label: "Компании", icon: Building2 },
-  { to: "/tariffs", label: "Тарифы", icon: CreditCard },
-  { to: "/packages", label: "Пакеты", icon: Boxes },
-  { to: "/users", label: "Пользователи", icon: Users },
-  { to: "/cities", label: "Города", icon: MapPin },
-];
-
-const titles: Record<string, string> = {
-  "/": "Обзор",
-  "/companies": "Компании",
-  "/tariffs": "Тарифы",
-  "/packages": "Пакеты",
-  "/users": "Пользователи",
-  "/cities": "Города",
-};
-
-function currentTitle(pathname: string) {
-  if (pathname.startsWith("/companies/")) return "Компания";
-  return titles[pathname] ?? "Панель управления";
-}
-
 export function AppShell() {
   const nav = useNavigate();
   const loc = useLocation();
   const [more, setMore] = useState(false);
   const { user, clear: clearCurrentUser } = useCurrentUser();
+  const { t } = useTranslation();
+
+  const links = [
+    { to: "/", label: t.nav.overview, icon: LayoutDashboard },
+    { to: "/companies", label: t.nav.companies, icon: Building2 },
+    { to: "/tariffs", label: t.nav.tariffs, icon: CreditCard },
+    { to: "/packages", label: t.nav.packages, icon: Boxes },
+    { to: "/users", label: t.nav.users, icon: Users },
+    { to: "/cities", label: t.nav.cities, icon: MapPin },
+  ];
+
+  const titles: Record<string, string> = {
+    "/": t.nav.overview,
+    "/companies": t.nav.companies,
+    "/tariffs": t.nav.tariffs,
+    "/packages": t.nav.packages,
+    "/users": t.nav.users,
+    "/cities": t.nav.cities,
+  };
+
+  const currentTitle = (pathname: string) => {
+    if (pathname.startsWith("/companies/")) return t.titles.companyDetail;
+    if (pathname.startsWith("/packages/")) return t.titles.packageDetail;
+    return titles[pathname] ?? t.titles.dashboard;
+  };
 
   useEffect(() => {
     setMore(false);
@@ -95,7 +99,7 @@ export function AppShell() {
           <SidebarContent>
             <SidebarGroup>
               <SidebarGroupLabel className="px-3 text-[11px] uppercase tracking-wider text-sidebar-foreground/40">
-                Платформа
+                {t.nav.group}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -123,7 +127,7 @@ export function AppShell() {
               onClick={logout}
             >
               <LogOut />
-              Выйти
+              {t.sidebar.logout}
             </Button>
           </SidebarFooter>
         </Sidebar>
@@ -131,6 +135,7 @@ export function AppShell() {
           <header className="sticky top-0 z-10 flex h-12 items-center justify-between border-b bg-card px-6 max-[860px]:px-3">
             <span className="text-sm font-medium">{currentTitle(loc.pathname)}</span>
             <div className="flex items-center gap-2">
+              <LanguageSwitcher />
               <span className="text-xs font-medium text-foreground max-[500px]:hidden">
                 {user?.fullName || user?.email || ""}
               </span>
@@ -146,18 +151,18 @@ export function AppShell() {
         </SidebarInset>
         <nav className="bottom-nav">
           <NavLink to="/" end>
-            Обзор
+            {t.nav.overview}
           </NavLink>
-          <NavLink to="/companies">Компании</NavLink>
-          <NavLink to="/packages">Пакеты</NavLink>
+          <NavLink to="/companies">{t.nav.companies}</NavLink>
+          <NavLink to="/packages">{t.nav.packages}</NavLink>
           <button type="button" className={more ? "active" : ""} onClick={() => setMore(true)}>
-            Ещё
+            {t.bottomNav.more}
           </button>
         </nav>
         <Sheet open={more} onOpenChange={setMore}>
           <SheetContent side="bottom" className="rounded-t-2xl pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <SheetHeader>
-              <SheetTitle>Все разделы</SheetTitle>
+              <SheetTitle>{t.bottomNav.allSections}</SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col gap-1 px-4 pb-4">
               {links.map((l) => (
@@ -177,8 +182,9 @@ export function AppShell() {
               ))}
               <Separator className="my-2" />
               <ThemeToggle className="text-foreground" />
+              <LanguageSwitcher className="w-full justify-between" />
               <Button type="button" variant="outline" className="mt-1 w-full" onClick={logout}>
-                Выйти
+                {t.sidebar.logout}
               </Button>
             </nav>
           </SheetContent>
@@ -199,13 +205,14 @@ export function PageHead({
   actions?: ReactNode;
   onBack?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
       <div>
         <div className="flex items-center gap-2.5">
           {onBack && (
-            <Button type="button" variant="outline" size="sm" onClick={onBack} aria-label="Назад">
-              ← Назад
+            <Button type="button" variant="outline" size="sm" onClick={onBack} aria-label={t.common.back}>
+              ← {t.common.back}
             </Button>
           )}
           <h1 className="m-0 text-xl font-semibold tracking-tight max-[860px]:text-lg">{title}</h1>

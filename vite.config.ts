@@ -21,6 +21,10 @@ export default defineConfig({
         target: "http://195.246.102.223:9595",
         changeOrigin: true,
       },
+      "/accounting/api": {
+        target: "http://195.246.102.223:9595",
+        changeOrigin: true,
+      },
     },
   },
   preview: { port: 4174, host: "127.0.0.1" },

@@ -7,6 +7,7 @@ import { CompaniesProvider } from "./data/companiesStore";
 import { UsersProvider } from "./data/usersStore";
 import { RegionsProvider } from "./data/regionsStore";
 import { CityCatalogProvider } from "./data/cityCatalogStore";
+import { ModuleSettingsProvider } from "./data/moduleSettingsStore";
 import { Login } from "./pages/Login";
 import { ResetPassword } from "./pages/ResetPassword";
 import { Overview } from "./pages/Overview";
@@ -14,6 +15,7 @@ import { Companies } from "./pages/Companies";
 import { CompanyDetail } from "./pages/CompanyDetail";
 import { Users } from "./pages/Users";
 import { Packages } from "./pages/Packages";
+import { PackageDetail } from "./pages/PackageDetail";
 import { Tariffs } from "./pages/Tariffs";
 import { Cities } from "./pages/Cities";
 
@@ -35,7 +37,9 @@ export default function App() {
                 <Route
                   element={
                     <Guard>
-                      <AppShell />
+                      <ModuleSettingsProvider>
+                        <AppShell />
+                      </ModuleSettingsProvider>
                     </Guard>
                   }
                 >
@@ -44,6 +48,7 @@ export default function App() {
                   <Route path="/companies/:id" element={<CompanyDetail />} />
                   <Route path="/users" element={<Users />} />
                   <Route path="/packages" element={<Packages />} />
+                  <Route path="/packages/:id" element={<PackageDetail />} />
                   <Route path="/tariffs" element={<Tariffs />} />
                   <Route path="/cities" element={<Cities />} />
                 </Route>

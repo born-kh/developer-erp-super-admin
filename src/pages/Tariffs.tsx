@@ -14,6 +14,8 @@ import {
   type TariffIncludingPackages,
 } from "../lib/api";
 import { usd } from "../lib/format";
+import { useTranslation } from "../i18n/LanguageContext";
+import { useModuleSettings } from "../data/moduleSettingsStore";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -49,11 +51,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 8;
-const LANGS = ["ru", "en", "tg"] as const;
-type Lang = (typeof LANGS)[number];
-const LANG_LABEL: Record<Lang, string> = { ru: "RU", en: "EN", tg: "TG" };
 
-type Translations = Record<Lang, string>;
+type Translations = Record<string, string>;
 
 type TariffForm = {
   code: string;
@@ -63,35 +62,37 @@ type TariffForm = {
   packageIds: string[];
 };
 
-const emptyTranslations = (): Translations => ({ ru: "", en: "", tg: "" });
+const emptyTranslations = (langs: string[]): Translations =>
+  Object.fromEntries(langs.map((l) => [l, ""]));
 
-const emptyForm: TariffForm = {
-  code: "",
-  cost: "",
-  description: emptyTranslations(),
-  active: true,
-  packageIds: [],
-};
-
-function toTranslations(source: Record<string, string> | null | undefined): Translations {
-  return { ru: source?.ru ?? "", en: source?.en ?? "", tg: source?.tg ?? "" };
+function toTranslations(source: Record<string, string> | null | undefined, langs: string[]): Translations {
+  return Object.fromEntries(langs.map((l) => [l, source?.[l] ?? ""]));
 }
 
 function errorMessage(err: unknown, fallback: string) {
   return err instanceof ApiRequestError ? err.message : fallback;
 }
 
-type TariffRow = Omit<TariffIncludingPackages, "description"> & { description: Translations };
-
 export function Tariffs() {
-  const [tariffs, setTariffs] = useState<TariffRow[]>([]);
+  const { t } = useTranslation();
+  const { settings } = useModuleSettings();
+  const langs = settings.supportedLanguages;
+  const defaultLang = settings.defaultLanguage;
+  const makeEmptyForm = (): TariffForm => ({
+    code: "",
+    cost: "",
+    description: emptyTranslations(langs),
+    active: true,
+    packageIds: [],
+  });
+  const [tariffs, setTariffs] = useState<TariffIncludingPackages[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [allPackages, setAllPackages] = useState<PackageListItem[]>([]);
   const [page, setPage] = useState(1);
 
   const [modal, setModal] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
-  const [form, setForm] = useState<TariffForm>(emptyForm);
-  const [activeLang, setActiveLang] = useState<Lang>("ru");
+  const [form, setForm] = useState<TariffForm>(() => makeEmptyForm());
+  const [activeLang, setActiveLang] = useState<string>(defaultLang);
   const [originalPackageIds, setOriginalPackageIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -100,16 +101,9 @@ export function Tariffs() {
     setLoadingList(true);
     try {
       const res = await listTariffsWithPackages({ pageSize: 100 });
-      const items = res.items ?? [];
-      const withDescriptions = await Promise.all(
-        items.map(async (t): Promise<TariffRow> => {
-          const detail = await getTariff(t.id);
-          return { ...t, description: toTranslations(detail.description) };
-        }),
-      );
-      setTariffs(withDescriptions);
+      setTariffs(res.items ?? []);
     } catch (err) {
-      toast.error(errorMessage(err, "Не удалось загрузить тарифы"));
+      toast.error(errorMessage(err, t.tariffs.errors.loadTariffs));
     } finally {
       setLoadingList(false);
     }
@@ -119,7 +113,7 @@ export function Tariffs() {
     fetchTariffs();
     listPackages({ pageSize: 100 })
       .then((res) => setAllPackages(res.items ?? []))
-      .catch((err) => toast.error(errorMessage(err, "Не удалось загрузить пакеты")));
+      .catch((err) => toast.error(errorMessage(err, t.tariffs.errors.loadPackages)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -133,30 +127,36 @@ export function Tariffs() {
   const set = <K extends keyof TariffForm>(key: K, value: TariffForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const setDescription = (lang: Lang, value: string) =>
+  const setDescription = (lang: string, value: string) =>
     setForm((f) => ({ ...f, description: { ...f.description, [lang]: value } }));
 
   const openCreate = () => {
-    setForm(emptyForm);
-    setActiveLang("ru");
+    setForm(makeEmptyForm());
+    setActiveLang(defaultLang);
     setOriginalPackageIds([]);
     setConfirmDelete(false);
     setModal({ mode: "create" });
   };
 
-  const openEdit = (t: TariffRow) => {
-    const packageIds = (t.packages ?? []).map((p) => p.id);
-    setForm({
-      code: t.code ?? "",
-      cost: String(t.cost),
-      description: t.description,
-      active: t.isActive,
-      packageIds,
-    });
+  const openEdit = async (row: TariffIncludingPackages) => {
+    const packageIds = (row.packages ?? []).map((p) => p.id);
+    setForm(makeEmptyForm());
     setOriginalPackageIds(packageIds);
-    setActiveLang("ru");
+    setActiveLang(defaultLang);
     setConfirmDelete(false);
-    setModal({ mode: "edit", id: t.id });
+    setModal({ mode: "edit", id: row.id });
+    try {
+      const detail = await getTariff(row.id);
+      setForm({
+        code: detail.code ?? row.code ?? "",
+        cost: String(detail.cost),
+        description: toTranslations(detail.description, langs),
+        active: detail.isActive,
+        packageIds,
+      });
+    } catch (err) {
+      toast.error(errorMessage(err, t.tariffs.errors.loadTariffs));
+    }
   };
 
   const addPackageToForm = (pkgId: string) => {
@@ -171,8 +171,8 @@ export function Tariffs() {
     );
   };
 
-  const collectTranslations = (t: Translations) =>
-    Object.fromEntries(LANGS.filter((l) => t[l].trim()).map((l) => [l, t[l].trim()]));
+  const collectTranslations = (translations: Translations) =>
+    Object.fromEntries(langs.filter((l) => translations[l]?.trim()).map((l) => [l, translations[l].trim()]));
 
   const submit = async () => {
     if (!form.code.trim() || submitting) return;
@@ -190,21 +190,21 @@ export function Tariffs() {
         const toRemove = originalPackageIds.filter((id) => !form.packageIds.includes(id));
         if (toAdd.length) await addTariffPackages(modal.id, toAdd);
         if (toRemove.length) await removeTariffPackages(modal.id, toRemove);
-        toast.success("Тариф сохранён");
+        toast.success(t.tariffs.toasts.saved);
       } else {
-        const beforeIds = new Set(tariffs.map((t) => t.id));
+        const beforeIds = new Set(tariffs.map((row) => row.id));
         await createTariff(payload);
         const list = await listTariffsWithPackages({ pageSize: 100 });
-        const created = list.items?.find((t) => !beforeIds.has(t.id));
+        const created = list.items?.find((row) => !beforeIds.has(row.id));
         if (created && form.packageIds.length) {
           await addTariffPackages(created.id, form.packageIds);
         }
-        toast.success("Тариф создан");
+        toast.success(t.tariffs.toasts.created);
       }
       await fetchTariffs();
       setModal(null);
     } catch (err) {
-      toast.error(errorMessage(err, "Не удалось сохранить тариф"));
+      toast.error(errorMessage(err, t.tariffs.errors.saveTariff));
     } finally {
       setSubmitting(false);
     }
@@ -214,11 +214,11 @@ export function Tariffs() {
     if (modal?.mode !== "edit" || !modal.id) return;
     try {
       await deleteTariff(modal.id);
-      setTariffs((prev) => prev.filter((t) => t.id !== modal.id));
-      toast.success("Тариф удалён");
+      setTariffs((prev) => prev.filter((row) => row.id !== modal.id));
+      toast.success(t.tariffs.toasts.deleted);
       setModal(null);
     } catch (err) {
-      toast.error(errorMessage(err, "Не удалось удалить тариф"));
+      toast.error(errorMessage(err, t.tariffs.errors.deleteTariff));
     } finally {
       setConfirmDelete(false);
     }
@@ -232,20 +232,20 @@ export function Tariffs() {
   return (
     <>
       <PageHead
-        title="Тарифы"
+        title={t.tariffs.title}
         actions={
           <Button type="button" onClick={openCreate}>
-            + Добавить тариф
+            {t.tariffs.addTariff}
           </Button>
         }
       />
 
       {!loadingList && pageItems.length === 0 ? (
         <EmptyState
-          title="Тарифные планы пока не настроены."
+          title={t.tariffs.noTariffsYet}
           action={
             <Button type="button" onClick={openCreate}>
-              Добавить тариф
+              {t.tariffs.addTariffAction}
             </Button>
           }
         />
@@ -254,41 +254,37 @@ export function Tariffs() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Тариф</TableHead>
-                {LANGS.map((l) => (
-                  <TableHead key={l}>{LANG_LABEL[l]}</TableHead>
-                ))}
-                <TableHead>Цена</TableHead>
-                <TableHead>Пакеты</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead className="text-right">Действия</TableHead>
+                <TableHead>{t.tariffs.tableTariff}</TableHead>
+                <TableHead>{t.common.description}</TableHead>
+                <TableHead>{t.common.price}</TableHead>
+                <TableHead>{t.tariffs.tablePackages}</TableHead>
+                <TableHead>{t.common.status}</TableHead>
+                <TableHead className="text-right">{t.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={LANGS.length + 5} className="text-center text-muted-foreground">
-                    Загрузка...
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    {t.common.loading}
                   </TableCell>
                 </TableRow>
               ) : (
-                pageItems.map((t) => {
-                  const pkgs = t.packages ?? [];
+                pageItems.map((row) => {
+                  const pkgs = row.packages ?? [];
                   return (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-medium">{t.code}</TableCell>
-                      {LANGS.map((l) => (
-                        <TableCell key={l} className="max-w-[160px]">
-                          <div className={t.description[l] ? "" : "text-muted-foreground"}>
-                            {t.description[l] || "—"}
-                          </div>
-                        </TableCell>
-                      ))}
+                    <TableRow key={row.id}>
+                      <TableCell className="font-medium">{row.code}</TableCell>
+                      <TableCell className="max-w-[220px]">
+                        <div className={row.description ? "" : "text-muted-foreground"}>
+                          {row.description || "—"}
+                        </div>
+                      </TableCell>
                       <TableCell className="tabular-nums font-medium">
-                        {usd(t.cost)} / мес
-                        {t.originalCost > t.cost && (
+                        {usd(row.cost)} {t.tariffs.perMonth}
+                        {row.originalCost > row.cost && (
                           <div className="text-xs text-muted-foreground line-through">
-                            {usd(t.originalCost)}
+                            {usd(row.originalCost)}
                           </div>
                         )}
                       </TableCell>
@@ -309,11 +305,11 @@ export function Tariffs() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <ActiveBadge active={t.isActive} />
+                        <ActiveBadge active={row.isActive} />
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button type="button" variant="outline" size="sm" onClick={() => openEdit(t)}>
-                          Изменить
+                        <Button type="button" variant="outline" size="sm" onClick={() => openEdit(row)}>
+                          {t.common.edit}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -330,25 +326,25 @@ export function Tariffs() {
       <Dialog open={Boolean(modal)} onOpenChange={(open) => !open && setModal(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{modal?.mode === "edit" ? "Редактировать тариф" : "Новый тариф"}</DialogTitle>
+            <DialogTitle>{modal?.mode === "edit" ? t.tariffs.modalTitleEdit : t.tariffs.modalTitleCreate}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
-              <Field label="Код тарифа">
+              <Field label={t.tariffs.code}>
                 <Input value={form.code} onChange={(e) => set("code", e.target.value)} autoFocus />
               </Field>
-              <Field label="Цена, $/мес">
+              <Field label={t.common.price}>
                 <Input type="number" min="0" value={form.cost} onChange={(e) => set("cost", e.target.value)} />
               </Field>
             </div>
-            <Field label="Пакеты">
+            <Field label={t.tariffs.packagesLabel}>
               <div className="tag-input">
                 {selectedPackages.length > 0 && (
                   <div className="tag-list">
                     {selectedPackages.map((p) => (
                       <span className="tag-chip" key={p.id}>
                         {p.title}
-                        <button type="button" onClick={() => removePackageFromForm(p.id)} aria-label="Удалить">
+                        <button type="button" onClick={() => removePackageFromForm(p.id)} aria-label={t.common.delete}>
                           ✕
                         </button>
                       </span>
@@ -358,7 +354,7 @@ export function Tariffs() {
                 {availablePackages.length > 0 && (
                   <Select key={form.packageIds.join(",")} onValueChange={addPackageToForm}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Выберите пакет…" />
+                      <SelectValue placeholder={t.tariffs.choosePackage} />
                     </SelectTrigger>
                     <SelectContent>
                       {availablePackages.map((p) => (
@@ -372,7 +368,7 @@ export function Tariffs() {
               </div>
             </Field>
             <div className="flex gap-1">
-              {LANGS.map((l) => (
+              {langs.map((l) => (
                 <button
                   key={l}
                   type="button"
@@ -383,36 +379,36 @@ export function Tariffs() {
                       : "border-input text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {LANG_LABEL[l]}
+                  {l.toUpperCase()}
                 </button>
               ))}
             </div>
-            <Field label={`Описание (${LANG_LABEL[activeLang]})`}>
+            <Field label={t.tariffs.descLang(activeLang.toUpperCase())}>
               <Textarea
                 rows={3}
-                value={form.description[activeLang]}
+                value={form.description[activeLang] ?? ""}
                 onChange={(e) => setDescription(activeLang, e.target.value)}
               />
             </Field>
             <label className="flex items-center gap-2 text-sm font-medium">
               <Switch checked={form.active} onCheckedChange={(v) => set("active", v)} />
-              Тариф активен
+              {t.tariffs.tariffActive}
             </label>
           </div>
           <DialogFooter className="sm:justify-between">
             {modal?.mode === "edit" ? (
               <Button type="button" variant="destructive" onClick={() => setConfirmDelete(true)}>
-                Удалить
+                {t.common.delete}
               </Button>
             ) : (
               <span />
             )}
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => setModal(null)}>
-                Отмена
+                {t.common.cancel}
               </Button>
               <Button type="button" disabled={!form.code.trim() || submitting} onClick={submit}>
-                {modal?.mode === "edit" ? "Сохранить" : "Создать"}
+                {modal?.mode === "edit" ? t.common.save : t.common.create}
               </Button>
             </div>
           </DialogFooter>
@@ -422,8 +418,8 @@ export function Tariffs() {
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Удалить тариф?"
-        description={`Удалить тариф «${form.code}»? Это действие необратимо.`}
+        title={t.tariffs.deleteTariffTitle}
+        description={t.tariffs.deleteTariffDesc(form.code)}
         onConfirm={remove}
       />
     </>

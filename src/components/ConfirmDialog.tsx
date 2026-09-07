@@ -8,13 +8,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export function ConfirmDialog({
   open,
   onOpenChange,
-  title = "Удалить?",
+  title,
   description,
-  confirmLabel = "Да, удалить",
+  confirmLabel,
   onConfirm,
 }: {
   open: boolean;
@@ -24,17 +25,18 @@ export function ConfirmDialog({
   confirmLabel?: string;
   onConfirm: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogTitle>{title ?? t.common.deleteQuestion}</AlertDialogTitle>
           {description ? <AlertDialogDescription>{description}</AlertDialogDescription> : null}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Отмена</AlertDialogCancel>
+          <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={onConfirm}>
-            {confirmLabel}
+            {confirmLabel ?? t.common.confirmDelete}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

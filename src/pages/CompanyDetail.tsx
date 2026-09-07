@@ -6,6 +6,7 @@ import { type Company, type PlatformUser } from "../data/mock";
 import { useCompanies } from "../data/companiesStore";
 import { useUsers } from "../data/usersStore";
 import { randomPassword, slugify } from "../lib/format";
+import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Field } from "@/components/Field";
@@ -36,6 +37,7 @@ const emptyOwnerForm: OwnerForm = { name: "", email: "", phone: "", login: "", p
 export function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
+  const { t } = useTranslation();
   const { getCompany, updateCompany, deleteCompany } = useCompanies();
   const { users, addUser, updateUser, deleteUser } = useUsers();
   const company = id ? getCompany(id) : undefined;
@@ -51,12 +53,12 @@ export function CompanyDetail() {
   if (!company) {
     return (
       <>
-        <PageHead title="Компания не найдена" onBack={() => nav("/companies")} />
+        <PageHead title={t.companyDetail.notFoundTitle} onBack={() => nav("/companies")} />
         <Card>
           <CardContent className="grid gap-3">
-            <p className="text-sm text-muted-foreground">Такой компании больше нет в списке.</p>
+            <p className="text-sm text-muted-foreground">{t.companyDetail.notFoundText}</p>
             <Button type="button" variant="outline" onClick={() => nav("/companies")}>
-              К списку компаний
+              {t.companyDetail.backToList}
             </Button>
           </CardContent>
         </Card>
@@ -91,10 +93,10 @@ export function CompanyDetail() {
     if (!ownerForm.name.trim()) return;
     if (ownerModal?.mode === "edit" && ownerModal.id) {
       updateUser(ownerModal.id, { ...ownerForm, role: "owner", companyId: company.id });
-      toast.success("Владелец сохранён");
+      toast.success(t.companyDetail.toasts.ownerSaved);
     } else {
       addUser({ ...ownerForm, role: "owner", companyId: company.id });
-      toast.success("Владелец добавлен");
+      toast.success(t.companyDetail.toasts.ownerAdded);
     }
     setOwnerModal(null);
   };
@@ -102,19 +104,19 @@ export function CompanyDetail() {
   const removeOwner = (ownerId: string) => {
     deleteUser(ownerId);
     setConfirmDeleteOwnerId(null);
-    toast.success("Владелец удалён");
+    toast.success(t.companyDetail.toasts.ownerDeleted);
   };
 
   const copyPassword = (o: PlatformUser) => {
     if (!o.password) return;
     navigator.clipboard?.writeText(o.password).catch(() => {});
-    toast.success("Пароль скопирован");
+    toast.success(t.common.passwordCopied);
   };
 
   const copyModalPassword = () => {
     if (!ownerForm.password) return;
     navigator.clipboard?.writeText(ownerForm.password).catch(() => {});
-    toast.success("Пароль скопирован");
+    toast.success(t.common.passwordCopied);
   };
 
   const startEdit = () => {
@@ -131,12 +133,12 @@ export function CompanyDetail() {
     if (!form) return;
     updateCompany(company.id, form);
     setEditing(false);
-    toast.success("Компания сохранена");
+    toast.success(t.companyDetail.toasts.companySaved);
   };
 
   const remove = () => {
     deleteCompany(company.id);
-    toast.success("Компания удалена");
+    toast.success(t.companyDetail.toasts.companyDeleted);
     nav("/companies");
   };
 
@@ -145,7 +147,7 @@ export function CompanyDetail() {
 
   return (
     <>
-      <PageHead title={company.name} sub="карточка компании" onBack={() => nav("/companies")} />
+      <PageHead title={company.name} sub={t.companyDetail.sub} onBack={() => nav("/companies")} />
 
       <div className="detail-layout">
         <Card className="detail-media gap-0 py-0 overflow-hidden">
@@ -154,19 +156,19 @@ export function CompanyDetail() {
             {editing ? (
               <>
                 <Button type="button" className="flex-1" onClick={save}>
-                  Сохранить
+                  {t.common.save}
                 </Button>
                 <Button type="button" variant="outline" className="flex-1" onClick={cancelEdit}>
-                  Отмена
+                  {t.common.cancel}
                 </Button>
               </>
             ) : (
               <>
                 <Button type="button" variant="outline" className="flex-1" onClick={startEdit}>
-                  Редактировать
+                  {t.common.edit}
                 </Button>
                 <Button type="button" variant="destructive" className="flex-1" onClick={() => setConfirmingDelete(true)}>
-                  Удалить
+                  {t.common.delete}
                 </Button>
               </>
             )}
@@ -177,14 +179,14 @@ export function CompanyDetail() {
           <CardContent>
             {editing && form ? (
               <div className="grid gap-3">
-                <Field label="Название">
+                <Field label={t.common.name}>
                   <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
                 </Field>
-                <Field label="Город">
+                <Field label={t.common.city}>
                   <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
                 </Field>
                 <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
-                  <Field label="Пакет">
+                  <Field label={t.common.package}>
                     <Select value={form.package} onValueChange={(v) => set("package", v as Company["package"])}>
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -195,29 +197,29 @@ export function CompanyDetail() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Статус">
+                  <Field label={t.common.status}>
                     <Select value={form.status} onValueChange={(v) => set("status", v as Company["status"])}>
                       <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="active">Активна</SelectItem>
-                        <SelectItem value="trial">Триал</SelectItem>
-                        <SelectItem value="suspended">Приостановлена</SelectItem>
+                        <SelectItem value="active">{t.common.statusActive}</SelectItem>
+                        <SelectItem value="trial">{t.common.statusTrial}</SelectItem>
+                        <SelectItem value="suspended">{t.common.statusSuspended}</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
                 </div>
-                <Field label="Телефон">
+                <Field label={t.common.phone}>
                   <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
                 </Field>
-                <Field label="Email">
+                <Field label={t.common.email}>
                   <Input value={form.email} onChange={(e) => set("email", e.target.value)} />
                 </Field>
-                <Field label="Адрес">
+                <Field label={t.common.address}>
                   <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
                 </Field>
-                <Field label="Описание">
+                <Field label={t.common.description}>
                   <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
                 </Field>
               </div>
@@ -230,27 +232,27 @@ export function CompanyDetail() {
                 <p className="mb-4 text-muted-foreground leading-relaxed">{company.description}</p>
                 <dl className="detail-dl">
                   <div>
-                    <dt>Город</dt>
+                    <dt>{t.common.city}</dt>
                     <dd>{company.city}</dd>
                   </div>
                   <div>
-                    <dt>Адрес</dt>
+                    <dt>{t.common.address}</dt>
                     <dd>{company.address}</dd>
                   </div>
                   <div>
-                    <dt>Телефон</dt>
+                    <dt>{t.common.phone}</dt>
                     <dd>{company.phone}</dd>
                   </div>
                   <div>
-                    <dt>Email</dt>
+                    <dt>{t.common.email}</dt>
                     <dd>{company.email}</dd>
                   </div>
                   <div>
-                    <dt>Создана</dt>
+                    <dt>{t.common.created}</dt>
                     <dd>{company.createdAt}</dd>
                   </div>
                   <div>
-                    <dt>Владельцев</dt>
+                    <dt>{t.companyDetail.ownersCount}</dt>
                     <dd>{owners.length}</dd>
                   </div>
                 </dl>
@@ -263,12 +265,12 @@ export function CompanyDetail() {
       <Card className="mt-3.5">
         <CardContent>
           <div className="list-head">
-            <h3>Владельцы</h3>
+            <h3>{t.companyDetail.ownersTitle}</h3>
             <Button type="button" size="sm" onClick={openCreateOwner}>
-              + Добавить владельца
+              {t.companyDetail.addOwner}
             </Button>
           </div>
-          {owners.length === 0 && <p className="text-sm text-muted-foreground">Пока нет владельцев.</p>}
+          {owners.length === 0 && <p className="text-sm text-muted-foreground">{t.companyDetail.noOwners}</p>}
           {owners.map((o) => (
             <div className="owner-row" key={o.id}>
               <div className="owner-row-main">
@@ -277,19 +279,19 @@ export function CompanyDetail() {
                   {o.email}
                   {o.phone ? ` · ${o.phone}` : ""}
                 </div>
-                {o.login && <div className="text-sm text-muted-foreground">Логин: {o.login}</div>}
+                {o.login && <div className="text-sm text-muted-foreground">{t.companyDetail.loginLabel} {o.login}</div>}
               </div>
               <div className="owner-row-actions">
                 {o.password && (
                   <Button type="button" variant="outline" size="sm" onClick={() => copyPassword(o)}>
-                    Копировать пароль
+                    {t.common.copyPassword}
                   </Button>
                 )}
                 <Button type="button" variant="outline" size="sm" onClick={() => openEditOwner(o)}>
-                  Изменить
+                  {t.common.edit}
                 </Button>
                 <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteOwnerId(o.id)}>
-                  Удалить
+                  {t.common.delete}
                 </Button>
               </div>
             </div>
@@ -300,54 +302,54 @@ export function CompanyDetail() {
       <ConfirmDialog
         open={confirmingDelete}
         onOpenChange={setConfirmingDelete}
-        title="Удалить компанию?"
-        description={`Удалить компанию «${company.name}»? Это действие необратимо.`}
+        title={t.companyDetail.deleteCompanyTitle}
+        description={t.companyDetail.deleteCompanyDesc(company.name)}
         onConfirm={remove}
       />
       <ConfirmDialog
         open={Boolean(confirmDeleteOwnerId)}
         onOpenChange={(open) => !open && setConfirmDeleteOwnerId(null)}
-        description="Владелец будет удалён."
+        description={t.companyDetail.ownerWillBeDeleted}
         onConfirm={() => confirmDeleteOwnerId && removeOwner(confirmDeleteOwnerId)}
       />
 
       <Dialog open={Boolean(ownerModal)} onOpenChange={(open) => !open && setOwnerModal(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{ownerModal?.mode === "edit" ? "Редактировать владельца" : "Новый владелец"}</DialogTitle>
+            <DialogTitle>{ownerModal?.mode === "edit" ? t.companyDetail.ownerModalTitleEdit : t.companyDetail.ownerModalTitleCreate}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <Field label="ФИО">
+            <Field label={t.companyDetail.fullName}>
               <Input value={ownerForm.name} onChange={(e) => setOwnerField("name", e.target.value)} autoFocus />
             </Field>
-            <Field label="Email">
+            <Field label={t.common.email}>
               <Input value={ownerForm.email} onChange={(e) => setOwnerField("email", e.target.value)} />
             </Field>
-            <Field label="Телефон">
+            <Field label={t.common.phone}>
               <Input value={ownerForm.phone} onChange={(e) => setOwnerField("phone", e.target.value)} />
             </Field>
-            <Field label="Логин">
+            <Field label={t.users.tableLogin}>
               <Input value={ownerForm.login} onChange={(e) => setOwnerField("login", e.target.value)} />
             </Field>
-            <Field label="Пароль">
+            <Field label={t.login.password}>
               <div className="password-gen">
                 <Input value={ownerForm.password} onChange={(e) => setOwnerField("password", e.target.value)} />
-                <Button type="button" variant="outline" size="icon" onClick={copyModalPassword} aria-label="Копировать пароль">
+                <Button type="button" variant="outline" size="icon" onClick={copyModalPassword} aria-label={t.common.copyPassword}>
                   <Copy />
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => setOwnerField("password", randomPassword())}>
                   <RefreshCw />
-                  Сгенерировать
+                  {t.common.generate}
                 </Button>
               </div>
             </Field>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOwnerModal(null)}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button type="button" disabled={!ownerForm.name.trim()} onClick={submitOwner}>
-              {ownerModal?.mode === "edit" ? "Сохранить" : "Создать"}
+              {ownerModal?.mode === "edit" ? t.common.save : t.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>

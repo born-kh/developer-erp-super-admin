@@ -4,6 +4,7 @@ import {
   PaginationContent,
   PaginationItem,
 } from "@/components/ui/pagination";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export function AppPagination({
   page,
@@ -14,6 +15,7 @@ export function AppPagination({
   pageCount: number;
   onPage: (page: number) => void;
 }) {
+  const { t } = useTranslation();
   if (pageCount <= 1) return null;
 
   return (
@@ -21,7 +23,7 @@ export function AppPagination({
       <PaginationContent>
         <PaginationItem>
           <Button variant="outline" size="sm" disabled={page === 1} onClick={() => onPage(page - 1)}>
-            Назад
+            {t.common.back}
           </Button>
         </PaginationItem>
         {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
@@ -42,7 +44,7 @@ export function AppPagination({
             disabled={page === pageCount}
             onClick={() => onPage(page + 1)}
           >
-            Вперёд
+            {t.common.next}
           </Button>
         </PaginationItem>
       </PaginationContent>

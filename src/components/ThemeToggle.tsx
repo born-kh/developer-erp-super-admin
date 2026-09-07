@@ -3,9 +3,11 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/i18n/LanguageContext";
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -16,7 +18,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     return (
       <Button variant="ghost" size="sm" className={cn("w-full justify-start", className ?? "text-sidebar-foreground/70")} disabled>
         <Sun />
-        Тема
+        {t.sidebar.lightTheme}
       </Button>
     );
   }
@@ -35,7 +37,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
       {isDark ? <Sun /> : <Moon />}
-      {isDark ? "Светлая тема" : "Тёмная тема"}
+      {isDark ? t.sidebar.lightTheme : t.sidebar.darkTheme}
     </Button>
   );
 }

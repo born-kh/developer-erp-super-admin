@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { type CityItem } from "../data/mock";
 import { useCityCatalog } from "../data/cityCatalogStore";
 import { useRegions } from "../data/regionsStore";
+import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -53,6 +54,7 @@ const emptyCityForm: CityForm = { name: "", regionId: "", description: "" };
 const emptyRegionForm: RegionForm = { name: "", description: "" };
 
 export function Cities() {
+  const { t } = useTranslation();
   const { cityCatalog, addCity, updateCity, deleteCity } = useCityCatalog();
   const { regions, addRegion } = useRegions();
   const [page, setPage] = useState(1);
@@ -93,10 +95,10 @@ export function Cities() {
     };
     if (modal?.mode === "edit" && modal.id) {
       updateCity(modal.id, payload);
-      toast.success("Город сохранён");
+      toast.success(t.cities.toasts.citySaved);
     } else {
       addCity(payload);
-      toast.success("Город создан");
+      toast.success(t.cities.toasts.cityCreated);
     }
     setModal(null);
   };
@@ -104,7 +106,7 @@ export function Cities() {
   const remove = (id: string) => {
     deleteCity(id);
     setConfirmDeleteId(null);
-    toast.success("Город удалён");
+    toast.success(t.cities.toasts.cityDeleted);
   };
 
   const openRegionModal = () => {
@@ -117,26 +119,26 @@ export function Cities() {
     const id = addRegion({ name: regionForm.name.trim(), description: regionForm.description });
     set("regionId", id);
     setRegionModalOpen(false);
-    toast.success("Регион создан");
+    toast.success(t.cities.toasts.regionCreated);
   };
 
   return (
     <>
       <PageHead
-        title="Города"
+        title={t.cities.title}
         actions={
           <Button type="button" onClick={openCreate}>
-            + Добавить город
+            {t.cities.addCity}
           </Button>
         }
       />
 
       {pageItems.length === 0 ? (
         <EmptyState
-          title="Городов пока нет."
+          title={t.cities.noCitiesYet}
           action={
             <Button type="button" onClick={openCreate}>
-              Добавить город
+              {t.cities.addCityAction}
             </Button>
           }
         />
@@ -145,10 +147,10 @@ export function Cities() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Город</TableHead>
-                <TableHead>Регион</TableHead>
-                <TableHead>Описание</TableHead>
-                <TableHead className="text-right">Действия</TableHead>
+                <TableHead>{t.common.city}</TableHead>
+                <TableHead>{t.common.region}</TableHead>
+                <TableHead>{t.common.description}</TableHead>
+                <TableHead className="text-right">{t.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -157,15 +159,15 @@ export function Cities() {
                 return (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{region?.name ?? "Без региона"}</TableCell>
+                    <TableCell className="text-muted-foreground">{region?.name ?? t.cities.noRegion}</TableCell>
                     <TableCell className="max-w-xs truncate text-muted-foreground">{c.description || "—"}</TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex gap-1.5">
                         <Button type="button" variant="outline" size="sm" onClick={() => openEdit(c)}>
-                          Изменить
+                          {t.common.edit}
                         </Button>
                         <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteId(c.id)}>
-                          Удалить
+                          {t.common.delete}
                         </Button>
                       </div>
                     </TableCell>
@@ -182,24 +184,24 @@ export function Cities() {
       <ConfirmDialog
         open={Boolean(confirmDeleteId)}
         onOpenChange={(open) => !open && setConfirmDeleteId(null)}
-        description="Город будет удалён из каталога."
+        description={t.cities.deleteDesc}
         onConfirm={() => confirmDeleteId && remove(confirmDeleteId)}
       />
 
       <Dialog open={Boolean(modal)} onOpenChange={(open) => !open && setModal(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{modal?.mode === "edit" ? "Редактировать город" : "Новый город"}</DialogTitle>
+            <DialogTitle>{modal?.mode === "edit" ? t.cities.modalTitleEdit : t.cities.modalTitleCreate}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <Field label="Название">
+            <Field label={t.common.name}>
               <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
             </Field>
-            <Field label="Регион">
+            <Field label={t.common.region}>
               <div className="region-pick">
                 <Select value={form.regionId || undefined} onValueChange={(v) => set("regionId", v)}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Нет регионов" />
+                    <SelectValue placeholder={t.cities.noRegions} />
                   </SelectTrigger>
                   <SelectContent>
                     {regions.map((r) => (
@@ -209,21 +211,21 @@ export function Cities() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button type="button" variant="outline" size="icon" onClick={openRegionModal} aria-label="Добавить регион">
+                <Button type="button" variant="outline" size="icon" onClick={openRegionModal} aria-label={t.cities.addRegionLabel}>
                   <Plus />
                 </Button>
               </div>
             </Field>
-            <Field label="Описание">
+            <Field label={t.common.description}>
               <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
             </Field>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setModal(null)}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button type="button" disabled={!form.name.trim() || !form.regionId} onClick={submit}>
-              {modal?.mode === "edit" ? "Сохранить" : "Создать"}
+              {modal?.mode === "edit" ? t.common.save : t.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -232,17 +234,17 @@ export function Cities() {
       <Dialog open={regionModalOpen} onOpenChange={setRegionModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Новый регион</DialogTitle>
+            <DialogTitle>{t.cities.newRegionTitle}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <Field label="Название">
+            <Field label={t.common.name}>
               <Input
                 value={regionForm.name}
                 onChange={(e) => setRegionForm((f) => ({ ...f, name: e.target.value }))}
                 autoFocus
               />
             </Field>
-            <Field label="Описание">
+            <Field label={t.common.description}>
               <Textarea
                 rows={3}
                 value={regionForm.description}
@@ -252,10 +254,10 @@ export function Cities() {
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setRegionModalOpen(false)}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button type="button" disabled={!regionForm.name.trim()} onClick={submitRegion}>
-              Создать
+              {t.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>

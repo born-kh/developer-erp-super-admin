@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { type PlatformUser } from "../data/mock";
 import { useUsers } from "../data/usersStore";
 import { randomPassword, slugify } from "../lib/format";
+import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -59,6 +60,7 @@ function initials(name: string) {
 }
 
 export function Users() {
+  const { t } = useTranslation();
   const { users, addUser, updateUser, deleteUser } = useUsers();
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -125,7 +127,7 @@ export function Users() {
   const copyPassword = () => {
     if (!form.password) return;
     navigator.clipboard?.writeText(form.password).catch(() => {});
-    toast.success("Пароль скопирован");
+    toast.success(t.common.passwordCopied);
   };
 
   const submit = () => {
@@ -140,10 +142,10 @@ export function Users() {
     };
     if (modal?.mode === "edit" && modal.id) {
       updateUser(modal.id, payload);
-      toast.success("Пользователь сохранён");
+      toast.success(t.users.toasts.saved);
     } else {
       addUser({ ...payload, role: "user", companyId: "" });
-      toast.success("Пользователь создан");
+      toast.success(t.users.toasts.created);
     }
     setModal(null);
   };
@@ -151,18 +153,18 @@ export function Users() {
   const remove = (id: string) => {
     deleteUser(id);
     setConfirmDeleteId(null);
-    toast.success("Пользователь удалён");
+    toast.success(t.users.toasts.deleted);
   };
 
   return (
     <>
       <PageHead
-        title="Пользователи платформы"
+        title={t.users.title}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Input
               className="w-56"
-              placeholder="Поиск по имени или email"
+              placeholder={t.users.searchPlaceholder}
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -170,7 +172,7 @@ export function Users() {
               }}
             />
             <Button type="button" onClick={openCreate}>
-              + Новый пользователь
+              {t.users.newUser}
             </Button>
           </div>
         }
@@ -178,11 +180,11 @@ export function Users() {
 
       {pageItems.length === 0 ? (
         <EmptyState
-          title={query ? "Ничего не найдено." : "Пользователей пока нет."}
+          title={query ? t.common.nothingFound : t.users.noUsersYet}
           action={
             !query ? (
               <Button type="button" onClick={openCreate}>
-                Создать пользователя
+                {t.users.createUser}
               </Button>
             ) : undefined
           }
@@ -192,10 +194,10 @@ export function Users() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Пользователь</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Логин</TableHead>
-                <TableHead className="text-right">Действия</TableHead>
+                <TableHead>{t.users.tableUser}</TableHead>
+                <TableHead>{t.common.email}</TableHead>
+                <TableHead>{t.users.tableLogin}</TableHead>
+                <TableHead className="text-right">{t.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -217,10 +219,10 @@ export function Users() {
                   <TableCell className="text-right">
                     <div className="inline-flex gap-1.5">
                       <Button type="button" variant="outline" size="sm" onClick={() => openEdit(u)}>
-                        Изменить
+                        {t.common.edit}
                       </Button>
                       <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteId(u.id)}>
-                        Удалить
+                        {t.common.delete}
                       </Button>
                     </div>
                   </TableCell>
@@ -236,23 +238,23 @@ export function Users() {
       <ConfirmDialog
         open={Boolean(confirmDeleteId)}
         onOpenChange={(open) => !open && setConfirmDeleteId(null)}
-        description="Пользователь будет удалён без возможности восстановления."
+        description={t.users.deleteDesc}
         onConfirm={() => confirmDeleteId && remove(confirmDeleteId)}
       />
 
       <Dialog open={Boolean(modal)} onOpenChange={(open) => !open && setModal(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{modal?.mode === "edit" ? "Редактировать пользователя" : "Новый пользователь"}</DialogTitle>
+            <DialogTitle>{modal?.mode === "edit" ? t.users.modalTitleEdit : t.users.modalTitleCreate}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <Field label="Изображение">
+            <Field label={t.common.image}>
               <div className="image-pick">
                 <div className="image-pick-preview">
-                  {form.image ? <img src={form.image} alt="" /> : <span>Нет фото</span>}
+                  {form.image ? <img src={form.image} alt="" /> : <span>{t.common.noPhoto}</span>}
                 </div>
                 <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                  Выбрать изображение
+                  {t.common.chooseImage}
                 </Button>
                 <input
                   ref={fileInputRef}
@@ -264,38 +266,38 @@ export function Users() {
               </div>
             </Field>
             <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
-              <Field label="Имя">
+              <Field label={t.users.firstName}>
                 <Input value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} autoFocus />
               </Field>
-              <Field label="Фамилия">
+              <Field label={t.users.lastName}>
                 <Input value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} />
               </Field>
             </div>
-            <Field label="Email">
+            <Field label={t.common.email}>
               <Input value={form.email} onChange={(e) => setField("email", e.target.value)} />
             </Field>
-            <Field label="Логин">
+            <Field label={t.users.tableLogin}>
               <Input value={form.login} onChange={(e) => setField("login", e.target.value)} />
             </Field>
-            <Field label="Пароль">
+            <Field label={t.login.password}>
               <div className="password-gen">
                 <Input value={form.password} onChange={(e) => setField("password", e.target.value)} />
-                <Button type="button" variant="outline" size="icon" onClick={copyPassword} aria-label="Копировать пароль">
+                <Button type="button" variant="outline" size="icon" onClick={copyPassword} aria-label={t.common.copyPassword}>
                   <Copy />
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => setField("password", randomPassword())}>
                   <RefreshCw />
-                  Сгенерировать
+                  {t.common.generate}
                 </Button>
               </div>
             </Field>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setModal(null)}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button type="button" disabled={!form.firstName.trim()} onClick={submit}>
-              {modal?.mode === "edit" ? "Сохранить" : "Создать"}
+              {modal?.mode === "edit" ? t.common.save : t.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>

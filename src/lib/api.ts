@@ -1,9 +1,13 @@
 import { getAccessToken, getRefreshToken, setTokens, clearTokens, isAccessTokenExpired } from "../auth";
+import { getStoredLanguage, type Language } from "../i18n/LanguageContext";
 
 // Empty by default so requests go to the same origin and are proxied
 // server-side (see vercel.json / vite.config.ts), avoiding mixed-content
 // blocks when the app is served over HTTPS but the backend is plain HTTP.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+
+// The backend uses "tg" for Tajik, while the app's internal language code is "tj".
+const ACCEPT_LANGUAGE: Record<Language, string> = { ru: "ru", en: "en", tj: "tg" };
 
 export type TokenInfo = {
   accessToken: string;
@@ -56,6 +60,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        "Accept-Language": ACCEPT_LANGUAGE[getStoredLanguage()],
         ...options.headers,
       },
     });
@@ -180,6 +185,16 @@ export function getUserById(id: string) {
   return authRequest<UserDetail>(`/core/api/users/${id}`);
 }
 
+export type ModuleDefaultOptions = {
+  defaultLanguage: string;
+  nationalCurrencyCode: string;
+  supportedLanguages: string[];
+};
+
+export function getModuleDefaultOptions() {
+  return authRequest<ModuleDefaultOptions>("/accounting/api/module-settings/module-default-options");
+}
+
 export type Pagination = {
   hasNextPage: boolean;
   hasPreviousPage?: boolean;
@@ -198,6 +213,15 @@ export type PackageListItem = {
   isActive: boolean;
   title?: string | null;
   description?: string | null;
+};
+
+export type PackageListItemWithGroups = {
+  id: string;
+  cost: number;
+  isActive: boolean;
+  title: string;
+  description: string;
+  permissionGroupCodes: string[];
 };
 
 export type PackageDetail = {
@@ -234,6 +258,18 @@ export function listPackages(params: { search?: string; page?: number; pageSize?
   query.set("Page", String(params.page ?? 1));
   query.set("PageSize", String(params.pageSize ?? 100));
   return authRequest<PagedResult<PackageListItem>>(`/core/api/packages?${query.toString()}`);
+}
+
+export function listPackagesAllIncludingPermissionGroups(
+  params: { search?: string; page?: number; pageSize?: number } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.search) query.set("Search", params.search);
+  query.set("Page", String(params.page ?? 1));
+  query.set("PageSize", String(params.pageSize ?? 100));
+  return authRequest<PagedResult<PackageListItemWithGroups>>(
+    `/core/api/packages/all-including-permissiongroups?${query.toString()}`,
+  );
 }
 
 export function getPackage(id: string) {
