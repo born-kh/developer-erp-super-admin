@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   addPackagePermissions,
@@ -64,6 +65,7 @@ export function PackageDetail() {
   const [groups, setGroups] = useState<PermissionGroupWithPermissions[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [permissionManagerOpen, setPermissionManagerOpen] = useState(false);
+  const [permissionSearch, setPermissionSearch] = useState("");
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -189,6 +191,20 @@ export function PackageDetail() {
     .map((g) => ({ ...g, permissions: (g.permissions ?? []).filter((p) => assignedIds.includes(p.id)) }))
     .filter((g) => g.permissions.length > 0);
 
+  const permQuery = permissionSearch.trim().toLowerCase();
+  const visibleAssignedGroups = permQuery
+    ? assignedGroups
+        .map((g) => ({
+          ...g,
+          permissions: g.permissions.filter(
+            (p) =>
+              (p.title ?? "").toLowerCase().includes(permQuery) ||
+              (g.title ?? "").toLowerCase().includes(permQuery),
+          ),
+        }))
+        .filter((g) => g.permissions.length > 0)
+    : assignedGroups;
+
   return (
     <>
       <PageHead
@@ -293,20 +309,35 @@ export function PackageDetail() {
           {assignedGroups.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t.packageDetail.noPermissionsAssigned}</p>
           ) : (
-            <div className="grid gap-3">
-              {assignedGroups.map((g) => (
-                <div key={g.code} className="grid gap-1.5">
-                  <div className="text-xs font-semibold text-muted-foreground">{g.title}</div>
-                  <div className="flex flex-wrap gap-1">
-                    {g.permissions.map((p) => (
-                      <span className="tag-chip static" key={p.id}>
-                        {p.title}
-                      </span>
-                    ))}
-                  </div>
+            <>
+              <div className="relative mb-3">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-8"
+                  placeholder={t.permissionsPicker.filterPlaceholder}
+                  value={permissionSearch}
+                  onChange={(e) => setPermissionSearch(e.target.value)}
+                />
+              </div>
+              {visibleAssignedGroups.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t.permissionsPicker.noResults}</p>
+              ) : (
+                <div className="grid gap-3">
+                  {visibleAssignedGroups.map((g) => (
+                    <div key={g.code} className="grid gap-1.5">
+                      <div className="text-xs font-semibold text-muted-foreground">{g.title}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {g.permissions.map((p) => (
+                          <span className="tag-chip static" key={p.id}>
+                            {p.title}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
