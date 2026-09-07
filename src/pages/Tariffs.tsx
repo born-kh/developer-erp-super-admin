@@ -21,6 +21,7 @@ import { AppPagination } from "@/components/AppPagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
+import { MotionTableRow } from "@/components/MotionTableRow";
 import { ActiveBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,6 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -268,16 +270,36 @@ export function Tariffs() {
             </TableHeader>
             <TableBody>
               {loadingList ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    {t.common.loading}
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: PAGE_SIZE }, (_, i) => (
+                  <TableRow key={i} className="animate-in fade-in duration-300">
+                    <TableCell>
+                      <Skeleton className="h-4 w-5" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-40" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="ml-auto h-8 w-16" />
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : (
                 tariffs.map((row, index) => {
                   const pkgs = row.packages ?? [];
                   return (
-                    <TableRow key={row.id}>
+                    <MotionTableRow key={row.id} index={index}>
                       <TableCell className="tabular-nums text-muted-foreground">
                         {(page - 1) * PAGE_SIZE + index + 1}
                       </TableCell>
@@ -319,7 +341,7 @@ export function Tariffs() {
                           {t.common.edit}
                         </Button>
                       </TableCell>
-                    </TableRow>
+                    </MotionTableRow>
                   );
                 })
               )}

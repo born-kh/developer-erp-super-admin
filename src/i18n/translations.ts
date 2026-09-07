@@ -338,6 +338,8 @@ export type Dict = {
       activityCodePlaceholder: string;
       creator: string;
       creatorPlaceholder: string;
+      creatorSearching: string;
+      creatorNotFound: string;
       email: string;
       emailPlaceholder: string;
       ipAddress: string;
@@ -368,7 +370,6 @@ export type Dict = {
     tableCreatedAt: string;
     noLogsYet: string;
     detail: {
-      module: string;
       activityType: string;
       code: string;
       action: string;
@@ -754,7 +755,9 @@ export const translations: Record<Language, Dict> = {
         activityCode: "Тип активности",
         activityCodePlaceholder: "Введите тип активности",
         creator: "Создатель",
-        creatorPlaceholder: "Введите имя пользователя",
+        creatorPlaceholder: "Введите имя пользователя или ID",
+        creatorSearching: "Поиск...",
+        creatorNotFound: "Пользователь не найден",
         email: "Эл. почта",
         emailPlaceholder: "Введите адрес электронной почты",
         ipAddress: "IP-адрес",
@@ -785,7 +788,6 @@ export const translations: Record<Language, Dict> = {
       tableCreatedAt: "Дата создания",
       noLogsYet: "Записи не найдены.",
       detail: {
-        module: "Модуль",
         activityType: "Тип активности",
         code: "Код",
         action: "Действие",
@@ -795,7 +797,7 @@ export const translations: Record<Language, Dict> = {
         date: "Дата",
         createdAtTime: (time) => `Дата создания в ${time}`,
         entityType: "Тип сущности",
-        systemName: "Название системы",
+        systemName: "Название сервиса",
         id: "ID",
         entityId: "ID сущности",
         sessionId: "Идентификатор сессии",
@@ -1174,7 +1176,9 @@ export const translations: Record<Language, Dict> = {
         activityCode: "Activity type",
         activityCodePlaceholder: "Enter activity type",
         creator: "Creator",
-        creatorPlaceholder: "Enter user name",
+        creatorPlaceholder: "Enter user name or ID",
+        creatorSearching: "Searching...",
+        creatorNotFound: "User not found",
         email: "Email",
         emailPlaceholder: "Enter email address",
         ipAddress: "IP address",
@@ -1205,7 +1209,6 @@ export const translations: Record<Language, Dict> = {
       tableCreatedAt: "Created at",
       noLogsYet: "No records found.",
       detail: {
-        module: "Module",
         activityType: "Activity type",
         code: "Code",
         action: "Action",
@@ -1215,7 +1218,7 @@ export const translations: Record<Language, Dict> = {
         date: "Date",
         createdAtTime: (time) => `Created at ${time}`,
         entityType: "Entity type",
-        systemName: "System name",
+        systemName: "Service name",
         id: "ID",
         entityId: "Entity ID",
         sessionId: "Session ID",
@@ -1594,7 +1597,9 @@ export const translations: Record<Language, Dict> = {
         activityCode: "Навъи фаъолият",
         activityCodePlaceholder: "Навъи фаъолиятро ворид кунед",
         creator: "Эҷодкунанда",
-        creatorPlaceholder: "Номи корбарро ворид кунед",
+        creatorPlaceholder: "Номи корбар ё ID-ро ворид кунед",
+        creatorSearching: "Ҷустуҷӯ...",
+        creatorNotFound: "Корбар ёфт нашуд",
         email: "Email",
         emailPlaceholder: "Суроғаи email-ро ворид кунед",
         ipAddress: "Суроғаи IP",
@@ -1625,7 +1630,6 @@ export const translations: Record<Language, Dict> = {
       tableCreatedAt: "Санаи эҷод",
       noLogsYet: "Сабт ёфт нашуд.",
       detail: {
-        module: "Модул",
         activityType: "Навъи фаъолият",
         code: "Код",
         action: "Амал",
@@ -1635,7 +1639,7 @@ export const translations: Record<Language, Dict> = {
         date: "Сана",
         createdAtTime: (time) => `Санаи эҷод дар ${time}`,
         entityType: "Навъи объект",
-        systemName: "Номи система",
+        systemName: "Номи хидмат",
         id: "ID",
         entityId: "ID-и объект",
         sessionId: "Идентификатори сессия",

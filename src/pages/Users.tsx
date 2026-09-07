@@ -9,6 +9,7 @@ import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
+import { MotionTableRow } from "@/components/MotionTableRow";
 import { ActiveBadge } from "@/components/StatusBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -186,15 +188,33 @@ export function Users() {
             </TableHeader>
             <TableBody>
               {loadingList ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    {t.common.loading}
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: PAGE_SIZE }, (_, i) => (
+                  <TableRow key={i} className="animate-in fade-in duration-300">
+                    <TableCell>
+                      <Skeleton className="h-4 w-5" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="size-8 shrink-0 rounded-full" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-40" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </TableCell>
+                    <TableCell className="w-8">
+                      <Skeleton className="h-4 w-4" />
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : (
                 users.map((u, index) => (
-                  <TableRow
+                  <MotionTableRow
                     key={u.id}
+                    index={index}
                     className="cursor-pointer"
                     tabIndex={0}
                     onClick={() => nav(`/users/${u.id}`)}
@@ -221,7 +241,7 @@ export function Users() {
                     <TableCell className="w-8 text-muted-foreground">
                       <ChevronRight className="size-4" />
                     </TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))
               )}
             </TableBody>

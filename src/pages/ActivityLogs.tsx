@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
+  getUserById,
   listActivityLogs,
   listUsers,
   ApiRequestError,
   type ActivityLogItem,
-  type UserListItem,
 } from "../lib/api";
 import { formatDateTime } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
@@ -18,7 +18,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
+import { MotionTableRow } from "@/components/MotionTableRow";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -37,6 +39,9 @@ import {
 
 const PAGE_SIZE = 20;
 const TYPE_NONE = "none";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type CreatorMatch = { id: string; fullName?: string | null; email?: string | null };
 
 type Filters = {
   entityId: string;
@@ -86,8 +91,9 @@ export function ActivityLogs() {
   const [appliedFilters, setAppliedFilters] = useState<Filters>(emptyFilters);
   const [filtersOpen, setFiltersOpen] = useState(true);
 
-  const [creatorResults, setCreatorResults] = useState<UserListItem[]>([]);
+  const [creatorResults, setCreatorResults] = useState<CreatorMatch[]>([]);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [creatorSearching, setCreatorSearching] = useState(false);
 
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((f) => ({ ...f, [key]: value }));
@@ -137,20 +143,29 @@ export function ActivityLogs() {
     const query = filters.creatorName.trim();
     if (!query || filters.creatorId) {
       setCreatorResults([]);
+      setCreatorSearching(false);
       return;
     }
+    setCreatorSearching(true);
     const handle = setTimeout(() => {
-      listUsers({ search: query, pageSize: 8 })
-        .then((res) => {
-          setCreatorResults(res.items ?? []);
+      const search: Promise<CreatorMatch[]> = UUID_RE.test(query)
+        ? getUserById(query)
+            .then((u) => [u])
+            .catch(() => [])
+        : listUsers({ search: query, pageSize: 8 })
+            .then((res) => res.items ?? [])
+            .catch(() => []);
+      search
+        .then((items) => {
+          setCreatorResults(items);
           setCreatorOpen(true);
         })
-        .catch(() => setCreatorResults([]));
+        .finally(() => setCreatorSearching(false));
     }, 300);
     return () => clearTimeout(handle);
   }, [filters.creatorName, filters.creatorId]);
 
-  const selectCreator = (u: UserListItem) => {
+  const selectCreator = (u: CreatorMatch) => {
     setFilters((f) => ({ ...f, creatorId: u.id, creatorName: u.fullName || u.email || "" }));
     setCreatorResults([]);
     setCreatorOpen(false);
@@ -204,22 +219,33 @@ export function ActivityLogs() {
                   placeholder={t.activityLogs.filters.creatorPlaceholder}
                   value={filters.creatorName}
                   onChange={(e) => changeCreatorName(e.target.value)}
-                  onFocus={() => creatorResults.length > 0 && setCreatorOpen(true)}
+                  onFocus={() => (creatorSearching || creatorResults.length > 0) && setCreatorOpen(true)}
                   onBlur={() => setTimeout(() => setCreatorOpen(false), 150)}
                 />
-                {creatorOpen && creatorResults.length > 0 && (
+                {creatorOpen && (creatorSearching || creatorResults.length > 0 || filters.creatorName.trim()) && (
                   <div className="absolute z-20 mt-1 w-full rounded-md border bg-popover shadow-md">
-                    {creatorResults.map((u) => (
-                      <button
-                        type="button"
-                        key={u.id}
-                        className="flex w-full items-center px-3 py-2 text-left text-sm hover:bg-accent"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => selectCreator(u)}
-                      >
-                        {u.fullName || u.email}
-                      </button>
-                    ))}
+                    {creatorSearching ? (
+                      <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+                        <Loader2 className="size-4 animate-spin" />
+                        {t.activityLogs.filters.creatorSearching}
+                      </div>
+                    ) : creatorResults.length > 0 ? (
+                      creatorResults.map((u) => (
+                        <button
+                          type="button"
+                          key={u.id}
+                          className="flex w-full items-center px-3 py-2 text-left text-sm hover:bg-accent"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectCreator(u)}
+                        >
+                          {u.fullName || u.email}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        {t.activityLogs.filters.creatorNotFound}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -323,15 +349,33 @@ export function ActivityLogs() {
             </TableHeader>
             <TableBody>
               {loadingList ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    {t.common.loading}
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 8 }, (_, i) => (
+                  <TableRow key={i} className="animate-in fade-in duration-300">
+                    <TableCell>
+                      <Skeleton className="h-4 w-28" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-36" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                    <TableCell className="w-8">
+                      <Skeleton className="h-4 w-4" />
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : (
-                logs.map((log) => (
-                  <TableRow
+                logs.map((log, index) => (
+                  <MotionTableRow
                     key={log.id}
+                    index={index}
                     className="cursor-pointer"
                     onClick={() => nav(`/activity-logs/${log.id}`)}
                   >
@@ -345,7 +389,7 @@ export function ActivityLogs() {
                     <TableCell className="w-8 text-muted-foreground">
                       <ChevronRight className="size-4" />
                     </TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))
               )}
             </TableBody>

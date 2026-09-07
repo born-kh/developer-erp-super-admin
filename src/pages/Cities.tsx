@@ -16,8 +16,10 @@ import { AppPagination } from "@/components/AppPagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
+import { MotionTableRow } from "@/components/MotionTableRow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -188,14 +190,28 @@ export function Cities() {
             </TableHeader>
             <TableBody>
               {loadingList ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    {t.common.loading}
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: PAGE_SIZE }, (_, i) => (
+                  <TableRow key={i} className="animate-in fade-in duration-300">
+                    <TableCell>
+                      <Skeleton className="h-4 w-5" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-40" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-8" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="inline-flex gap-1.5">
+                        <Skeleton className="h-8 w-16" />
+                        <Skeleton className="h-8 w-16" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : (
                 cities.map((c, index) => (
-                  <TableRow key={c.id}>
+                  <MotionTableRow key={c.id} index={index}>
                     <TableCell className="tabular-nums text-muted-foreground">
                       {(page - 1) * PAGE_SIZE + index + 1}
                     </TableCell>
@@ -211,7 +227,7 @@ export function Cities() {
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))
               )}
             </TableBody>

@@ -9,6 +9,7 @@ import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
+import { MotionTableRow } from "@/components/MotionTableRow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -19,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -165,15 +167,27 @@ export function Roles() {
             </TableHeader>
             <TableBody>
               {loadingList ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    {t.common.loading}
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: PAGE_SIZE }, (_, i) => (
+                  <TableRow key={i} className="animate-in fade-in duration-300">
+                    <TableCell>
+                      <Skeleton className="h-4 w-5" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell className="w-8">
+                      <Skeleton className="h-4 w-4" />
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : (
                 roles.map((r, index) => (
-                  <TableRow
+                  <MotionTableRow
                     key={r.id}
+                    index={index}
                     className="cursor-pointer"
                     tabIndex={0}
                     onClick={() => nav(`/roles/${r.id}`)}
@@ -189,7 +203,7 @@ export function Roles() {
                     <TableCell className="w-8 text-muted-foreground">
                       <ChevronRight className="size-4" />
                     </TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))
               )}
             </TableBody>

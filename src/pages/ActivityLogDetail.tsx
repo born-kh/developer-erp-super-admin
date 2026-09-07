@@ -75,13 +75,6 @@ export function ActivityLogDetail() {
     }
   }, [detail?.payload]);
 
-  const systemName = useMemo(() => {
-    if (!parsedPayload || typeof parsedPayload !== "object" || Array.isArray(parsedPayload)) return null;
-    const obj = parsedPayload as Record<string, unknown>;
-    const value = obj.SystemName ?? obj.systemName;
-    return typeof value === "string" ? value : null;
-  }, [parsedPayload]);
-
   const typeLabel = (type: string | null | undefined) => {
     switch (type) {
       case "Created":
@@ -120,7 +113,6 @@ export function ActivityLogDetail() {
             <p className="py-6 text-center text-sm text-muted-foreground">{t.common.loading}</p>
           ) : (
             <div>
-              <Row label={d.module}>{detail.serviceName || na}</Row>
               <Row label={d.activityType}>
                 <div className="font-medium">{detail.activityTitle || na}</div>
                 <div className="mt-1 text-xs text-muted-foreground">
@@ -133,11 +125,15 @@ export function ActivityLogDetail() {
               <Row label={d.creator}>
                 <div className="font-medium">{detail.creatorName || na}</div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {d.code}: <Copyable value={detail.creatorId} />
+                  {d.id}: <Copyable value={detail.creatorId} />
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {d.email}: {detail.creatorEmail ? <Copyable value={detail.creatorEmail} /> : na}
                 </div>
               </Row>
-              <Row label={d.email}>{detail.creatorEmail || na}</Row>
-              <Row label={d.ipAddress}>{detail.creatorIpAddress || na}</Row>
+              <Row label={d.ipAddress}>
+                {detail.creatorIpAddress ? <Copyable value={detail.creatorIpAddress} /> : na}
+              </Row>
               <Row label={d.date}>
                 <div className="font-medium">{formatDate(detail.createdAt, language)}</div>
                 <div className="mt-1 text-xs text-muted-foreground">
@@ -145,7 +141,7 @@ export function ActivityLogDetail() {
                 </div>
               </Row>
               <Row label={d.entityType}>{detail.entityType || na}</Row>
-              <Row label={d.systemName}>{systemName || na}</Row>
+              <Row label={d.systemName}>{detail.serviceName || na}</Row>
               <Row label={d.id}>
                 <Copyable value={detail.id} />
               </Row>
