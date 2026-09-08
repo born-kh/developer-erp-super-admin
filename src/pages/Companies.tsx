@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   createCompany,
@@ -284,7 +285,7 @@ export function Companies() {
             <DialogTitle>{t.companies.dialogTitle}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <Field label={t.common.name}>
+            <Field label={t.common.name} required>
               <Input value={form.name} onChange={(e) => setField("name", e.target.value)} autoFocus />
             </Field>
             <Field label={t.common.city}>
@@ -361,10 +362,11 @@ export function Companies() {
             </Field>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>
+            <Button type="button" variant="outline" onClick={() => setShowCreate(false)} disabled={submitting}>
               {t.common.cancel}
             </Button>
             <Button type="button" disabled={!form.name.trim() || submitting} onClick={submitCreate}>
+              {submitting && <Loader2 className="size-4 animate-spin" />}
               {t.common.create}
             </Button>
           </DialogFooter>

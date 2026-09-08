@@ -412,7 +412,7 @@ export type ModuleDefaultOptions = {
 };
 
 export function getModuleDefaultOptions() {
-  return authRequest<ModuleDefaultOptions>("/accounting/api/module-settings/module-default-options");
+  return authRequest<ModuleDefaultOptions>("/core/api/module-settings/module-default-options");
 }
 
 export type Pagination = {
@@ -920,13 +920,14 @@ export function updateCompanySubscription(id: string, data: UpdateSubscriptionIn
   });
 }
 
-export function uploadFile(file: File) {
+export async function uploadFile(file: File) {
   const formData = new FormData();
   formData.append("file", file);
-  return authRequest<string>("/core/api/files", {
+  const res = await authRequest<{ fileName: string }>("/core/api/files", {
     method: "POST",
     body: formData,
   });
+  return res.fileName;
 }
 
 export function getFileUrl(fileName: string) {

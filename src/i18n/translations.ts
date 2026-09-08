@@ -170,7 +170,8 @@ export type Dict = {
     subscriptionStart: string;
     subscriptionEnd: string;
     fromTariff: string;
-    originalCost: string;
+    subscriptionPrice: string;
+    subscriptionRealCost: string;
     toasts: {
       ownerSaved: string;
       ownerAdded: string;
@@ -585,7 +586,8 @@ export const translations: Record<Language, Dict> = {
       subscriptionStart: "Дата начала",
       subscriptionEnd: "Дата окончания",
       fromTariff: "Входит в тариф",
-      originalCost: "Исходная стоимость",
+      subscriptionPrice: "Цена",
+      subscriptionRealCost: "Реальная стоимость",
       toasts: {
         ownerSaved: "Владелец сохранён",
         ownerAdded: "Владелец добавлен",
@@ -1029,7 +1031,8 @@ export const translations: Record<Language, Dict> = {
       subscriptionStart: "Start date",
       subscriptionEnd: "End date",
       fromTariff: "Included in tariff",
-      originalCost: "Original cost",
+      subscriptionPrice: "Price",
+      subscriptionRealCost: "Real cost",
       toasts: {
         ownerSaved: "Owner saved",
         ownerAdded: "Owner added",
@@ -1473,7 +1476,8 @@ export const translations: Record<Language, Dict> = {
       subscriptionStart: "Санаи оғоз",
       subscriptionEnd: "Санаи анҷом",
       fromTariff: "Дар тариф дохил аст",
-      originalCost: "Арзиши аслӣ",
+      subscriptionPrice: "Нарх",
+      subscriptionRealCost: "Арзиши воқеӣ",
       toasts: {
         ownerSaved: "Соҳиб захира шуд",
         ownerAdded: "Соҳиб илова шуд",

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, RefreshCw } from "lucide-react";
+import { Copy, ImageUp, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -45,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 
 const CITY_NONE = "none";
@@ -342,19 +343,12 @@ export function CompanyDetail() {
 
   const selectSubTariff = (tariffId: string) => {
     const newTariffId = tariffId === TARIFF_NONE ? "" : tariffId;
-    setSubForm((f) => {
-      if (!f) return f;
-      const oldTariffPkgIds = tariffPackageIds(f.tariffId);
-      const newTariffPkgIds = tariffPackageIds(newTariffId);
-      const manualIds = f.packageIds.filter((id) => !oldTariffPkgIds.includes(id));
-      const merged = Array.from(new Set([...newTariffPkgIds, ...manualIds]));
-      return { ...f, tariffId: newTariffId, packageIds: merged };
-    });
+    setSubForm((f) => (f ? { ...f, tariffId: newTariffId, packageIds: tariffPackageIds(newTariffId) } : f));
   };
 
   const addPackageToSub = (pkgId: string) => {
     if (!pkgId || subForm?.packageIds.includes(pkgId)) return;
-    setSubForm((f) => (f ? { ...f, packageIds: [...f.packageIds, pkgId] } : f));
+    setSubForm((f) => (f ? { ...f, tariffId: "", packageIds: [...f.packageIds, pkgId] } : f));
   };
 
   const removePackageFromSub = (pkgId: string) => {
@@ -395,6 +389,9 @@ export function CompanyDetail() {
   const availableSubPackages = allPackages.filter((p) => !(subForm?.packageIds ?? []).includes(p.id));
   const subTariffPackageIds = tariffPackageIds(subForm?.tariffId ?? "");
   const subCost = selectedSubPackages.reduce((sum, p) => sum + p.cost, 0);
+  const selectedFormTariff = tariffs.find((tr) => tr.id === subForm?.tariffId);
+  const subExtraPackageIds = (subForm?.packageIds ?? []).filter((id) => !subTariffPackageIds.includes(id));
+  const showTariffPrice = Boolean(selectedFormTariff) && subExtraPackageIds.length === 0;
   const subEndDate =
     subForm && subForm.status !== "Suspended"
       ? addDays(
@@ -406,6 +403,11 @@ export function CompanyDetail() {
       : null;
 
   const subscriptionTariff = tariffs.find((tr) => tr.id === company.subscription?.tariffId);
+  const subscriptionTariffPackageIds = (subscriptionTariff?.packages ?? []).map((p) => p.id);
+  const subscriptionExtraPackages = (company.subscription?.packages ?? []).filter(
+    (p) => !subscriptionTariffPackageIds.includes(p.id),
+  );
+  const showSubscriptionTariffPrice = Boolean(subscriptionTariff) && subscriptionExtraPackages.length === 0;
 
   return (
     <>
@@ -416,7 +418,7 @@ export function CompanyDetail() {
           <div className="aspect-[4/3] w-full overflow-hidden bg-secondary">
             <CompanyPhoto photoName={company.photoName} alt={company.name ?? ""} />
           </div>
-          <div className="flex gap-2 p-3.5">
+          <div className="flex items-center justify-center gap-3 p-3.5">
             {editing ? (
               <>
                 <Button type="button" className="flex-1" disabled={submitting} onClick={save}>
@@ -428,21 +430,43 @@ export function CompanyDetail() {
               </>
             ) : (
               <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={photoUploading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {t.common.chooseImage}
-                </Button>
-                <Button type="button" variant="outline" className="flex-1" onClick={startEdit}>
-                  {t.common.edit}
-                </Button>
-                <Button type="button" variant="destructive" className="flex-1" onClick={() => setConfirmingDelete(true)}>
-                  {t.common.delete}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      disabled={photoUploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label={t.common.chooseImage}
+                    >
+                      <ImageUp />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t.common.chooseImage}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button type="button" variant="outline" size="icon" onClick={startEdit} aria-label={t.common.edit}>
+                      <Pencil />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t.common.edit}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => setConfirmingDelete(true)}
+                      aria-label={t.common.delete}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t.common.delete}</TooltipContent>
+                </Tooltip>
               </>
             )}
           </div>
@@ -614,9 +638,16 @@ export function CompanyDetail() {
               </div>
               <div>
                 <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-                  {t.companyDetail.originalCost}
+                  {t.companyDetail.subscriptionPrice}
                 </div>
-                <div className="mt-1 font-semibold">{usd(company.subscription.originalCost)}</div>
+                <div className="mt-1 font-semibold">
+                  {usd(showSubscriptionTariffPrice ? subscriptionTariff!.cost : company.subscription.originalCost)}
+                </div>
+                {showSubscriptionTariffPrice && (
+                  <div className="text-xs text-muted-foreground line-through">
+                    {usd(company.subscription.originalCost)}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -732,11 +763,13 @@ export function CompanyDetail() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={TARIFF_NONE}>{t.companyDetail.noTariff}</SelectItem>
-                    {tariffs.map((tr) => (
-                      <SelectItem key={tr.id} value={tr.id}>
-                        {tr.code}
-                      </SelectItem>
-                    ))}
+                    {tariffs
+                      .filter((tr) => tr.isActive || tr.id === subForm.tariffId)
+                      .map((tr) => (
+                        <SelectItem key={tr.id} value={tr.id}>
+                          {tr.code}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </Field>
@@ -802,9 +835,17 @@ export function CompanyDetail() {
                   )}
                 </div>
               </Field>
-              <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-sm">
-                <span className="text-muted-foreground">{t.companyDetail.originalCost}</span>
-                <span className="font-semibold">{usd(subCost)}</span>
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">{t.companyDetail.subscriptionPrice}</span>
+                  <span className="font-semibold">{usd(showTariffPrice ? selectedFormTariff!.cost : subCost)}</span>
+                </div>
+                {showTariffPrice && (
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">{t.companyDetail.subscriptionRealCost}</span>
+                    <span className="text-xs text-muted-foreground line-through">{usd(selectedFormTariff!.originalCost)}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
