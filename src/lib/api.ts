@@ -67,7 +67,7 @@ export class ApiRequestError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function performRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   let res: Response;
   try {
     const clientIp = await getClientIp();
@@ -98,6 +98,25 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   return (body as ApiSuccess<T> | null)?.data as T;
+}
+
+// Two effects (e.g. React StrictMode's double-invoke in dev, or two components
+// requesting the same data at once) can fire the identical GET back-to-back.
+// Share the in-flight promise instead of hitting the network twice.
+const inFlightGetRequests = new Map<string, Promise<unknown>>();
+
+function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const method = (options.method ?? "GET").toUpperCase();
+  if (method !== "GET") return performRequest<T>(path, options);
+
+  const existing = inFlightGetRequests.get(path);
+  if (existing) return existing as Promise<T>;
+
+  const promise = performRequest<T>(path, options).finally(() => {
+    inFlightGetRequests.delete(path);
+  });
+  inFlightGetRequests.set(path, promise);
+  return promise;
 }
 
 let pendingRefresh: Promise<TokenInfo> | null = null;
@@ -812,6 +831,7 @@ export type UpdateCompanyInput = {
   phoneNumber?: string | null;
   email?: string | null;
   cityId?: string | null;
+  photoName?: string | null;
   addressTranslations: Record<string, string>;
   descriptionTranslations: Record<string, string>;
 };
@@ -858,11 +878,11 @@ export function deleteCompanyById(id: string) {
   return authRequest<unknown>(`/core/api/companies/${id}`, { method: "DELETE" });
 }
 
-export function uploadCompanyPhoto(id: string, file: File) {
+export function uploadFile(file: File) {
   const formData = new FormData();
-  formData.append("photo", file);
-  return authRequest<unknown>(`/core/api/companies/${id}/photo`, {
-    method: "PUT",
+  formData.append("file", file);
+  return authRequest<string>("/core/api/files", {
+    method: "POST",
     body: formData,
   });
 }

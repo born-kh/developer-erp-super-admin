@@ -9,7 +9,6 @@ import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
-import { MotionTableRow } from "@/components/MotionTableRow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -30,7 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 type Translations = Record<string, string>;
 
@@ -57,6 +56,7 @@ export function Roles() {
   const [roles, setRoles] = useState<RoleLookup[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [query, setQuery] = useState("");
   const [committedQuery, setCommittedQuery] = useState("");
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -67,10 +67,10 @@ export function Roles() {
   const [activeLang, setActiveLang] = useState<string>(defaultLang);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchRoles = async (pageArg: number, searchArg: string) => {
+  const fetchRoles = async (pageArg: number, pageSizeArg: number, searchArg: string) => {
     setLoadingList(true);
     try {
-      const res = await listRoles({ page: pageArg, pageSize: PAGE_SIZE, search: searchArg || undefined });
+      const res = await listRoles({ page: pageArg, pageSize: pageSizeArg, search: searchArg || undefined });
       setRoles(res.items ?? []);
       setHasNextPage(res.pagination.hasNextPage);
       setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
@@ -90,9 +90,14 @@ export function Roles() {
   }, [query]);
 
   useEffect(() => {
-    fetchRoles(page, committedQuery);
+    fetchRoles(page, pageSize, committedQuery);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, committedQuery]);
+  }, [page, pageSize, committedQuery]);
+
+  const changePageSize = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
 
   const setTitle = (lang: string, value: string) =>
     setForm((f) => ({ ...f, title: { ...f.title, [lang]: value } }));
@@ -167,7 +172,7 @@ export function Roles() {
             </TableHeader>
             <TableBody>
               {loadingList ? (
-                Array.from({ length: PAGE_SIZE }, (_, i) => (
+                Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                   <TableRow key={i} className="animate-in fade-in duration-300">
                     <TableCell>
                       <Skeleton className="h-4 w-5" />
@@ -185,16 +190,15 @@ export function Roles() {
                 ))
               ) : (
                 roles.map((r, index) => (
-                  <MotionTableRow
+                  <TableRow
                     key={r.id}
-                    index={index}
                     className="cursor-pointer"
                     tabIndex={0}
                     onClick={() => nav(`/roles/${r.id}`)}
                     onKeyDown={(e) => e.key === "Enter" && nav(`/roles/${r.id}`)}
                   >
                     <TableCell className="tabular-nums text-muted-foreground">
-                      {(page - 1) * PAGE_SIZE + index + 1}
+                      {(page - 1) * pageSize + index + 1}
                     </TableCell>
                     <TableCell className="font-medium">{r.title || "—"}</TableCell>
                     <TableCell>
@@ -203,7 +207,7 @@ export function Roles() {
                     <TableCell className="w-8 text-muted-foreground">
                       <ChevronRight className="size-4" />
                     </TableCell>
-                  </MotionTableRow>
+                  </TableRow>
                 ))
               )}
             </TableBody>
@@ -217,6 +221,8 @@ export function Roles() {
         hasNextPage={hasNextPage}
         hasPreviousPage={hasPreviousPage}
         alwaysShow
+        pageSize={pageSize}
+        onPageSizeChange={changePageSize}
       />
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>

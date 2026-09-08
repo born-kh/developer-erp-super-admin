@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   createCompany,
   listCities,
   listCompanies,
-  uploadCompanyPhoto,
+  updateCompanyById,
+  uploadFile,
   ApiRequestError,
   type CityListItem,
   type CompanyListItem,
@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-const PAGE_SIZE = 8;
+const DEFAULT_PAGE_SIZE = 10;
 const CITY_NONE = "none";
 
 type Translations = Record<string, string>;
@@ -78,6 +78,7 @@ export function Companies() {
   const [companies, setCompanies] = useState<CompanyListItem[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
@@ -109,10 +110,10 @@ export function Companies() {
     return () => clearTimeout(handle);
   }, [query]);
 
-  const fetchCompanies = async (pageArg: number, search: string) => {
+  const fetchCompanies = async (pageArg: number, pageSizeArg: number, search: string) => {
     setLoadingList(true);
     try {
-      const res = await listCompanies({ page: pageArg, pageSize: PAGE_SIZE, search: search.trim() || undefined });
+      const res = await listCompanies({ page: pageArg, pageSize: pageSizeArg, search: search.trim() || undefined });
       setCompanies(res.items ?? []);
       setHasNextPage(res.pagination.hasNextPage);
       setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
@@ -124,9 +125,14 @@ export function Companies() {
   };
 
   useEffect(() => {
-    fetchCompanies(page, appliedQuery);
+    fetchCompanies(page, pageSize, appliedQuery);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, appliedQuery]);
+  }, [page, pageSize, appliedQuery]);
+
+  const changePageSize = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
 
   const setField = <K extends keyof CompanyForm>(key: K, value: CompanyForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -158,17 +164,28 @@ export function Companies() {
     if (!form.name.trim() || submitting) return;
     setSubmitting(true);
     try {
+      const addressTranslations = collectTranslations(form.addressTranslations);
+      const descriptionTranslations = collectTranslations(form.descriptionTranslations);
       const id = await createCompany({
         name: form.name.trim(),
         phoneNumber: form.phoneNumber.trim() || undefined,
         email: form.email.trim() || undefined,
         cityId: form.cityId || undefined,
-        addressTranslations: collectTranslations(form.addressTranslations),
-        descriptionTranslations: collectTranslations(form.descriptionTranslations),
+        addressTranslations,
+        descriptionTranslations,
       });
       if (photoFile) {
         try {
-          await uploadCompanyPhoto(id, photoFile);
+          const photoName = await uploadFile(photoFile);
+          await updateCompanyById(id, {
+            name: form.name.trim(),
+            phoneNumber: form.phoneNumber.trim() || undefined,
+            email: form.email.trim() || undefined,
+            cityId: form.cityId || undefined,
+            photoName,
+            addressTranslations,
+            descriptionTranslations,
+          });
         } catch (err) {
           toast.error(errorMessage(err, t.companies.errors.savePhoto));
         }
@@ -217,7 +234,7 @@ export function Companies() {
       ) : (
         <div className="grid grid-cols-4 gap-4 max-[1200px]:grid-cols-3 max-[700px]:grid-cols-2 max-[420px]:grid-cols-1">
           {loadingList
-            ? Array.from({ length: PAGE_SIZE }, (_, i) => (
+            ? Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                 <Card key={i} className="animate-in fade-in gap-0 overflow-hidden py-0 duration-300">
                   <Skeleton className="aspect-video w-full rounded-none" />
                   <div className="grid gap-2 p-3">
@@ -226,31 +243,25 @@ export function Companies() {
                   </div>
                 </Card>
               ))
-            : companies.map((c, index) => (
-                <motion.div
+            : companies.map((c) => (
+                <Card
                   key={c.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, delay: index * 0.03, ease: "easeOut" }}
+                  className="cursor-pointer gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md"
+                  tabIndex={0}
+                  onClick={() => nav(`/companies/${c.id}`)}
+                  onKeyDown={(e) => e.key === "Enter" && nav(`/companies/${c.id}`)}
                 >
-                  <Card
-                    className="cursor-pointer gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md"
-                    tabIndex={0}
-                    onClick={() => nav(`/companies/${c.id}`)}
-                    onKeyDown={(e) => e.key === "Enter" && nav(`/companies/${c.id}`)}
-                  >
-                    <div className="aspect-video w-full overflow-hidden bg-secondary">
-                      <CompanyPhoto photoName={c.photoName} alt={c.name ?? ""} />
+                  <div className="aspect-video w-full overflow-hidden bg-secondary">
+                    <CompanyPhoto photoName={c.photoName} alt={c.name ?? ""} />
+                  </div>
+                  <div className="grid gap-1 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="truncate font-medium">{c.name || "—"}</span>
+                      <CompanyStatusBadge status={c.status ?? ""} />
                     </div>
-                    <div className="grid gap-1 p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="truncate font-medium">{c.name || "—"}</span>
-                        <CompanyStatusBadge status={c.status ?? ""} />
-                      </div>
-                      <div className="truncate text-xs text-muted-foreground">{cityName(c.cityId)}</div>
-                    </div>
-                  </Card>
-                </motion.div>
+                    <div className="truncate text-xs text-muted-foreground">{cityName(c.cityId)}</div>
+                  </div>
+                </Card>
               ))}
         </div>
       )}
@@ -261,6 +272,8 @@ export function Companies() {
         hasNextPage={hasNextPage}
         hasPreviousPage={hasPreviousPage}
         alwaysShow
+        pageSize={pageSize}
+        onPageSizeChange={changePageSize}
       />
 
       <p className="mt-4 text-sm text-muted-foreground">{t.companies.isolationNote}</p>

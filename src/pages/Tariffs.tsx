@@ -21,7 +21,6 @@ import { AppPagination } from "@/components/AppPagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
-import { MotionTableRow } from "@/components/MotionTableRow";
 import { ActiveBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -52,7 +51,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 type Translations = Record<string, string>;
 
@@ -91,6 +90,7 @@ export function Tariffs() {
   const [loadingList, setLoadingList] = useState(true);
   const [allPackages, setAllPackages] = useState<PackageListItem[]>([]);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
@@ -101,10 +101,10 @@ export function Tariffs() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const fetchTariffs = async (pageArg: number) => {
+  const fetchTariffs = async (pageArg: number, pageSizeArg: number) => {
     setLoadingList(true);
     try {
-      const res = await listTariffsWithPackages({ page: pageArg, pageSize: PAGE_SIZE });
+      const res = await listTariffsWithPackages({ page: pageArg, pageSize: pageSizeArg });
       setTariffs(res.items ?? []);
       setHasNextPage(res.pagination.hasNextPage);
       setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
@@ -116,9 +116,14 @@ export function Tariffs() {
   };
 
   useEffect(() => {
-    fetchTariffs(page);
+    fetchTariffs(page, pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, pageSize]);
+
+  const changePageSize = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
 
   useEffect(() => {
     listPackages({ pageSize: 100 })
@@ -206,7 +211,7 @@ export function Tariffs() {
         }
         toast.success(t.tariffs.toasts.created);
       }
-      await fetchTariffs(page);
+      await fetchTariffs(page, pageSize);
       setModal(null);
     } catch (err) {
       toast.error(errorMessage(err, t.tariffs.errors.saveTariff));
@@ -221,7 +226,7 @@ export function Tariffs() {
       await deleteTariff(modal.id);
       toast.success(t.tariffs.toasts.deleted);
       setModal(null);
-      await fetchTariffs(page);
+      await fetchTariffs(page, pageSize);
     } catch (err) {
       toast.error(errorMessage(err, t.tariffs.errors.deleteTariff));
     } finally {
@@ -270,7 +275,7 @@ export function Tariffs() {
             </TableHeader>
             <TableBody>
               {loadingList ? (
-                Array.from({ length: PAGE_SIZE }, (_, i) => (
+                Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                   <TableRow key={i} className="animate-in fade-in duration-300">
                     <TableCell>
                       <Skeleton className="h-4 w-5" />
@@ -299,9 +304,9 @@ export function Tariffs() {
                 tariffs.map((row, index) => {
                   const pkgs = row.packages ?? [];
                   return (
-                    <MotionTableRow key={row.id} index={index}>
+                    <TableRow key={row.id}>
                       <TableCell className="tabular-nums text-muted-foreground">
-                        {(page - 1) * PAGE_SIZE + index + 1}
+                        {(page - 1) * pageSize + index + 1}
                       </TableCell>
                       <TableCell className="font-medium">{row.code}</TableCell>
                       <TableCell className="max-w-[220px]">
@@ -341,7 +346,7 @@ export function Tariffs() {
                           {t.common.edit}
                         </Button>
                       </TableCell>
-                    </MotionTableRow>
+                    </TableRow>
                   );
                 })
               )}
@@ -356,6 +361,8 @@ export function Tariffs() {
         hasNextPage={hasNextPage}
         hasPreviousPage={hasPreviousPage}
         alwaysShow
+        pageSize={pageSize}
+        onPageSizeChange={changePageSize}
       />
 
       <Dialog open={Boolean(modal)} onOpenChange={(open) => !open && setModal(null)}>

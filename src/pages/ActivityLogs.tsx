@@ -18,7 +18,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
-import { MotionTableRow } from "@/components/MotionTableRow";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -37,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 10;
 const TYPE_NONE = "none";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -84,6 +83,7 @@ export function ActivityLogs() {
   const [logs, setLogs] = useState<ActivityLogItem[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
@@ -106,12 +106,12 @@ export function ActivityLogs() {
     return () => clearTimeout(handle);
   }, [filters]);
 
-  const fetchLogs = async (pageArg: number, f: Filters) => {
+  const fetchLogs = async (pageArg: number, pageSizeArg: number, f: Filters) => {
     setLoadingList(true);
     try {
       const res = await listActivityLogs({
         page: pageArg,
-        pageSize: PAGE_SIZE,
+        pageSize: pageSizeArg,
         entityId: f.entityId.trim() || undefined,
         activityCode: f.activityCode.trim() || undefined,
         creatorId: f.creatorId || undefined,
@@ -135,9 +135,14 @@ export function ActivityLogs() {
   };
 
   useEffect(() => {
-    fetchLogs(page, appliedFilters);
+    fetchLogs(page, pageSize, appliedFilters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, appliedFilters]);
+  }, [page, pageSize, appliedFilters]);
+
+  const changePageSize = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
 
   useEffect(() => {
     const query = filters.creatorName.trim();
@@ -349,7 +354,7 @@ export function ActivityLogs() {
             </TableHeader>
             <TableBody>
               {loadingList ? (
-                Array.from({ length: 8 }, (_, i) => (
+                Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                   <TableRow key={i} className="animate-in fade-in duration-300">
                     <TableCell>
                       <Skeleton className="h-4 w-28" />
@@ -372,10 +377,9 @@ export function ActivityLogs() {
                   </TableRow>
                 ))
               ) : (
-                logs.map((log, index) => (
-                  <MotionTableRow
+                logs.map((log) => (
+                  <TableRow
                     key={log.id}
-                    index={index}
                     className="cursor-pointer"
                     onClick={() => nav(`/activity-logs/${log.id}`)}
                   >
@@ -389,7 +393,7 @@ export function ActivityLogs() {
                     <TableCell className="w-8 text-muted-foreground">
                       <ChevronRight className="size-4" />
                     </TableCell>
-                  </MotionTableRow>
+                  </TableRow>
                 ))
               )}
             </TableBody>
@@ -403,6 +407,8 @@ export function ActivityLogs() {
         hasNextPage={hasNextPage}
         hasPreviousPage={hasPreviousPage}
         alwaysShow
+        pageSize={pageSize}
+        onPageSizeChange={changePageSize}
       />
     </>
   );

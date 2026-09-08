@@ -7,7 +7,7 @@ import {
   getCompanyById,
   listCities,
   updateCompanyById,
-  uploadCompanyPhoto,
+  uploadFile,
   ApiRequestError,
   type CityListItem,
   type CompanyDetail as CompanyDetailData,
@@ -232,6 +232,7 @@ export function CompanyDetail() {
         phoneNumber: form.phoneNumber.trim() || undefined,
         email: form.email.trim() || undefined,
         cityId: form.cityId || undefined,
+        photoName: company.photoName ?? undefined,
         addressTranslations: collectTranslations(form.addressTranslations),
         descriptionTranslations: collectTranslations(form.descriptionTranslations),
       });
@@ -261,7 +262,16 @@ export function CompanyDetail() {
     if (!file) return;
     setPhotoUploading(true);
     try {
-      await uploadCompanyPhoto(company.id, file);
+      const photoName = await uploadFile(file);
+      await updateCompanyById(company.id, {
+        name: company.name ?? undefined,
+        phoneNumber: company.phoneNumber ?? undefined,
+        email: company.email ?? undefined,
+        cityId: company.cityId ?? undefined,
+        photoName,
+        addressTranslations: company.addressTranslations ?? {},
+        descriptionTranslations: company.descriptionTranslations ?? {},
+      });
       load();
     } catch (err) {
       toast.error(errorMessage(err, t.companyDetail.errors.saveCompany));

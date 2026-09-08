@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { NavLink, useLocation, useNavigate, useOutlet } from "react-router-dom";
 import {
   Boxes,
   Building2,
@@ -49,6 +50,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 export function AppShell() {
   const nav = useNavigate();
   const loc = useLocation();
+  const outlet = useOutlet();
   const [more, setMore] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -193,7 +195,17 @@ export function AppShell() {
             </div>
           </header>
           <div className="main-pad">
-            <Outlet />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={loc.pathname}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+              >
+                {outlet}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </SidebarInset>
         <nav className="bottom-nav">

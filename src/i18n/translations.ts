@@ -73,6 +73,7 @@ export type Dict = {
     nothingFound: string;
     package: string;
     rowNumber: string;
+    pageSize: string;
   };
   permissionsPicker: {
     filterPlaceholder: string;
@@ -477,6 +478,7 @@ export const translations: Record<Language, Dict> = {
       nothingFound: "Ничего не найдено.",
       package: "Пакет",
       rowNumber: "№",
+      pageSize: "Показывать:",
     },
     permissionsPicker: {
       filterPlaceholder: "Фильтровать по категории",
@@ -913,6 +915,7 @@ export const translations: Record<Language, Dict> = {
       nothingFound: "Nothing found.",
       package: "Package",
       rowNumber: "#",
+      pageSize: "Show:",
     },
     permissionsPicker: {
       filterPlaceholder: "Filter by category",
@@ -1349,6 +1352,7 @@ export const translations: Record<Language, Dict> = {
       nothingFound: "Чизе ёфт нашуд.",
       package: "Баста",
       rowNumber: "№",
+      pageSize: "Нишон додан:",
     },
     permissionsPicker: {
       filterPlaceholder: "Аз рӯи категория филтр кунед",

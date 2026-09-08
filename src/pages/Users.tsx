@@ -9,7 +9,6 @@ import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
-import { MotionTableRow } from "@/components/MotionTableRow";
 import { ActiveBadge } from "@/components/StatusBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 type UserForm = {
   firstName: string;
@@ -76,6 +75,7 @@ export function Users() {
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [query, setQuery] = useState("");
   const [committedQuery, setCommittedQuery] = useState("");
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -85,10 +85,10 @@ export function Users() {
   const [form, setForm] = useState<UserForm>(emptyUserForm);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchUsers = async (pageArg: number, searchArg: string) => {
+  const fetchUsers = async (pageArg: number, pageSizeArg: number, searchArg: string) => {
     setLoadingList(true);
     try {
-      const res = await listUsers({ page: pageArg, pageSize: PAGE_SIZE, search: searchArg || undefined });
+      const res = await listUsers({ page: pageArg, pageSize: pageSizeArg, search: searchArg || undefined });
       setUsers(res.items ?? []);
       setHasNextPage(res.pagination.hasNextPage);
       setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
@@ -108,9 +108,14 @@ export function Users() {
   }, [query]);
 
   useEffect(() => {
-    fetchUsers(page, committedQuery);
+    fetchUsers(page, pageSize, committedQuery);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, committedQuery]);
+  }, [page, pageSize, committedQuery]);
+
+  const changePageSize = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
 
   const setField = <K extends keyof UserForm>(key: K, value: UserForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -188,7 +193,7 @@ export function Users() {
             </TableHeader>
             <TableBody>
               {loadingList ? (
-                Array.from({ length: PAGE_SIZE }, (_, i) => (
+                Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                   <TableRow key={i} className="animate-in fade-in duration-300">
                     <TableCell>
                       <Skeleton className="h-4 w-5" />
@@ -212,16 +217,15 @@ export function Users() {
                 ))
               ) : (
                 users.map((u, index) => (
-                  <MotionTableRow
+                  <TableRow
                     key={u.id}
-                    index={index}
                     className="cursor-pointer"
                     tabIndex={0}
                     onClick={() => nav(`/users/${u.id}`)}
                     onKeyDown={(e) => e.key === "Enter" && nav(`/users/${u.id}`)}
                   >
                     <TableCell className="tabular-nums text-muted-foreground">
-                      {(page - 1) * PAGE_SIZE + index + 1}
+                      {(page - 1) * pageSize + index + 1}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -241,7 +245,7 @@ export function Users() {
                     <TableCell className="w-8 text-muted-foreground">
                       <ChevronRight className="size-4" />
                     </TableCell>
-                  </MotionTableRow>
+                  </TableRow>
                 ))
               )}
             </TableBody>
@@ -255,6 +259,8 @@ export function Users() {
         hasNextPage={hasNextPage}
         hasPreviousPage={hasPreviousPage}
         alwaysShow
+        pageSize={pageSize}
+        onPageSizeChange={changePageSize}
       />
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>

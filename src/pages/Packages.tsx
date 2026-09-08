@@ -15,7 +15,6 @@ import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
-import { MotionTableRow } from "@/components/MotionTableRow";
 import { ActiveBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,7 +38,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 type Translations = Record<string, string>;
 
@@ -72,6 +71,7 @@ export function Packages() {
   const [packages, setPackages] = useState<PackageListItemWithGroups[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
@@ -80,10 +80,10 @@ export function Packages() {
   const [activeLang, setActiveLang] = useState<string>(defaultLang);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchPackages = async (pageArg: number) => {
+  const fetchPackages = async (pageArg: number, pageSizeArg: number) => {
     setLoadingList(true);
     try {
-      const list = await listPackagesAllIncludingPermissionGroups({ page: pageArg, pageSize: PAGE_SIZE });
+      const list = await listPackagesAllIncludingPermissionGroups({ page: pageArg, pageSize: pageSizeArg });
       setPackages(list.items ?? []);
       setHasNextPage(list.pagination.hasNextPage);
       setHasPreviousPage(list.pagination.hasPreviousPage ?? pageArg > 1);
@@ -95,9 +95,14 @@ export function Packages() {
   };
 
   useEffect(() => {
-    fetchPackages(page);
+    fetchPackages(page, pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, pageSize]);
+
+  const changePageSize = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
 
   const set = <K extends keyof PackageForm>(key: K, value: PackageForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -138,7 +143,7 @@ export function Packages() {
       if (created) {
         nav(`/packages/${created.id}`);
       } else {
-        await fetchPackages(page);
+        await fetchPackages(page, pageSize);
       }
     } catch (err) {
       toast.error(errorMessage(err, t.packages.errors.savePackage));
@@ -182,7 +187,7 @@ export function Packages() {
             </TableHeader>
             <TableBody>
               {loadingList ? (
-                Array.from({ length: PAGE_SIZE }, (_, i) => (
+                Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                   <TableRow key={i} className="animate-in fade-in duration-300">
                     <TableCell>
                       <Skeleton className="h-4 w-5" />
@@ -206,16 +211,15 @@ export function Packages() {
                 ))
               ) : (
                 packages.map((p, index) => (
-                  <MotionTableRow
+                  <TableRow
                     key={p.id}
-                    index={index}
                     className="cursor-pointer"
                     tabIndex={0}
                     onClick={() => nav(`/packages/${p.id}`)}
                     onKeyDown={(e) => e.key === "Enter" && nav(`/packages/${p.id}`)}
                   >
                     <TableCell className="tabular-nums text-muted-foreground">
-                      {(page - 1) * PAGE_SIZE + index + 1}
+                      {(page - 1) * pageSize + index + 1}
                     </TableCell>
                     <TableCell>
                       <div className={p.title ? "font-medium" : "text-muted-foreground"}>
@@ -254,7 +258,7 @@ export function Packages() {
                     <TableCell className="w-8 text-muted-foreground">
                       <ChevronRight className="size-4" />
                     </TableCell>
-                  </MotionTableRow>
+                  </TableRow>
                 ))
               )}
             </TableBody>
@@ -268,6 +272,8 @@ export function Packages() {
         hasNextPage={hasNextPage}
         hasPreviousPage={hasPreviousPage}
         alwaysShow
+        pageSize={pageSize}
+        onPageSizeChange={changePageSize}
       />
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>

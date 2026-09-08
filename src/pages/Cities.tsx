@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   createCity,
   deleteCity,
@@ -16,7 +17,6 @@ import { AppPagination } from "@/components/AppPagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
-import { MotionTableRow } from "@/components/MotionTableRow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +37,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 type Translations = Record<string, string>;
 
@@ -67,6 +67,7 @@ export function Cities() {
   const [cities, setCities] = useState<CityListItem[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
@@ -76,10 +77,10 @@ export function Cities() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const fetchCities = async (pageArg: number) => {
+  const fetchCities = async (pageArg: number, pageSizeArg: number) => {
     setLoadingList(true);
     try {
-      const res = await listCities({ page: pageArg, pageSize: PAGE_SIZE });
+      const res = await listCities({ page: pageArg, pageSize: pageSizeArg });
       setCities(res.items ?? []);
       setHasNextPage(res.pagination.hasNextPage);
       setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
@@ -91,9 +92,14 @@ export function Cities() {
   };
 
   useEffect(() => {
-    fetchCities(page);
+    fetchCities(page, pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, pageSize]);
+
+  const changePageSize = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
 
   const setName = (lang: string, value: string) =>
     setForm((f) => ({ ...f, nameTranslations: { ...f.nameTranslations, [lang]: value } }));
@@ -136,7 +142,7 @@ export function Cities() {
         await createCity({ nameTranslations: collectTranslations(form.nameTranslations) });
         toast.success(t.cities.toasts.cityCreated);
       }
-      await fetchCities(page);
+      await fetchCities(page, pageSize);
       setModal(null);
     } catch (err) {
       toast.error(errorMessage(err, t.cities.errors.saveCity));
@@ -149,7 +155,7 @@ export function Cities() {
     try {
       await deleteCity(id);
       toast.success(t.cities.toasts.cityDeleted);
-      await fetchCities(page);
+      await fetchCities(page, pageSize);
     } catch (err) {
       toast.error(errorMessage(err, t.cities.errors.deleteCity));
     } finally {
@@ -188,9 +194,9 @@ export function Cities() {
                 <TableHead className="text-right">{t.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {loadingList ? (
-                Array.from({ length: PAGE_SIZE }, (_, i) => (
+            <TableBody className={cn("transition-opacity duration-200", loadingList && cities.length > 0 && "opacity-50")}>
+              {loadingList && cities.length === 0 ? (
+                Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                   <TableRow key={i} className="animate-in fade-in duration-300">
                     <TableCell>
                       <Skeleton className="h-4 w-5" />
@@ -211,9 +217,9 @@ export function Cities() {
                 ))
               ) : (
                 cities.map((c, index) => (
-                  <MotionTableRow key={c.id} index={index}>
+                  <TableRow key={c.id}>
                     <TableCell className="tabular-nums text-muted-foreground">
-                      {(page - 1) * PAGE_SIZE + index + 1}
+                      {(page - 1) * pageSize + index + 1}
                     </TableCell>
                     <TableCell className="font-medium">{c.name || "—"}</TableCell>
                     <TableCell className="tabular-nums text-muted-foreground">{c.order}</TableCell>
@@ -227,7 +233,7 @@ export function Cities() {
                         </Button>
                       </div>
                     </TableCell>
-                  </MotionTableRow>
+                  </TableRow>
                 ))
               )}
             </TableBody>
@@ -241,6 +247,8 @@ export function Cities() {
         hasNextPage={hasNextPage}
         hasPreviousPage={hasPreviousPage}
         alwaysShow
+        pageSize={pageSize}
+        onPageSizeChange={changePageSize}
       />
 
       <ConfirmDialog
