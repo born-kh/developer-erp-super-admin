@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   createCompany,
-  listCities,
+  getAllCitiesCached,
   listCompanies,
   updateCompanyById,
   uploadFile,
@@ -97,8 +97,8 @@ export function Companies() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    listCities({ pageSize: 200 })
-      .then((res) => setCities(res.items ?? []))
+    getAllCitiesCached()
+      .then(setCities)
       .catch(() => {});
   }, []);
 

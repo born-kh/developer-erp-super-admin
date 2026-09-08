@@ -5,6 +5,7 @@ import {
   createCity,
   deleteCity,
   getCity,
+  invalidateAllCitiesCache,
   listCities,
   updateCity,
   ApiRequestError,
@@ -142,6 +143,7 @@ export function Cities() {
         await createCity({ nameTranslations: collectTranslations(form.nameTranslations) });
         toast.success(t.cities.toasts.cityCreated);
       }
+      invalidateAllCitiesCache();
       await fetchCities(page, pageSize);
       setModal(null);
     } catch (err) {
@@ -155,6 +157,7 @@ export function Cities() {
     try {
       await deleteCity(id);
       toast.success(t.cities.toasts.cityDeleted);
+      invalidateAllCitiesCache();
       await fetchCities(page, pageSize);
     } catch (err) {
       toast.error(errorMessage(err, t.cities.errors.deleteCity));

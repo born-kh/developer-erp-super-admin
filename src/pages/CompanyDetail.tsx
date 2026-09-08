@@ -4,18 +4,24 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   deleteCompanyById,
+  getAllCitiesCached,
   getCompanyById,
-  listCities,
+  listPackages,
+  listTariffsWithPackages,
   updateCompanyById,
+  updateCompanySubscription,
   uploadFile,
   ApiRequestError,
   type CityListItem,
   type CompanyDetail as CompanyDetailData,
+  type CompanyStatus,
+  type PackageListItem,
+  type TariffIncludingPackages,
 } from "../lib/api";
 import { type PlatformUser } from "../data/mock";
 import { useUsers } from "../data/usersStore";
 import { useModuleSettings } from "../data/moduleSettingsStore";
-import { randomPassword, slugify, formatDate } from "../lib/format";
+import { randomPassword, slugify, formatDate, usd } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { CompanyPhoto } from "@/components/CompanyPhoto";
@@ -42,6 +48,32 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 const CITY_NONE = "none";
+const TARIFF_NONE = "none";
+const TRIAL_DEFAULT_DAYS = 10;
+const ACTIVE_SUBSCRIPTION_DAYS = 30;
+
+type SubscriptionForm = {
+  tariffId: string;
+  status: CompanyStatus;
+  startDate: string;
+  packageIds: string[];
+};
+
+function formatDateInput(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return formatDateInput(new Date(y, m - 1, d + days));
+}
+
+function todayStr(): string {
+  return formatDateInput(new Date());
+}
 
 type OwnerForm = { name: string; email: string; phone: string; login: string; password: string };
 const emptyOwnerForm: OwnerForm = { name: "", email: "", phone: "", login: "", password: "" };
@@ -91,9 +123,21 @@ export function CompanyDetail() {
   const [loginTouched, setLoginTouched] = useState(false);
   const [confirmDeleteOwnerId, setConfirmDeleteOwnerId] = useState<string | null>(null);
 
+  const [tariffs, setTariffs] = useState<TariffIncludingPackages[]>([]);
+  const [allPackages, setAllPackages] = useState<PackageListItem[]>([]);
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
+  const [subForm, setSubForm] = useState<SubscriptionForm | null>(null);
+  const [subSubmitting, setSubSubmitting] = useState(false);
+
   useEffect(() => {
-    listCities({ pageSize: 200 })
-      .then((res) => setCities(res.items ?? []))
+    getAllCitiesCached()
+      .then(setCities)
+      .catch(() => {});
+    listTariffsWithPackages({ pageSize: 100 })
+      .then((res) => setTariffs(res.items ?? []))
+      .catch(() => {});
+    listPackages({ pageSize: 100 })
+      .then((res) => setAllPackages(res.items ?? []))
       .catch(() => {});
   }, []);
 
@@ -280,6 +324,89 @@ export function CompanyDetail() {
     }
   };
 
+  const openEditSubscription = () => {
+    setSubForm({
+      tariffId: company.subscription?.tariffId ?? "",
+      status: company.subscription?.status ?? "Trial",
+      startDate: company.subscription?.date.startDate?.slice(0, 10) ?? todayStr(),
+      packageIds: (company.subscription?.packages ?? []).map((p) => p.id),
+    });
+    setSubscriptionModalOpen(true);
+  };
+
+  const setSubField = <K extends keyof SubscriptionForm>(key: K, value: SubscriptionForm[K]) =>
+    setSubForm((f) => (f ? { ...f, [key]: value } : f));
+
+  const tariffPackageIds = (tariffId: string) =>
+    (tariffs.find((tr) => tr.id === tariffId)?.packages ?? []).map((p) => p.id);
+
+  const selectSubTariff = (tariffId: string) => {
+    const newTariffId = tariffId === TARIFF_NONE ? "" : tariffId;
+    setSubForm((f) => {
+      if (!f) return f;
+      const oldTariffPkgIds = tariffPackageIds(f.tariffId);
+      const newTariffPkgIds = tariffPackageIds(newTariffId);
+      const manualIds = f.packageIds.filter((id) => !oldTariffPkgIds.includes(id));
+      const merged = Array.from(new Set([...newTariffPkgIds, ...manualIds]));
+      return { ...f, tariffId: newTariffId, packageIds: merged };
+    });
+  };
+
+  const addPackageToSub = (pkgId: string) => {
+    if (!pkgId || subForm?.packageIds.includes(pkgId)) return;
+    setSubForm((f) => (f ? { ...f, packageIds: [...f.packageIds, pkgId] } : f));
+  };
+
+  const removePackageFromSub = (pkgId: string) => {
+    setSubForm((f) => {
+      if (!f) return f;
+      const isTariffPackage = tariffPackageIds(f.tariffId).includes(pkgId);
+      return {
+        ...f,
+        tariffId: isTariffPackage ? "" : f.tariffId,
+        packageIds: f.packageIds.filter((id) => id !== pkgId),
+      };
+    });
+  };
+
+  const submitSubscription = async () => {
+    if (!subForm || subSubmitting) return;
+    setSubSubmitting(true);
+    try {
+      await updateCompanySubscription(company.id, {
+        tariffId: subForm.tariffId || undefined,
+        status: subForm.status,
+        startDate: subForm.startDate,
+        packageIds: subForm.packageIds,
+      });
+      toast.success(t.companyDetail.toasts.subscriptionSaved);
+      setSubscriptionModalOpen(false);
+      load();
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.saveSubscription));
+    } finally {
+      setSubSubmitting(false);
+    }
+  };
+
+  const selectedSubPackages = (subForm?.packageIds ?? [])
+    .map((id) => allPackages.find((p) => p.id === id))
+    .filter((p): p is PackageListItem => Boolean(p));
+  const availableSubPackages = allPackages.filter((p) => !(subForm?.packageIds ?? []).includes(p.id));
+  const subTariffPackageIds = tariffPackageIds(subForm?.tariffId ?? "");
+  const subCost = selectedSubPackages.reduce((sum, p) => sum + p.cost, 0);
+  const subEndDate =
+    subForm && subForm.status !== "Suspended"
+      ? addDays(
+          subForm.startDate,
+          subForm.status === "Trial"
+            ? settings.trialSubscriptionDurationInDays ?? TRIAL_DEFAULT_DAYS
+            : ACTIVE_SUBSCRIPTION_DAYS,
+        )
+      : null;
+
+  const subscriptionTariff = tariffs.find((tr) => tr.id === company.subscription?.tariffId);
+
   return (
     <>
       <PageHead title={company.name || "—"} sub={t.companyDetail.sub} onBack={() => nav("/companies")} />
@@ -433,14 +560,64 @@ export function CompanyDetail() {
         <CardContent>
           <div className="list-head">
             <h3>{t.companyDetail.subscriptionTitle}</h3>
+            <Button type="button" variant="outline" size="sm" onClick={openEditSubscription}>
+              {t.common.edit}
+            </Button>
           </div>
-          {company.subscription?.packages?.length ? (
-            <div className="flex flex-wrap gap-1.5">
-              {company.subscription.packages.map((p) => (
-                <span className="tag-chip static" key={p.id}>
-                  {p.title}
-                </span>
-              ))}
+          {company.subscription ? (
+            <div className="grid grid-cols-6 gap-4 max-[1024px]:grid-cols-3 max-[640px]:grid-cols-2 max-[420px]:grid-cols-1">
+              <div>
+                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                  {t.tariffs.title}
+                </div>
+                <div className="mt-1 font-semibold">{subscriptionTariff?.code || t.companyDetail.noTariff}</div>
+              </div>
+              <div>
+                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                  {t.tariffs.packagesLabel}
+                </div>
+                <div className="mt-1">
+                  {company.subscription.packages?.length ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {company.subscription.packages.map((p) => (
+                        <span className="tag-chip static" key={p.id}>
+                          {p.title}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                  {t.common.status}
+                </div>
+                <div className="mt-1.5">
+                  <CompanyStatusBadge status={company.subscription.status} />
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                  {t.companyDetail.subscriptionStart}
+                </div>
+                <div className="mt-1 font-semibold">{formatDate(company.subscription.date.startDate, language)}</div>
+              </div>
+              <div>
+                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                  {t.companyDetail.subscriptionEnd}
+                </div>
+                <div className="mt-1 font-semibold">
+                  {company.subscription.date.endDate ? formatDate(company.subscription.date.endDate, language) : "—"}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                  {t.companyDetail.originalCost}
+                </div>
+                <div className="mt-1 font-semibold">{usd(company.subscription.originalCost)}</div>
+              </div>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">{t.companyDetail.noSubscription}</p>
@@ -536,6 +713,111 @@ export function CompanyDetail() {
             </Button>
             <Button type="button" disabled={!ownerForm.name.trim()} onClick={submitOwner}>
               {ownerModal?.mode === "edit" ? t.common.save : t.common.create}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={subscriptionModalOpen} onOpenChange={(open) => !open && setSubscriptionModalOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.companyDetail.subscriptionTitle}</DialogTitle>
+          </DialogHeader>
+          {subForm && (
+            <div className="grid gap-3">
+              <Field label={t.tariffs.title}>
+                <Select value={subForm.tariffId || TARIFF_NONE} onValueChange={selectSubTariff}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t.companyDetail.noTariff} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TARIFF_NONE}>{t.companyDetail.noTariff}</SelectItem>
+                    {tariffs.map((tr) => (
+                      <SelectItem key={tr.id} value={tr.id}>
+                        {tr.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
+                <Field label={t.common.status}>
+                  <Select value={subForm.status} onValueChange={(v) => setSubField("status", v as CompanyStatus)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Trial">{t.common.statusTrial}</SelectItem>
+                      <SelectItem value="Active">{t.common.statusActive}</SelectItem>
+                      <SelectItem value="Suspended">{t.common.statusSuspended}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label={t.companyDetail.subscriptionStart}>
+                  <Input
+                    type="date"
+                    min={todayStr()}
+                    value={subForm.startDate}
+                    onChange={(e) => setSubField("startDate", e.target.value)}
+                  />
+                </Field>
+              </div>
+              {subEndDate && (
+                <p className="-mt-1.5 text-xs text-muted-foreground">
+                  {t.companyDetail.subscriptionEnd}: <span className="font-medium text-foreground">{formatDate(subEndDate, language)}</span>
+                </p>
+              )}
+              <Field label={t.tariffs.packagesLabel}>
+                <div className="tag-input">
+                  {selectedSubPackages.length > 0 && (
+                    <div className="tag-list">
+                      {selectedSubPackages.map((p) => (
+                        <span
+                          className={`tag-chip ${subTariffPackageIds.includes(p.id) ? "tag-chip-tariff" : ""}`}
+                          key={p.id}
+                          title={subTariffPackageIds.includes(p.id) ? t.companyDetail.fromTariff : undefined}
+                        >
+                          {subTariffPackageIds.includes(p.id) && <span className="tag-chip-dot" aria-hidden />}
+                          {p.title}
+                          <button type="button" onClick={() => removePackageFromSub(p.id)} aria-label={t.common.delete}>
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {availableSubPackages.length > 0 && (
+                    <Select key={subForm.packageIds.join(",")} onValueChange={addPackageToSub}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t.tariffs.choosePackage} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSubPackages.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </Field>
+              <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                <span className="text-muted-foreground">{t.companyDetail.originalCost}</span>
+                <span className="font-semibold">{usd(subCost)}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setSubscriptionModalOpen(false)}>
+              {t.common.cancel}
+            </Button>
+            <Button
+              type="button"
+              disabled={subSubmitting || !subForm || subForm.packageIds.length === 0}
+              onClick={submitSubscription}
+            >
+              {t.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>

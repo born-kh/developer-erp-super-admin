@@ -166,14 +166,20 @@ export type Dict = {
     ownersCount: string;
     subscriptionTitle: string;
     noSubscription: string;
+    noTariff: string;
+    subscriptionStart: string;
+    subscriptionEnd: string;
+    fromTariff: string;
+    originalCost: string;
     toasts: {
       ownerSaved: string;
       ownerAdded: string;
       ownerDeleted: string;
       companySaved: string;
       companyDeleted: string;
+      subscriptionSaved: string;
     };
-    errors: { loadCompany: string; saveCompany: string; deleteCompany: string };
+    errors: { loadCompany: string; saveCompany: string; deleteCompany: string; saveSubscription: string };
   };
   users: {
     title: string;
@@ -575,17 +581,24 @@ export const translations: Record<Language, Dict> = {
       ownersCount: "Владельцев",
       subscriptionTitle: "Подписка",
       noSubscription: "Подписка не оформлена.",
+      noTariff: "Тариф не выбран",
+      subscriptionStart: "Дата начала",
+      subscriptionEnd: "Дата окончания",
+      fromTariff: "Входит в тариф",
+      originalCost: "Исходная стоимость",
       toasts: {
         ownerSaved: "Владелец сохранён",
         ownerAdded: "Владелец добавлен",
         ownerDeleted: "Владелец удалён",
         companySaved: "Компания сохранена",
         companyDeleted: "Компания удалена",
+        subscriptionSaved: "Подписка сохранена",
       },
       errors: {
         loadCompany: "Не удалось загрузить компанию",
         saveCompany: "Не удалось сохранить компанию",
         deleteCompany: "Не удалось удалить компанию",
+        saveSubscription: "Не удалось сохранить подписку",
       },
     },
     users: {
@@ -1012,17 +1025,24 @@ export const translations: Record<Language, Dict> = {
       ownersCount: "Owners",
       subscriptionTitle: "Subscription",
       noSubscription: "No subscription yet.",
+      noTariff: "No tariff selected",
+      subscriptionStart: "Start date",
+      subscriptionEnd: "End date",
+      fromTariff: "Included in tariff",
+      originalCost: "Original cost",
       toasts: {
         ownerSaved: "Owner saved",
         ownerAdded: "Owner added",
         ownerDeleted: "Owner deleted",
         companySaved: "Company saved",
         companyDeleted: "Company deleted",
+        subscriptionSaved: "Subscription saved",
       },
       errors: {
         loadCompany: "Failed to load the company",
         saveCompany: "Failed to save the company",
         deleteCompany: "Failed to delete the company",
+        saveSubscription: "Failed to save the subscription",
       },
     },
     users: {
@@ -1449,17 +1469,24 @@ export const translations: Record<Language, Dict> = {
       ownersCount: "Соҳибон",
       subscriptionTitle: "Обуна",
       noSubscription: "Обуна ҳанӯз танзим нашудааст.",
+      noTariff: "Тариф интихоб нашудааст",
+      subscriptionStart: "Санаи оғоз",
+      subscriptionEnd: "Санаи анҷом",
+      fromTariff: "Дар тариф дохил аст",
+      originalCost: "Арзиши аслӣ",
       toasts: {
         ownerSaved: "Соҳиб захира шуд",
         ownerAdded: "Соҳиб илова шуд",
         ownerDeleted: "Соҳиб нест карда шуд",
         companySaved: "Ширкат захира шуд",
         companyDeleted: "Ширкат нест карда шуд",
+        subscriptionSaved: "Обуна захира шуд",
       },
       errors: {
         loadCompany: "Боргирии ширкат ноком шуд",
         saveCompany: "Захираи ширкат ноком шуд",
         deleteCompany: "Несткунии ширкат ноком шуд",
+        saveSubscription: "Захираи обуна ноком шуд",
       },
     },
     users: {

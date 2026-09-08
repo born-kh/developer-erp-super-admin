@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { income } from "../data/mock";
 import { useCityCatalog } from "../data/cityCatalogStore";
 import {
-  listCities,
+  getAllCitiesCached,
   listCompanies,
   listPackages,
   listTariffs,
@@ -39,8 +39,8 @@ export function Overview() {
     listCompanies({ pageSize: 200, orderBy: "CreatedAt", orderDirection: "desc" })
       .then((res) => setCompanies(res.items ?? []))
       .catch(() => {});
-    listCities({ pageSize: 200 })
-      .then((res) => setCities(res.items ?? []))
+    getAllCitiesCached()
+      .then(setCities)
       .catch(() => {});
     listPackages({ pageSize: 100 })
       .then((res) => {

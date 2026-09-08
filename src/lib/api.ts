@@ -407,6 +407,8 @@ export type ModuleDefaultOptions = {
   defaultLanguage: string;
   nationalCurrencyCode: string;
   supportedLanguages: string[];
+  /** Not yet returned by the backend in all environments — treat as optional. */
+  trialSubscriptionDurationInDays?: number;
 };
 
 export function getModuleDefaultOptions() {
@@ -727,6 +729,32 @@ export function deleteCity(id: string) {
   return authRequest<unknown>(`/core/api/cities/${id}`, { method: "DELETE" });
 }
 
+// Several pages (Companies, CompanyDetail, Overview) only need the full city
+// list for a name lookup / dropdown, not real pagination. Fetch it once and
+// share the result instead of every page issuing its own request.
+let allCitiesCache: CityListItem[] | null = null;
+let allCitiesPromise: Promise<CityListItem[]> | null = null;
+
+export function getAllCitiesCached(): Promise<CityListItem[]> {
+  if (allCitiesCache) return Promise.resolve(allCitiesCache);
+  if (!allCitiesPromise) {
+    allCitiesPromise = listCities({ pageSize: 200 })
+      .then((res) => {
+        allCitiesCache = res.items ?? [];
+        return allCitiesCache;
+      })
+      .finally(() => {
+        allCitiesPromise = null;
+      });
+  }
+  return allCitiesPromise;
+}
+
+/** Call after creating/updating/deleting a city so other pages refetch fresh data. */
+export function invalidateAllCitiesCache() {
+  allCitiesCache = null;
+}
+
 export type ActivityLogItem = {
   id: string;
   entityId?: string | null;
@@ -876,6 +904,20 @@ export function updateCompanyById(id: string, data: UpdateCompanyInput) {
 
 export function deleteCompanyById(id: string) {
   return authRequest<unknown>(`/core/api/companies/${id}`, { method: "DELETE" });
+}
+
+export type UpdateSubscriptionInput = {
+  tariffId?: string | null;
+  status: CompanyStatus;
+  startDate: string;
+  packageIds: string[];
+};
+
+export function updateCompanySubscription(id: string, data: UpdateSubscriptionInput) {
+  return authRequest<unknown>(`/core/api/companies/${id}/subscription`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 }
 
 export function uploadFile(file: File) {

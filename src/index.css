@@ -404,6 +404,8 @@
   border-radius: 999px;
 }
 .tag-chip.static { background: var(--background); border: 1px solid var(--border); font-weight: 500; }
+.tag-chip-tariff { background: var(--info-bg); color: var(--info); }
+.tag-chip-dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; flex: none; }
 .tag-chip button {
   border: 0;
   background: none;
