@@ -1,11 +1,21 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { cities, type Company } from "../data/mock";
-import { useCompanies } from "../data/companiesStore";
+import {
+  createCompany,
+  listCities,
+  listCompanies,
+  uploadCompanyPhoto,
+  ApiRequestError,
+  type CityListItem,
+  type CompanyListItem,
+} from "../lib/api";
 import { useTranslation } from "../i18n/LanguageContext";
+import { useModuleSettings } from "../data/moduleSettingsStore";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
+import { CompanyPhoto } from "@/components/CompanyPhoto";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { CompanyStatusBadge } from "@/components/StatusBadge";
@@ -19,6 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -29,67 +40,147 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 const PAGE_SIZE = 8;
+const CITY_NONE = "none";
 
-const emptyForm: Omit<Company, "id"> = {
-  name: "",
-  city: cities[0],
-  package: "basic",
-  status: "trial",
-  image: "",
-  phone: "",
-  email: "",
-  address: "",
-  createdAt: new Date().toISOString().slice(0, 10),
-  description: "",
+type Translations = Record<string, string>;
+
+type CompanyForm = {
+  name: string;
+  phoneNumber: string;
+  email: string;
+  cityId: string;
+  addressTranslations: Translations;
+  descriptionTranslations: Translations;
 };
+
+const emptyTranslations = (langs: string[]): Translations =>
+  Object.fromEntries(langs.map((l) => [l, ""]));
+
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof ApiRequestError ? err.message : fallback;
+}
 
 export function Companies() {
   const nav = useNavigate();
   const { t } = useTranslation();
-  const { companies, addCompany } = useCompanies();
+  const { settings } = useModuleSettings();
+  const langs = settings.supportedLanguages;
+  const defaultLang = settings.defaultLanguage;
+  const makeEmptyForm = (): CompanyForm => ({
+    name: "",
+    phoneNumber: "",
+    email: "",
+    cityId: "",
+    addressTranslations: emptyTranslations(langs),
+    descriptionTranslations: emptyTranslations(langs),
+  });
+
+  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
+
   const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
+
+  const [cities, setCities] = useState<CityListItem[]>([]);
+  const cityName = (id?: string | null) => (id && cities.find((c) => c.id === id)?.name) || "—";
+
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState<Omit<Company, "id">>(emptyForm);
+  const [form, setForm] = useState<CompanyForm>(() => makeEmptyForm());
+  const [activeLang, setActiveLang] = useState(defaultLang);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return companies;
-    return companies.filter((c) => c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q));
-  }, [companies, query]);
+  useEffect(() => {
+    listCities({ pageSize: 200 })
+      .then((res) => setCities(res.items ?? []))
+      .catch(() => {});
+  }, []);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const current = Math.min(page, pageCount);
-  const pageItems = useMemo(
-    () => filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
-    [filtered, current],
-  );
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setAppliedQuery(query);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [query]);
 
-  const set = <K extends keyof Omit<Company, "id">>(key: K, value: Company[K]) =>
+  const fetchCompanies = async (pageArg: number, search: string) => {
+    setLoadingList(true);
+    try {
+      const res = await listCompanies({ page: pageArg, pageSize: PAGE_SIZE, search: search.trim() || undefined });
+      setCompanies(res.items ?? []);
+      setHasNextPage(res.pagination.hasNextPage);
+      setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
+    } catch (err) {
+      toast.error(errorMessage(err, t.companies.errors.loadCompanies));
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanies(page, appliedQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, appliedQuery]);
+
+  const setField = <K extends keyof CompanyForm>(key: K, value: CompanyForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+  const setAddress = (lang: string, value: string) =>
+    setForm((f) => ({ ...f, addressTranslations: { ...f.addressTranslations, [lang]: value } }));
+  const setDescription = (lang: string, value: string) =>
+    setForm((f) => ({ ...f, descriptionTranslations: { ...f.descriptionTranslations, [lang]: value } }));
 
   const openCreate = () => {
-    setForm(emptyForm);
+    setForm(makeEmptyForm());
+    setActiveLang(defaultLang);
+    setPhotoFile(null);
+    setPhotoPreview("");
     setShowCreate(true);
   };
 
-  const pickImage = (file: File | undefined) => {
+  const pickPhoto = (file: File | undefined) => {
     if (!file) return;
+    setPhotoFile(file);
     const reader = new FileReader();
-    reader.onload = () => set("image", String(reader.result));
+    reader.onload = () => setPhotoPreview(String(reader.result));
     reader.readAsDataURL(file);
   };
 
-  const submitCreate = () => {
-    if (!form.name.trim()) return;
-    const id = addCompany({
-      ...form,
-      image: form.image.trim() || `https://picsum.photos/seed/${encodeURIComponent(form.name)}/480/320`,
-    });
-    setShowCreate(false);
-    toast.success(t.companies.created);
-    nav(`/companies/${id}`);
+  const collectTranslations = (translations: Translations) =>
+    Object.fromEntries(langs.filter((l) => translations[l]?.trim()).map((l) => [l, translations[l].trim()]));
+
+  const submitCreate = async () => {
+    if (!form.name.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const id = await createCompany({
+        name: form.name.trim(),
+        phoneNumber: form.phoneNumber.trim() || undefined,
+        email: form.email.trim() || undefined,
+        cityId: form.cityId || undefined,
+        addressTranslations: collectTranslations(form.addressTranslations),
+        descriptionTranslations: collectTranslations(form.descriptionTranslations),
+      });
+      if (photoFile) {
+        try {
+          await uploadCompanyPhoto(id, photoFile);
+        } catch (err) {
+          toast.error(errorMessage(err, t.companies.errors.savePhoto));
+        }
+      }
+      setShowCreate(false);
+      toast.success(t.companies.created);
+      nav(`/companies/${id}`);
+    } catch (err) {
+      toast.error(errorMessage(err, t.companies.errors.saveCompany));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -103,10 +194,7 @@ export function Companies() {
               className="w-56"
               placeholder={t.companies.searchPlaceholder}
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setQuery(e.target.value)}
             />
             <Button type="button" onClick={openCreate}>
               {t.companies.newCompany}
@@ -115,11 +203,11 @@ export function Companies() {
         }
       />
 
-      {pageItems.length === 0 ? (
+      {!loadingList && companies.length === 0 ? (
         <EmptyState
-          title={query ? t.common.nothingFound : t.companies.noCompaniesYet}
+          title={appliedQuery ? t.common.nothingFound : t.companies.noCompaniesYet}
           action={
-            !query ? (
+            !appliedQuery ? (
               <Button type="button" onClick={openCreate}>
                 {t.companies.createCompany}
               </Button>
@@ -128,30 +216,52 @@ export function Companies() {
         />
       ) : (
         <div className="grid grid-cols-4 gap-4 max-[1200px]:grid-cols-3 max-[700px]:grid-cols-2 max-[420px]:grid-cols-1">
-          {pageItems.map((c) => (
-            <Card
-              key={c.id}
-              className="cursor-pointer gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md"
-              tabIndex={0}
-              onClick={() => nav(`/companies/${c.id}`)}
-              onKeyDown={(e) => e.key === "Enter" && nav(`/companies/${c.id}`)}
-            >
-              <div className="aspect-video w-full overflow-hidden bg-secondary">
-                <img src={c.image} alt="" className="size-full object-cover" />
-              </div>
-              <div className="grid gap-1 p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="truncate font-medium">{c.name}</span>
-                  <CompanyStatusBadge status={c.status} />
-                </div>
-                <div className="truncate text-xs text-muted-foreground">{c.city}</div>
-              </div>
-            </Card>
-          ))}
+          {loadingList
+            ? Array.from({ length: PAGE_SIZE }, (_, i) => (
+                <Card key={i} className="animate-in fade-in gap-0 overflow-hidden py-0 duration-300">
+                  <Skeleton className="aspect-video w-full rounded-none" />
+                  <div className="grid gap-2 p-3">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                </Card>
+              ))
+            : companies.map((c, index) => (
+                <motion.div
+                  key={c.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: index * 0.03, ease: "easeOut" }}
+                >
+                  <Card
+                    className="cursor-pointer gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md"
+                    tabIndex={0}
+                    onClick={() => nav(`/companies/${c.id}`)}
+                    onKeyDown={(e) => e.key === "Enter" && nav(`/companies/${c.id}`)}
+                  >
+                    <div className="aspect-video w-full overflow-hidden bg-secondary">
+                      <CompanyPhoto photoName={c.photoName} alt={c.name ?? ""} />
+                    </div>
+                    <div className="grid gap-1 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="truncate font-medium">{c.name || "—"}</span>
+                        <CompanyStatusBadge status={c.status ?? ""} />
+                      </div>
+                      <div className="truncate text-xs text-muted-foreground">{cityName(c.cityId)}</div>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
         </div>
       )}
 
-      <AppPagination page={current} pageCount={pageCount} onPage={setPage} />
+      <AppPagination
+        page={page}
+        onPage={setPage}
+        hasNextPage={hasNextPage}
+        hasPreviousPage={hasPreviousPage}
+        alwaysShow
+      />
 
       <p className="mt-4 text-sm text-muted-foreground">{t.companies.isolationNote}</p>
 
@@ -162,17 +272,21 @@ export function Companies() {
           </DialogHeader>
           <div className="grid gap-3">
             <Field label={t.common.name}>
-              <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
+              <Input value={form.name} onChange={(e) => setField("name", e.target.value)} autoFocus />
             </Field>
             <Field label={t.common.city}>
-              <Select value={form.city} onValueChange={(v) => set("city", v)}>
+              <Select
+                value={form.cityId || CITY_NONE}
+                onValueChange={(v) => setField("cityId", v === CITY_NONE ? "" : v)}
+              >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue placeholder={t.companies.cityNotSelected} />
                 </SelectTrigger>
                 <SelectContent>
-                  {cities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city}
+                  <SelectItem value={CITY_NONE}>{t.companies.cityNotSelected}</SelectItem>
+                  {cities.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -181,7 +295,7 @@ export function Companies() {
             <Field label={t.common.image}>
               <div className="image-pick">
                 <div className="image-pick-preview">
-                  {form.image ? <img src={form.image} alt="" /> : <span>{t.common.noPhoto}</span>}
+                  {photoPreview ? <img src={photoPreview} alt="" /> : <span>{t.common.noPhoto}</span>}
                 </div>
                 <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
                   {t.common.chooseImage}
@@ -191,53 +305,53 @@ export function Companies() {
                   type="file"
                   accept="image/*"
                   hidden
-                  onChange={(e) => pickImage(e.target.files?.[0])}
+                  onChange={(e) => pickPhoto(e.target.files?.[0])}
                 />
               </div>
             </Field>
             <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
-              <Field label={t.common.package}>
-                <Select value={form.package} onValueChange={(v) => set("package", v as Company["package"])}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="basic">basic</SelectItem>
-                    <SelectItem value="pro">pro</SelectItem>
-                  </SelectContent>
-                </Select>
+              <Field label={t.common.phone}>
+                <Input value={form.phoneNumber} onChange={(e) => setField("phoneNumber", e.target.value)} />
               </Field>
-              <Field label={t.common.status}>
-                <Select value={form.status} onValueChange={(v) => set("status", v as Company["status"])}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">{t.common.statusActive}</SelectItem>
-                    <SelectItem value="trial">{t.common.statusTrial}</SelectItem>
-                    <SelectItem value="suspended">{t.common.statusSuspended}</SelectItem>
-                  </SelectContent>
-                </Select>
+              <Field label={t.common.email}>
+                <Input value={form.email} onChange={(e) => setField("email", e.target.value)} />
               </Field>
             </div>
-            <Field label={t.common.phone}>
-              <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+            <div className="flex gap-1">
+              {langs.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setActiveLang(l)}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                    activeLang === l
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <Field label={t.companies.addressLang(activeLang.toUpperCase())}>
+              <Input
+                value={form.addressTranslations[activeLang] ?? ""}
+                onChange={(e) => setAddress(activeLang, e.target.value)}
+              />
             </Field>
-            <Field label={t.common.email}>
-              <Input value={form.email} onChange={(e) => set("email", e.target.value)} />
-            </Field>
-            <Field label={t.common.address}>
-              <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
-            </Field>
-            <Field label={t.common.description}>
-              <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
+            <Field label={t.companies.descriptionLang(activeLang.toUpperCase())}>
+              <Textarea
+                rows={3}
+                value={form.descriptionTranslations[activeLang] ?? ""}
+                onChange={(e) => setDescription(activeLang, e.target.value)}
+              />
             </Field>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>
               {t.common.cancel}
             </Button>
-            <Button type="button" disabled={!form.name.trim()} onClick={submitCreate}>
+            <Button type="button" disabled={!form.name.trim() || submitting} onClick={submitCreate}>
               {t.common.create}
             </Button>
           </DialogFooter>

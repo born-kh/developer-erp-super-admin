@@ -1,16 +1,27 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Copy, RefreshCw } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { type Company, type PlatformUser } from "../data/mock";
-import { useCompanies } from "../data/companiesStore";
+import {
+  deleteCompanyById,
+  getCompanyById,
+  listCities,
+  updateCompanyById,
+  uploadCompanyPhoto,
+  ApiRequestError,
+  type CityListItem,
+  type CompanyDetail as CompanyDetailData,
+} from "../lib/api";
+import { type PlatformUser } from "../data/mock";
 import { useUsers } from "../data/usersStore";
-import { randomPassword, slugify } from "../lib/format";
+import { useModuleSettings } from "../data/moduleSettingsStore";
+import { randomPassword, slugify, formatDate } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
+import { CompanyPhoto } from "@/components/CompanyPhoto";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Field } from "@/components/Field";
-import { CompanyStatusBadge, StatusBadge } from "@/components/StatusBadge";
+import { CompanyStatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -30,25 +41,86 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-type OwnerForm = { name: string; email: string; phone: string; login: string; password: string };
+const CITY_NONE = "none";
 
+type OwnerForm = { name: string; email: string; phone: string; login: string; password: string };
 const emptyOwnerForm: OwnerForm = { name: "", email: "", phone: "", login: "", password: "" };
+
+type Translations = Record<string, string>;
+
+type CompanyForm = {
+  name: string;
+  phoneNumber: string;
+  email: string;
+  cityId: string;
+  addressTranslations: Translations;
+  descriptionTranslations: Translations;
+};
+
+function toTranslations(source: Record<string, string> | null | undefined, langs: string[]): Translations {
+  return Object.fromEntries(langs.map((l) => [l, source?.[l] ?? ""]));
+}
+
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof ApiRequestError ? err.message : fallback;
+}
 
 export function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
-  const { t } = useTranslation();
-  const { getCompany, updateCompany, deleteCompany } = useCompanies();
+  const { t, language } = useTranslation();
+  const { settings } = useModuleSettings();
+  const langs = settings.supportedLanguages;
+  const defaultLang = settings.defaultLanguage;
   const { users, addUser, updateUser, deleteUser } = useUsers();
-  const company = id ? getCompany(id) : undefined;
+
+  const [company, setCompany] = useState<CompanyDetailData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [cities, setCities] = useState<CityListItem[]>([]);
+
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [form, setForm] = useState<Company | null>(company ?? null);
+  const [form, setForm] = useState<CompanyForm | null>(null);
+  const [activeLang, setActiveLang] = useState(defaultLang);
+  const [submitting, setSubmitting] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [ownerModal, setOwnerModal] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
   const [ownerForm, setOwnerForm] = useState<OwnerForm>(emptyOwnerForm);
   const [loginTouched, setLoginTouched] = useState(false);
   const [confirmDeleteOwnerId, setConfirmDeleteOwnerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    listCities({ pageSize: 200 })
+      .then((res) => setCities(res.items ?? []))
+      .catch(() => {});
+  }, []);
+
+  const load = () => {
+    if (!id) return;
+    setLoading(true);
+    getCompanyById(id)
+      .then((data) => setCompany(data))
+      .catch((err) => {
+        toast.error(errorMessage(err, t.companyDetail.errors.loadCompany));
+        setCompany(null);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  if (loading) {
+    return (
+      <>
+        <PageHead title={t.common.loading} onBack={() => nav("/companies")} />
+      </>
+    );
+  }
 
   if (!company) {
     return (
@@ -67,6 +139,10 @@ export function CompanyDetail() {
   }
 
   const owners = users.filter((u) => u.companyId === company.id && u.role === "owner");
+  const cityName = cities.find((c) => c.id === company.cityId)?.name || "—";
+  const address = company.addressTranslations?.[language] || company.addressTranslations?.[defaultLang] || "—";
+  const description =
+    company.descriptionTranslations?.[language] || company.descriptionTranslations?.[defaultLang] || "—";
 
   const openCreateOwner = () => {
     setOwnerForm({ ...emptyOwnerForm, password: randomPassword() });
@@ -120,42 +196,93 @@ export function CompanyDetail() {
   };
 
   const startEdit = () => {
-    setForm(company);
+    setForm({
+      name: company.name ?? "",
+      phoneNumber: company.phoneNumber ?? "",
+      email: company.email ?? "",
+      cityId: company.cityId ?? "",
+      addressTranslations: toTranslations(company.addressTranslations, langs),
+      descriptionTranslations: toTranslations(company.descriptionTranslations, langs),
+    });
+    setActiveLang(defaultLang);
     setEditing(true);
   };
 
   const cancelEdit = () => {
-    setForm(company);
+    setForm(null);
     setEditing(false);
   };
 
-  const save = () => {
-    if (!form) return;
-    updateCompany(company.id, form);
-    setEditing(false);
-    toast.success(t.companyDetail.toasts.companySaved);
-  };
-
-  const remove = () => {
-    deleteCompany(company.id);
-    toast.success(t.companyDetail.toasts.companyDeleted);
-    nav("/companies");
-  };
-
-  const set = <K extends keyof Company>(key: K, value: Company[K]) =>
+  const setField = <K extends keyof CompanyForm>(key: K, value: CompanyForm[K]) =>
     setForm((f) => (f ? { ...f, [key]: value } : f));
+  const setAddress = (lang: string, value: string) =>
+    setForm((f) => (f ? { ...f, addressTranslations: { ...f.addressTranslations, [lang]: value } } : f));
+  const setDescription = (lang: string, value: string) =>
+    setForm((f) => (f ? { ...f, descriptionTranslations: { ...f.descriptionTranslations, [lang]: value } } : f));
+
+  const collectTranslations = (translations: Translations) =>
+    Object.fromEntries(langs.filter((l) => translations[l]?.trim()).map((l) => [l, translations[l].trim()]));
+
+  const save = async () => {
+    if (!form || !form.name.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      await updateCompanyById(company.id, {
+        name: form.name.trim(),
+        phoneNumber: form.phoneNumber.trim() || undefined,
+        email: form.email.trim() || undefined,
+        cityId: form.cityId || undefined,
+        addressTranslations: collectTranslations(form.addressTranslations),
+        descriptionTranslations: collectTranslations(form.descriptionTranslations),
+      });
+      toast.success(t.companyDetail.toasts.companySaved);
+      setEditing(false);
+      load();
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.saveCompany));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const remove = async () => {
+    try {
+      await deleteCompanyById(company.id);
+      toast.success(t.companyDetail.toasts.companyDeleted);
+      nav("/companies");
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.deleteCompany));
+    } finally {
+      setConfirmingDelete(false);
+    }
+  };
+
+  const pickPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoUploading(true);
+    try {
+      await uploadCompanyPhoto(company.id, file);
+      load();
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.saveCompany));
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   return (
     <>
-      <PageHead title={company.name} sub={t.companyDetail.sub} onBack={() => nav("/companies")} />
+      <PageHead title={company.name || "—"} sub={t.companyDetail.sub} onBack={() => nav("/companies")} />
 
       <div className="detail-layout">
-        <Card className="detail-media gap-0 py-0 overflow-hidden">
-          <img src={company.image} alt={company.name} />
+        <Card className="detail-media gap-0 overflow-hidden py-0">
+          <div className="aspect-[4/3] w-full overflow-hidden bg-secondary">
+            <CompanyPhoto photoName={company.photoName} alt={company.name ?? ""} />
+          </div>
           <div className="flex gap-2 p-3.5">
             {editing ? (
               <>
-                <Button type="button" className="flex-1" onClick={save}>
+                <Button type="button" className="flex-1" disabled={submitting} onClick={save}>
                   {t.common.save}
                 </Button>
                 <Button type="button" variant="outline" className="flex-1" onClick={cancelEdit}>
@@ -164,6 +291,15 @@ export function CompanyDetail() {
               </>
             ) : (
               <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  disabled={photoUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {t.common.chooseImage}
+                </Button>
                 <Button type="button" variant="outline" className="flex-1" onClick={startEdit}>
                   {t.common.edit}
                 </Button>
@@ -173,6 +309,13 @@ export function CompanyDetail() {
               </>
             )}
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => pickPhoto(e.target.files?.[0])}
+          />
         </Card>
 
         <Card>
@@ -180,76 +323,90 @@ export function CompanyDetail() {
             {editing && form ? (
               <div className="grid gap-3">
                 <Field label={t.common.name}>
-                  <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
+                  <Input value={form.name} onChange={(e) => setField("name", e.target.value)} />
                 </Field>
                 <Field label={t.common.city}>
-                  <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
+                  <Select
+                    value={form.cityId || CITY_NONE}
+                    onValueChange={(v) => setField("cityId", v === CITY_NONE ? "" : v)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={t.companies.cityNotSelected} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={CITY_NONE}>{t.companies.cityNotSelected}</SelectItem>
+                      {cities.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </Field>
                 <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
-                  <Field label={t.common.package}>
-                    <Select value={form.package} onValueChange={(v) => set("package", v as Company["package"])}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="basic">basic</SelectItem>
-                        <SelectItem value="pro">pro</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Field label={t.common.phone}>
+                    <Input value={form.phoneNumber} onChange={(e) => setField("phoneNumber", e.target.value)} />
                   </Field>
-                  <Field label={t.common.status}>
-                    <Select value={form.status} onValueChange={(v) => set("status", v as Company["status"])}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">{t.common.statusActive}</SelectItem>
-                        <SelectItem value="trial">{t.common.statusTrial}</SelectItem>
-                        <SelectItem value="suspended">{t.common.statusSuspended}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Field label={t.common.email}>
+                    <Input value={form.email} onChange={(e) => setField("email", e.target.value)} />
                   </Field>
                 </div>
-                <Field label={t.common.phone}>
-                  <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+                <div className="flex gap-1">
+                  {langs.map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setActiveLang(l)}
+                      className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                        activeLang === l
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-input text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {l.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <Field label={t.companies.addressLang(activeLang.toUpperCase())}>
+                  <Input
+                    value={form.addressTranslations[activeLang] ?? ""}
+                    onChange={(e) => setAddress(activeLang, e.target.value)}
+                  />
                 </Field>
-                <Field label={t.common.email}>
-                  <Input value={form.email} onChange={(e) => set("email", e.target.value)} />
-                </Field>
-                <Field label={t.common.address}>
-                  <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
-                </Field>
-                <Field label={t.common.description}>
-                  <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
+                <Field label={t.companies.descriptionLang(activeLang.toUpperCase())}>
+                  <Textarea
+                    rows={3}
+                    value={form.descriptionTranslations[activeLang] ?? ""}
+                    onChange={(e) => setDescription(activeLang, e.target.value)}
+                  />
                 </Field>
               </div>
             ) : (
               <>
                 <div className="mb-2.5 flex gap-1.5">
-                  <StatusBadge tone="success">{company.package}</StatusBadge>
-                  <CompanyStatusBadge status={company.status} />
+                  <CompanyStatusBadge status={company.subscription?.status ?? ""} />
                 </div>
-                <p className="mb-4 text-muted-foreground leading-relaxed">{company.description}</p>
+                <p className="mb-4 leading-relaxed text-muted-foreground">{description}</p>
                 <dl className="detail-dl">
                   <div>
                     <dt>{t.common.city}</dt>
-                    <dd>{company.city}</dd>
+                    <dd>{cityName}</dd>
                   </div>
                   <div>
                     <dt>{t.common.address}</dt>
-                    <dd>{company.address}</dd>
+                    <dd>{address}</dd>
                   </div>
                   <div>
                     <dt>{t.common.phone}</dt>
-                    <dd>{company.phone}</dd>
+                    <dd>{company.phoneNumber || "—"}</dd>
                   </div>
                   <div>
                     <dt>{t.common.email}</dt>
-                    <dd>{company.email}</dd>
+                    <dd>{company.email || "—"}</dd>
                   </div>
                   <div>
                     <dt>{t.common.created}</dt>
-                    <dd>{company.createdAt}</dd>
+                    <dd>{formatDate(company.createdAt, language)}</dd>
                   </div>
                   <div>
                     <dt>{t.companyDetail.ownersCount}</dt>
@@ -261,6 +418,25 @@ export function CompanyDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-3.5">
+        <CardContent>
+          <div className="list-head">
+            <h3>{t.companyDetail.subscriptionTitle}</h3>
+          </div>
+          {company.subscription?.packages?.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {company.subscription.packages.map((p) => (
+                <span className="tag-chip static" key={p.id}>
+                  {p.title}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t.companyDetail.noSubscription}</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="mt-3.5">
         <CardContent>
@@ -303,7 +479,7 @@ export function CompanyDetail() {
         open={confirmingDelete}
         onOpenChange={setConfirmingDelete}
         title={t.companyDetail.deleteCompanyTitle}
-        description={t.companyDetail.deleteCompanyDesc(company.name)}
+        description={t.companyDetail.deleteCompanyDesc(company.name ?? "")}
         onConfirm={remove}
       />
       <ConfirmDialog

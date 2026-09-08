@@ -71,10 +71,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let res: Response;
   try {
     const clientIp = await getClientIp();
+    // Let the browser set its own multipart Content-Type (with boundary) for FormData bodies.
+    const isFormData = options.body instanceof FormData;
     res = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         "Accept-Language": ACCEPT_LANGUAGE[getStoredLanguage()],
         ...(clientIp ? { "X-Real-IP": clientIp } : {}),
         ...options.headers,
@@ -763,4 +765,108 @@ export function listActivityLogs(
 
 export function getActivityLog(id: string) {
   return authRequest<ActivityLogDetail>(`/core/api/activity-logs/${id}`);
+}
+
+export type CompanyStatus = "Trial" | "Active" | "Suspended";
+
+export type CompanyListItem = {
+  id: string;
+  name?: string | null;
+  cityId?: string | null;
+  photoName?: string | null;
+  status?: CompanyStatus | null;
+};
+
+export type CompanySubscription = {
+  tariffId?: string | null;
+  status: CompanyStatus;
+  date: { startDate: string; endDate?: string | null };
+  packages?: PackageListItem[] | null;
+  originalCost: number;
+};
+
+export type CompanyDetail = {
+  id: string;
+  name?: string | null;
+  phoneNumber?: string | null;
+  email?: string | null;
+  cityId?: string | null;
+  photoName?: string | null;
+  addressTranslations?: Record<string, string> | null;
+  descriptionTranslations?: Record<string, string> | null;
+  createdAt: string;
+  subscription?: CompanySubscription | null;
+};
+
+export type CreateCompanyInput = {
+  name: string;
+  phoneNumber?: string | null;
+  email?: string | null;
+  cityId?: string | null;
+  addressTranslations: Record<string, string>;
+  descriptionTranslations: Record<string, string>;
+};
+
+export type UpdateCompanyInput = {
+  name?: string | null;
+  phoneNumber?: string | null;
+  email?: string | null;
+  cityId?: string | null;
+  addressTranslations: Record<string, string>;
+  descriptionTranslations: Record<string, string>;
+};
+
+export function listCompanies(
+  params: {
+    search?: string;
+    status?: CompanyStatus;
+    page?: number;
+    pageSize?: number;
+    orderBy?: string;
+    orderDirection?: "asc" | "desc";
+  } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.search) query.set("Search", params.search);
+  if (params.status) query.set("Status", params.status);
+  if (params.orderBy) query.set("OrderBy", params.orderBy);
+  if (params.orderDirection) query.set("OrderDirection", params.orderDirection);
+  query.set("Page", String(params.page ?? 1));
+  query.set("PageSize", String(params.pageSize ?? 100));
+  return authRequest<PagedResult<CompanyListItem>>(`/core/api/companies?${query.toString()}`);
+}
+
+export function getCompanyById(id: string) {
+  return authRequest<CompanyDetail>(`/core/api/companies/${id}`);
+}
+
+export function createCompany(data: CreateCompanyInput) {
+  return authRequest<string>("/core/api/companies", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateCompanyById(id: string, data: UpdateCompanyInput) {
+  return authRequest<unknown>(`/core/api/companies/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteCompanyById(id: string) {
+  return authRequest<unknown>(`/core/api/companies/${id}`, { method: "DELETE" });
+}
+
+export function uploadCompanyPhoto(id: string, file: File) {
+  const formData = new FormData();
+  formData.append("photo", file);
+  return authRequest<unknown>(`/core/api/companies/${id}/photo`, {
+    method: "PUT",
+    body: formData,
+  });
+}
+
+export function getFileUrl(fileName: string) {
+  return `${API_BASE_URL}/core/api/files/${fileName}`;
 }

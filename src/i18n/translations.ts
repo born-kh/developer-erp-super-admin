@@ -142,6 +142,10 @@ export type Dict = {
     isolationNote: string;
     dialogTitle: string;
     created: string;
+    cityNotSelected: string;
+    addressLang: (lang: string) => string;
+    descriptionLang: (lang: string) => string;
+    errors: { loadCompanies: string; saveCompany: string; savePhoto: string };
   };
   companyDetail: {
     notFoundTitle: string;
@@ -159,6 +163,8 @@ export type Dict = {
     deleteCompanyDesc: (name: string) => string;
     ownerWillBeDeleted: string;
     ownersCount: string;
+    subscriptionTitle: string;
+    noSubscription: string;
     toasts: {
       ownerSaved: string;
       ownerAdded: string;
@@ -166,6 +172,7 @@ export type Dict = {
       companySaved: string;
       companyDeleted: string;
     };
+    errors: { loadCompany: string; saveCompany: string; deleteCompany: string };
   };
   users: {
     title: string;
@@ -539,6 +546,14 @@ export const translations: Record<Language, Dict> = {
       isolationNote: "Данные компаний изолированы. Каждая компания работает только внутри своего пакета.",
       dialogTitle: "Новая компания",
       created: "Компания создана",
+      cityNotSelected: "Город не выбран",
+      addressLang: (lang) => `Адрес (${lang})`,
+      descriptionLang: (lang) => `Описание (${lang})`,
+      errors: {
+        loadCompanies: "Не удалось загрузить список компаний",
+        saveCompany: "Не удалось сохранить компанию",
+        savePhoto: "Компания создана, но не удалось загрузить фото",
+      },
     },
     companyDetail: {
       notFoundTitle: "Компания не найдена",
@@ -556,12 +571,19 @@ export const translations: Record<Language, Dict> = {
       deleteCompanyDesc: (name) => `Удалить компанию «${name}»? Это действие необратимо.`,
       ownerWillBeDeleted: "Владелец будет удалён.",
       ownersCount: "Владельцев",
+      subscriptionTitle: "Подписка",
+      noSubscription: "Подписка не оформлена.",
       toasts: {
         ownerSaved: "Владелец сохранён",
         ownerAdded: "Владелец добавлен",
         ownerDeleted: "Владелец удалён",
         companySaved: "Компания сохранена",
         companyDeleted: "Компания удалена",
+      },
+      errors: {
+        loadCompany: "Не удалось загрузить компанию",
+        saveCompany: "Не удалось сохранить компанию",
+        deleteCompany: "Не удалось удалить компанию",
       },
     },
     users: {
@@ -960,6 +982,14 @@ export const translations: Record<Language, Dict> = {
       isolationNote: "Company data is isolated. Each company operates only within its own package.",
       dialogTitle: "New company",
       created: "Company created",
+      cityNotSelected: "No city selected",
+      addressLang: (lang) => `Address (${lang})`,
+      descriptionLang: (lang) => `Description (${lang})`,
+      errors: {
+        loadCompanies: "Failed to load companies",
+        saveCompany: "Failed to save the company",
+        savePhoto: "Company created, but the photo failed to upload",
+      },
     },
     companyDetail: {
       notFoundTitle: "Company not found",
@@ -977,12 +1007,19 @@ export const translations: Record<Language, Dict> = {
       deleteCompanyDesc: (name) => `Delete company "${name}"? This action cannot be undone.`,
       ownerWillBeDeleted: "The owner will be deleted.",
       ownersCount: "Owners",
+      subscriptionTitle: "Subscription",
+      noSubscription: "No subscription yet.",
       toasts: {
         ownerSaved: "Owner saved",
         ownerAdded: "Owner added",
         ownerDeleted: "Owner deleted",
         companySaved: "Company saved",
         companyDeleted: "Company deleted",
+      },
+      errors: {
+        loadCompany: "Failed to load the company",
+        saveCompany: "Failed to save the company",
+        deleteCompany: "Failed to delete the company",
       },
     },
     users: {
@@ -1381,6 +1418,14 @@ export const translations: Record<Language, Dict> = {
       isolationNote: "Маълумоти ширкатҳо ҷудо карда шудаанд. Ҳар ширкат танҳо дар доираи бастаи худ кор мекунад.",
       dialogTitle: "Ширкати нав",
       created: "Ширкат эҷод шуд",
+      cityNotSelected: "Шаҳр интихоб нашудааст",
+      addressLang: (lang) => `Суроға (${lang})`,
+      descriptionLang: (lang) => `Тавсиф (${lang})`,
+      errors: {
+        loadCompanies: "Боргирии рӯйхати ширкатҳо ноком шуд",
+        saveCompany: "Захираи ширкат ноком шуд",
+        savePhoto: "Ширкат эҷод шуд, аммо боргирии акс ноком шуд",
+      },
     },
     companyDetail: {
       notFoundTitle: "Ширкат ёфт нашуд",
@@ -1398,12 +1443,19 @@ export const translations: Record<Language, Dict> = {
       deleteCompanyDesc: (name) => `Ширкати «${name}»-ро нест кардан? Ин амал баргарданашаванда аст.`,
       ownerWillBeDeleted: "Соҳиб нест карда мешавад.",
       ownersCount: "Соҳибон",
+      subscriptionTitle: "Обуна",
+      noSubscription: "Обуна ҳанӯз танзим нашудааст.",
       toasts: {
         ownerSaved: "Соҳиб захира шуд",
         ownerAdded: "Соҳиб илова шуд",
         ownerDeleted: "Соҳиб нест карда шуд",
         companySaved: "Ширкат захира шуд",
         companyDeleted: "Ширкат нест карда шуд",
+      },
+      errors: {
+        loadCompany: "Боргирии ширкат ноком шуд",
+        saveCompany: "Захираи ширкат ноком шуд",
+        deleteCompany: "Несткунии ширкат ноком шуд",
       },
     },
     users: {

@@ -35,7 +35,7 @@ export function CompanyStatusBadge({ status }: { status: string }) {
     trial: { tone: "warning", label: t.common.statusTrial },
     suspended: { tone: "destructive", label: t.common.statusSuspended },
   };
-  const item = companyStatus[status] ?? { tone: "info" as const, label: status };
+  const item = companyStatus[status.toLowerCase()] ?? { tone: "info" as const, label: status || "—" };
   return <StatusBadge tone={item.tone}>{item.label}</StatusBadge>;
 }
 

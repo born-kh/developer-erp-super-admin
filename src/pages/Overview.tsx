@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { income } from "../data/mock";
-import { useCompanies } from "../data/companiesStore";
 import { useCityCatalog } from "../data/cityCatalogStore";
-import { listPackages, listTariffs, listUsers } from "../lib/api";
+import {
+  listCities,
+  listCompanies,
+  listPackages,
+  listTariffs,
+  listUsers,
+  type CityListItem,
+  type CompanyListItem,
+} from "../lib/api";
 import { usd } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
@@ -21,13 +28,20 @@ import {
 
 export function Overview() {
   const { t } = useTranslation();
-  const { companies } = useCompanies();
   const { cityCatalog } = useCityCatalog();
+  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
+  const [cities, setCities] = useState<CityListItem[]>([]);
   const [packageStats, setPackageStats] = useState({ total: 0, active: 0 });
   const [tariffStats, setTariffStats] = useState({ total: 0, active: 0 });
   const [userCount, setUserCount] = useState(0);
 
   useEffect(() => {
+    listCompanies({ pageSize: 200, orderBy: "CreatedAt", orderDirection: "desc" })
+      .then((res) => setCompanies(res.items ?? []))
+      .catch(() => {});
+    listCities({ pageSize: 200 })
+      .then((res) => setCities(res.items ?? []))
+      .catch(() => {});
     listPackages({ pageSize: 100 })
       .then((res) => {
         const items = res.items ?? [];
@@ -45,10 +59,9 @@ export function Overview() {
       .catch(() => {});
   }, []);
 
-  const activeCompanies = companies.filter((c) => c.status === "active").length;
-  const recent = [...companies]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 6);
+  const cityName = (id?: string | null) => (id && cities.find((c) => c.id === id)?.name) || "—";
+  const activeCompanies = companies.filter((c) => (c.status ?? "").toLowerCase() === "active").length;
+  const recent = companies.slice(0, 6);
 
   const kpis = [
     { label: t.nav.companies, value: companies.length, hint: `${activeCompanies} ${t.overview.activeSuffix}` },
@@ -95,7 +108,6 @@ export function Overview() {
                 <TableHead>{t.common.name}</TableHead>
                 <TableHead>{t.common.city}</TableHead>
                 <TableHead>{t.common.status}</TableHead>
-                <TableHead>{t.common.created}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -103,14 +115,13 @@ export function Overview() {
                 <TableRow key={c.id} className="cursor-pointer">
                   <TableCell className="font-medium">
                     <Link to={`/companies/${c.id}`} className="hover:text-primary">
-                      {c.name}
+                      {c.name || "—"}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{c.city}</TableCell>
+                  <TableCell className="text-muted-foreground">{cityName(c.cityId)}</TableCell>
                   <TableCell>
-                    <CompanyStatusBadge status={c.status} />
+                    <CompanyStatusBadge status={c.status ?? ""} />
                   </TableCell>
-                  <TableCell className="text-muted-foreground tabular-nums">{c.createdAt}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

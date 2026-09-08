@@ -3,7 +3,6 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { isAuthenticated } from "./auth";
 import { AppShell } from "./AppShell";
 import { CurrentUserProvider } from "./data/currentUserStore";
-import { CompaniesProvider } from "./data/companiesStore";
 import { UsersProvider } from "./data/usersStore";
 import { CityCatalogProvider } from "./data/cityCatalogStore";
 import { ModuleSettingsProvider } from "./data/moduleSettingsStore";
@@ -33,41 +32,39 @@ function Guard({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <CurrentUserProvider>
-      <CompaniesProvider>
-        <UsersProvider>
-          <CityCatalogProvider>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route
-                  element={
-                    <Guard>
-                      <ModuleSettingsProvider>
-                        <AppShell />
-                      </ModuleSettingsProvider>
-                    </Guard>
-                  }
-                >
-                  <Route path="/" element={<Overview />} />
-                  <Route path="/companies" element={<Companies />} />
-                  <Route path="/companies/:id" element={<CompanyDetail />} />
-                  <Route path="/users" element={<Users />} />
-                  <Route path="/users/:id" element={<UserDetail />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/packages" element={<Packages />} />
-                  <Route path="/packages/:id" element={<PackageDetail />} />
-                  <Route path="/tariffs" element={<Tariffs />} />
-                  <Route path="/permissions" element={<Permissions />} />
-                  <Route path="/roles" element={<Roles />} />
-                  <Route path="/roles/:id" element={<RoleDetail />} />
-                  <Route path="/cities" element={<Cities />} />
-                  <Route path="/activity-logs" element={<ActivityLogs />} />
-                  <Route path="/activity-logs/:id" element={<ActivityLogDetail />} />
-                </Route>
-              </Routes>
-            </CityCatalogProvider>
-        </UsersProvider>
-      </CompaniesProvider>
+      <UsersProvider>
+        <CityCatalogProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              element={
+                <Guard>
+                  <ModuleSettingsProvider>
+                    <AppShell />
+                  </ModuleSettingsProvider>
+                </Guard>
+              }
+            >
+              <Route path="/" element={<Overview />} />
+              <Route path="/companies" element={<Companies />} />
+              <Route path="/companies/:id" element={<CompanyDetail />} />
+              <Route path="/users" element={<Users />} />
+              <Route path="/users/:id" element={<UserDetail />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/packages" element={<Packages />} />
+              <Route path="/packages/:id" element={<PackageDetail />} />
+              <Route path="/tariffs" element={<Tariffs />} />
+              <Route path="/permissions" element={<Permissions />} />
+              <Route path="/roles" element={<Roles />} />
+              <Route path="/roles/:id" element={<RoleDetail />} />
+              <Route path="/cities" element={<Cities />} />
+              <Route path="/activity-logs" element={<ActivityLogs />} />
+              <Route path="/activity-logs/:id" element={<ActivityLogDetail />} />
+            </Route>
+          </Routes>
+        </CityCatalogProvider>
+      </UsersProvider>
     </CurrentUserProvider>
   );
 }
