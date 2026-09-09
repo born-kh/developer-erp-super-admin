@@ -35,11 +35,13 @@ export type UserDetail = {
   lastName?: string | null;
   middleName?: string | null;
   fullName?: string | null;
-  nickName?: string | null;
   email?: string | null;
-  avatarUrl?: string | null;
+  emailVerifiedAt?: string | null;
+  avatarName?: string | null;
   createdAt: string;
-  active: boolean;
+  type: UserType;
+  companyId?: string | null;
+  isActive: boolean;
 };
 
 type ApiSuccess<T> = {
@@ -225,55 +227,71 @@ export function getUserById(id: string) {
 export type UserListItem = {
   id: string;
   fullName?: string | null;
-  nickName?: string | null;
   email?: string | null;
-  avatarUrl?: string | null;
-  createdAt: string;
-  active: boolean;
+  isActive: boolean;
 };
 
-export type CreateUserInput = {
+export type UserType = "SuperAdmin" | "Admin" | "Owner" | "Worker" | "Client" | "Unknown";
+
+export type CreateAdminUserInput = {
   firstName: string;
   lastName?: string | null;
   middleName?: string | null;
-  nickName?: string | null;
   email: string;
-  password?: string | null;
-  avatarUrl?: string | null;
-  active: boolean;
+  avatarName?: string | null;
+  isActive: boolean;
 };
+
+export type CreateOwnerUserInput = {
+  companyId: string;
+  firstName: string;
+  lastName?: string | null;
+  middleName?: string | null;
+  email: string;
+  avatarName?: string | null;
+  isActive: boolean;
+};
+
+export type CreateUserResponse = { userId: string };
 
 export type UpdateUserInput = {
   firstName: string;
   lastName: string;
   middleName?: string | null;
-  nickName?: string | null;
   email: string;
-  avatarUrl?: string | null;
-  active: boolean;
-};
-
-export type UserRole = {
-  roleId: string;
-  code?: string | null;
-  title?: string | null;
-  description?: string | null;
+  avatarName?: string | null;
+  isActive: boolean;
 };
 
 export function listUsers(
-  params: { search?: string; isActive?: boolean; role?: string; page?: number; pageSize?: number } = {},
+  params: {
+    search?: string;
+    isActive?: boolean;
+    userType?: UserType;
+    companyId?: string;
+    page?: number;
+    pageSize?: number;
+  } = {},
 ) {
   const query = new URLSearchParams();
   if (params.search) query.set("Search", params.search);
   if (params.isActive !== undefined) query.set("IsActive", String(params.isActive));
-  if (params.role) query.set("Role", params.role);
+  if (params.userType) query.set("UserType", params.userType);
+  if (params.companyId) query.set("CompanyId", params.companyId);
   query.set("Page", String(params.page ?? 1));
   query.set("PageSize", String(params.pageSize ?? 100));
   return authRequest<PagedResult<UserListItem>>(`/core/api/users?${query.toString()}`);
 }
 
-export function createUser(data: CreateUserInput) {
-  return authRequest<UserDetail>("/core/api/users", {
+export function createAdminUser(data: CreateAdminUserInput) {
+  return authRequest<CreateUserResponse>("/core/api/users/admin", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function createOwnerUser(data: CreateOwnerUserInput) {
+  return authRequest<CreateUserResponse>("/core/api/users/owner", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -298,6 +316,13 @@ export function deactivateUser(id: string) {
   return authRequest<unknown>(`/core/api/users/${id}/deactivate`, { method: "PUT" });
 }
 
+export type UserRole = {
+  roleId: string;
+  code?: string | null;
+  title?: string | null;
+  description?: string | null;
+};
+
 export function getUserRoles(userId: string) {
   return authRequest<PagedResult<UserRole>>(`/core/api/users/${userId}/roles`);
 }
@@ -314,6 +339,23 @@ export function unassignUserRoles(userId: string, roleIds: string[]) {
     method: "DELETE",
     body: JSON.stringify(roleIds),
   });
+}
+
+export type UserPermission = {
+  id: string;
+  code?: string | null;
+  group?: string | null;
+  title?: string | null;
+  moduleName?: string | null;
+  moduleDisplayName?: string | null;
+};
+
+export function getUserPermissions(userId: string) {
+  return authRequest<UserPermission[]>(`/core/api/users/${userId}/permissions`);
+}
+
+export function getCurrentUserPermissions() {
+  return authRequest<UserPermission[]>("/core/api/users/current-user-permissions");
 }
 
 export type RoleLookup = {

@@ -16,11 +16,13 @@ import {
 } from "lucide-react";
 import { clearTokens } from "./auth";
 import { useCurrentUser } from "./data/currentUserStore";
+import { useFileUrl } from "./hooks/useFileUrl";
 import { initials } from "./lib/format";
 import { useTranslation } from "./i18n/LanguageContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { UserTypeBadge } from "@/components/StatusBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -56,6 +58,7 @@ export function AppShell() {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const { user, clear: clearCurrentUser } = useCurrentUser();
   const { t } = useTranslation();
+  const avatarUrl = useFileUrl(user?.avatarName);
 
   const links = [
     { to: "/", label: t.nav.overview, icon: LayoutDashboard },
@@ -74,7 +77,7 @@ export function AppShell() {
     "/companies": t.nav.companies,
     "/tariffs": t.nav.tariffs,
     "/packages": t.nav.packages,
-    "/users": t.nav.users,
+    "/users": t.users.title,
     "/permissions": t.nav.permissions,
     "/roles": t.nav.roles,
     "/cities": t.nav.cities,
@@ -152,19 +155,22 @@ export function AppShell() {
                     {user?.fullName || user?.email || ""}
                   </span>
                   <Avatar size="sm">
-                    {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName ?? ""} />}
+                    {avatarUrl && <AvatarImage src={avatarUrl} alt={user?.fullName ?? ""} />}
                     <AvatarFallback>{user?.fullName ? initials(user.fullName) : "?"}</AvatarFallback>
                   </Avatar>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-64 p-2">
                   <div className="flex items-center gap-3 px-2 py-2">
                     <Avatar className="size-10">
-                      {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName ?? ""} />}
+                      {avatarUrl && <AvatarImage src={avatarUrl} alt={user?.fullName ?? ""} />}
                       <AvatarFallback>{user?.fullName ? initials(user.fullName) : "?"}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold">{user?.fullName || "—"}</div>
-                      <div className="truncate text-xs text-muted-foreground">{user?.email || "—"}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-sm font-semibold">{user?.fullName || "—"}</span>
+                        {user && <UserTypeBadge type={user.type} className="shrink-0 px-1.5 py-0 text-[10px]" />}
+                      </div>
+                      <div className="mt-1 truncate text-xs text-muted-foreground">{user?.email || "—"}</div>
                     </div>
                   </div>
                   <Separator className="my-2" />

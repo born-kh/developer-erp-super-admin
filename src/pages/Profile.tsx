@@ -2,8 +2,9 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import { updateUser, ApiRequestError } from "../lib/api";
+import { updateUser, uploadFile, ApiRequestError } from "../lib/api";
 import { useCurrentUser } from "../data/currentUserStore";
+import { useFileUrl } from "../hooks/useFileUrl";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { Field } from "@/components/Field";
@@ -16,7 +17,6 @@ type ProfileForm = {
   firstName: string;
   lastName: string;
   middleName: string;
-  nickName: string;
   email: string;
 };
 
@@ -42,6 +42,7 @@ export function Profile() {
   const [saving, setSaving] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarUrl = useFileUrl(user?.avatarName);
 
   if (!user) {
     return <PageHead title={t.common.loading} />;
@@ -54,7 +55,6 @@ export function Profile() {
       firstName: user.firstName ?? "",
       lastName: user.lastName ?? "",
       middleName: user.middleName ?? "",
-      nickName: user.nickName ?? "",
       email: user.email ?? "",
     });
     setEditing(true);
@@ -76,10 +76,9 @@ export function Profile() {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         middleName: form.middleName.trim() || null,
-        nickName: form.nickName.trim() || null,
         email: form.email.trim(),
-        avatarUrl: user.avatarUrl,
-        active: user.active,
+        avatarName: user.avatarName,
+        isActive: user.isActive,
       });
       toast.success(t.profile.toasts.saved);
       setEditing(false);
@@ -92,30 +91,26 @@ export function Profile() {
     }
   };
 
-  const pickAvatar = (file: File | undefined) => {
+  const pickAvatar = async (file: File | undefined) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      setAvatarSaving(true);
-      try {
-        await updateUser(user.id, {
-          firstName: user.firstName ?? "",
-          lastName: user.lastName ?? "",
-          middleName: user.middleName,
-          nickName: user.nickName,
-          email: user.email ?? "",
-          avatarUrl: String(reader.result),
-          active: user.active,
-        });
-        toast.success(t.profile.toasts.saved);
-        await refresh();
-      } catch (err) {
-        toast.error(errorMessage(err, t.profile.errors.saveProfile));
-      } finally {
-        setAvatarSaving(false);
-      }
-    };
-    reader.readAsDataURL(file);
+    setAvatarSaving(true);
+    try {
+      const avatarName = await uploadFile(file);
+      await updateUser(user.id, {
+        firstName: user.firstName ?? "",
+        lastName: user.lastName ?? "",
+        middleName: user.middleName,
+        email: user.email ?? "",
+        avatarName,
+        isActive: user.isActive,
+      });
+      toast.success(t.profile.toasts.saved);
+      await refresh();
+    } catch (err) {
+      toast.error(errorMessage(err, t.profile.errors.saveProfile));
+    } finally {
+      setAvatarSaving(false);
+    }
   };
 
   return (
@@ -135,7 +130,7 @@ export function Profile() {
       <div className="flex flex-col items-center gap-3 py-6 text-center">
         <div className="relative">
           <Avatar className="size-32">
-            <AvatarImage src={user.avatarUrl ?? undefined} alt={displayName} />
+            <AvatarImage src={avatarUrl ?? undefined} alt={displayName} />
             <AvatarFallback className="bg-secondary text-3xl font-semibold text-muted-foreground">
               {initials(displayName)}
             </AvatarFallback>
@@ -189,14 +184,9 @@ export function Profile() {
                     <Input value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} />
                   </Field>
                 </div>
-                <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
-                  <Field label={t.users.middleName}>
-                    <Input value={form.middleName} onChange={(e) => setField("middleName", e.target.value)} />
-                  </Field>
-                  <Field label={t.users.nickName}>
-                    <Input value={form.nickName} onChange={(e) => setField("nickName", e.target.value)} />
-                  </Field>
-                </div>
+                <Field label={t.users.middleName}>
+                  <Input value={form.middleName} onChange={(e) => setField("middleName", e.target.value)} />
+                </Field>
                 <Field label={t.common.email}>
                   <Input value={form.email} onChange={(e) => setField("email", e.target.value)} />
                 </Field>
@@ -214,10 +204,6 @@ export function Profile() {
                 <div>
                   <dt>{t.users.middleName}</dt>
                   <dd>{user.middleName || "—"}</dd>
-                </div>
-                <div>
-                  <dt>{t.users.nickName}</dt>
-                  <dd>{user.nickName || "—"}</dd>
                 </div>
                 <div>
                   <dt>{t.common.email}</dt>

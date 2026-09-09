@@ -156,10 +156,10 @@ export type Dict = {
     ownersTitle: string;
     addOwner: string;
     noOwners: string;
-    loginLabel: string;
-    fullName: string;
     ownerModalTitleEdit: string;
     ownerModalTitleCreate: string;
+    otherUsersTitle: string;
+    noOtherUsers: string;
     deleteCompanyTitle: string;
     deleteCompanyDesc: (name: string) => string;
     ownerWillBeDeleted: string;
@@ -180,7 +180,16 @@ export type Dict = {
       companyDeleted: string;
       subscriptionSaved: string;
     };
-    errors: { loadCompany: string; saveCompany: string; deleteCompany: string; saveSubscription: string };
+    errors: {
+      loadCompany: string;
+      saveCompany: string;
+      deleteCompany: string;
+      saveSubscription: string;
+      loadOwners: string;
+      saveOwner: string;
+      deleteOwner: string;
+      loadUsers: string;
+    };
   };
   users: {
     title: string;
@@ -195,9 +204,12 @@ export type Dict = {
     firstName: string;
     lastName: string;
     middleName: string;
-    nickName: string;
-    avatarUrl: string;
     userActive: string;
+    typeSuperAdmin: string;
+    typeAdmin: string;
+    typeOwner: string;
+    typeWorker: string;
+    typeClient: string;
     errors: { loadUsers: string; saveUser: string };
     toasts: { created: string };
   };
@@ -206,14 +218,28 @@ export type Dict = {
     notFoundText: string;
     backToList: string;
     sub: string;
+    emailVerified: string;
+    verified: string;
+    notVerified: string;
+    type: string;
+    company: string;
     assignedRoles: string;
     noRolesAssigned: string;
     manageRoles: string;
     manageRolesTitle: string;
     noRolesAvailable: string;
+    assignedPermissions: string;
+    noPermissionsAssigned: string;
     deleteUserTitle: string;
     deleteUserDesc: (name: string) => string;
-    errors: { saveUser: string; deleteUser: string; loadRoles: string };
+    errors: {
+      saveUser: string;
+      deleteUser: string;
+      uploadAvatar: string;
+      loadRoles: string;
+      loadPermissions: string;
+      loadCompany: string;
+    };
     toasts: { saved: string; deleted: string; rolesUpdated: string };
   };
   profile: {
@@ -572,10 +598,10 @@ export const translations: Record<Language, Dict> = {
       ownersTitle: "Владельцы",
       addOwner: "+ Добавить владельца",
       noOwners: "Пока нет владельцев.",
-      loginLabel: "Логин:",
-      fullName: "ФИО",
       ownerModalTitleEdit: "Редактировать владельца",
       ownerModalTitleCreate: "Новый владелец",
+      otherUsersTitle: "Другие пользователи",
+      noOtherUsers: "Других пользователей пока нет.",
       deleteCompanyTitle: "Удалить компанию?",
       deleteCompanyDesc: (name) => `Удалить компанию «${name}»? Это действие необратимо.`,
       ownerWillBeDeleted: "Владелец будет удалён.",
@@ -601,24 +627,31 @@ export const translations: Record<Language, Dict> = {
         saveCompany: "Не удалось сохранить компанию",
         deleteCompany: "Не удалось удалить компанию",
         saveSubscription: "Не удалось сохранить подписку",
+        loadOwners: "Не удалось загрузить владельцев",
+        saveOwner: "Не удалось сохранить владельца",
+        deleteOwner: "Не удалось удалить владельца",
+        loadUsers: "Не удалось загрузить пользователей",
       },
     },
     users: {
-      title: "Пользователи платформы",
+      title: "Пользователи",
       searchPlaceholder: "Поиск по имени или email",
-      newUser: "+ Новый пользователь",
+      newUser: "+ Новый администратор",
       noUsersYet: "Пользователей пока нет.",
-      createUser: "Создать пользователя",
+      createUser: "Создать администратора",
       tableUser: "Пользователь",
       tableEmail: "Email",
       tableStatus: "Статус",
-      modalTitleCreate: "Новый пользователь",
+      modalTitleCreate: "Новый администратор",
       firstName: "Имя",
       lastName: "Фамилия",
       middleName: "Отчество",
-      nickName: "Никнейм",
-      avatarUrl: "Ссылка на аватар",
       userActive: "Пользователь активен",
+      typeSuperAdmin: "Супер-администратор",
+      typeAdmin: "Администратор",
+      typeOwner: "Владелец",
+      typeWorker: "Сотрудник",
+      typeClient: "Клиент",
       errors: { loadUsers: "Не удалось загрузить пользователей", saveUser: "Не удалось сохранить пользователя" },
       toasts: { created: "Пользователь создан" },
     },
@@ -627,17 +660,27 @@ export const translations: Record<Language, Dict> = {
       notFoundText: "Такого пользователя не существует или он был удалён.",
       backToList: "К списку пользователей",
       sub: "карточка пользователя",
+      emailVerified: "Email подтверждён",
+      verified: "Подтверждён",
+      notVerified: "Не подтверждён",
+      type: "Тип",
+      company: "Компания",
       assignedRoles: "Роли",
       noRolesAssigned: "Роли не назначены.",
       manageRoles: "Управлять ролями",
       manageRolesTitle: "Роли пользователя",
       noRolesAvailable: "Роли ещё не созданы.",
+      assignedPermissions: "Права доступа",
+      noPermissionsAssigned: "Прав пока нет.",
       deleteUserTitle: "Удалить пользователя?",
       deleteUserDesc: (name: string) => `Удалить пользователя «${name}»? Это действие необратимо.`,
       errors: {
         saveUser: "Не удалось сохранить пользователя",
         deleteUser: "Не удалось удалить пользователя",
+        uploadAvatar: "Не удалось загрузить фото",
         loadRoles: "Не удалось загрузить роли",
+        loadPermissions: "Не удалось загрузить права доступа",
+        loadCompany: "Не удалось загрузить компанию",
       },
       toasts: {
         saved: "Пользователь сохранён",
@@ -1017,10 +1060,10 @@ export const translations: Record<Language, Dict> = {
       ownersTitle: "Owners",
       addOwner: "+ Add owner",
       noOwners: "No owners yet.",
-      loginLabel: "Login:",
-      fullName: "Full name",
       ownerModalTitleEdit: "Edit owner",
       ownerModalTitleCreate: "New owner",
+      otherUsersTitle: "Other Users",
+      noOtherUsers: "No other users yet.",
       deleteCompanyTitle: "Delete company?",
       deleteCompanyDesc: (name) => `Delete company "${name}"? This action cannot be undone.`,
       ownerWillBeDeleted: "The owner will be deleted.",
@@ -1046,24 +1089,31 @@ export const translations: Record<Language, Dict> = {
         saveCompany: "Failed to save the company",
         deleteCompany: "Failed to delete the company",
         saveSubscription: "Failed to save the subscription",
+        loadOwners: "Failed to load owners",
+        saveOwner: "Failed to save owner",
+        deleteOwner: "Failed to delete owner",
+        loadUsers: "Failed to load users",
       },
     },
     users: {
-      title: "Platform users",
+      title: "Users",
       searchPlaceholder: "Search by name or email",
-      newUser: "+ New user",
+      newUser: "+ New Admin",
       noUsersYet: "No users yet.",
-      createUser: "Create user",
+      createUser: "Create admin",
       tableUser: "User",
       tableEmail: "Email",
       tableStatus: "Status",
-      modalTitleCreate: "New user",
+      modalTitleCreate: "New Admin",
       firstName: "First name",
       lastName: "Last name",
       middleName: "Middle name",
-      nickName: "Nickname",
-      avatarUrl: "Avatar URL",
       userActive: "User is active",
+      typeSuperAdmin: "Super Admin",
+      typeAdmin: "Admin",
+      typeOwner: "Owner",
+      typeWorker: "Worker",
+      typeClient: "Client",
       errors: { loadUsers: "Failed to load users", saveUser: "Failed to save user" },
       toasts: { created: "User created" },
     },
@@ -1072,17 +1122,27 @@ export const translations: Record<Language, Dict> = {
       notFoundText: "This user does not exist or has been deleted.",
       backToList: "Back to users",
       sub: "user profile",
+      emailVerified: "Email verified",
+      verified: "Verified",
+      notVerified: "Not verified",
+      type: "Type",
+      company: "Company",
       assignedRoles: "Roles",
       noRolesAssigned: "No roles assigned.",
       manageRoles: "Manage roles",
       manageRolesTitle: "User roles",
       noRolesAvailable: "No roles have been created yet.",
+      assignedPermissions: "Permissions",
+      noPermissionsAssigned: "No permissions yet.",
       deleteUserTitle: "Delete user?",
       deleteUserDesc: (name: string) => `Delete user "${name}"? This action cannot be undone.`,
       errors: {
         saveUser: "Failed to save user",
         deleteUser: "Failed to delete user",
+        uploadAvatar: "Failed to upload photo",
         loadRoles: "Failed to load roles",
+        loadPermissions: "Failed to load permissions",
+        loadCompany: "Failed to load company",
       },
       toasts: {
         saved: "User saved",
@@ -1462,10 +1522,10 @@ export const translations: Record<Language, Dict> = {
       ownersTitle: "Соҳибон",
       addOwner: "+ Илова кардани соҳиб",
       noOwners: "Ҳанӯз соҳибе нест.",
-      loginLabel: "Логин:",
-      fullName: "Ному насаб",
       ownerModalTitleEdit: "Таҳрири соҳиб",
       ownerModalTitleCreate: "Соҳиби нав",
+      otherUsersTitle: "Дигар корбарон",
+      noOtherUsers: "Ҳанӯз корбари дигаре нест.",
       deleteCompanyTitle: "Ширкатро нест кардан?",
       deleteCompanyDesc: (name) => `Ширкати «${name}»-ро нест кардан? Ин амал баргарданашаванда аст.`,
       ownerWillBeDeleted: "Соҳиб нест карда мешавад.",
@@ -1491,24 +1551,31 @@ export const translations: Record<Language, Dict> = {
         saveCompany: "Захираи ширкат ноком шуд",
         deleteCompany: "Несткунии ширкат ноком шуд",
         saveSubscription: "Захираи обуна ноком шуд",
+        loadOwners: "Боргирии соҳибон ноком шуд",
+        saveOwner: "Захираи соҳиб ноком шуд",
+        deleteOwner: "Несткунии соҳиб ноком шуд",
+        loadUsers: "Боргирии корбарон ноком шуд",
       },
     },
     users: {
-      title: "Корбарони платформа",
+      title: "Корбарон",
       searchPlaceholder: "Ҷустуҷӯ аз рӯи ном ё email",
-      newUser: "+ Корбари нав",
+      newUser: "+ Маъмури нав",
       noUsersYet: "Ҳанӯз корбаре нест.",
-      createUser: "Эҷоди корбар",
+      createUser: "Эҷоди маъмур",
       tableUser: "Корбар",
       tableEmail: "Email",
       tableStatus: "Ҳолат",
-      modalTitleCreate: "Корбари нав",
+      modalTitleCreate: "Маъмури нав",
       firstName: "Ном",
       lastName: "Насаб",
       middleName: "Номи падар",
-      nickName: "Тахаллус",
-      avatarUrl: "Пайванди аватар",
       userActive: "Корбар фаъол аст",
+      typeSuperAdmin: "Супер-маъмур",
+      typeAdmin: "Маъмур",
+      typeOwner: "Соҳиб",
+      typeWorker: "Корманд",
+      typeClient: "Мизоҷ",
       errors: { loadUsers: "Боргирии корбарон ноком шуд", saveUser: "Захираи корбар ноком шуд" },
       toasts: { created: "Корбар эҷод шуд" },
     },
@@ -1517,17 +1584,27 @@ export const translations: Record<Language, Dict> = {
       notFoundText: "Ин корбар вуҷуд надорад ё нест карда шудааст.",
       backToList: "Ба рӯйхати корбарон",
       sub: "профили корбар",
+      emailVerified: "Тасдиқи email",
+      verified: "Тасдиқшуда",
+      notVerified: "Тасдиқнашуда",
+      type: "Навъ",
+      company: "Ширкат",
       assignedRoles: "Нақшҳо",
       noRolesAssigned: "Нақш таъин нашудааст.",
       manageRoles: "Идоракунии нақшҳо",
       manageRolesTitle: "Нақшҳои корбар",
       noRolesAvailable: "Ҳанӯз нақше эҷод нашудааст.",
+      assignedPermissions: "Ҳуқуқҳои дастрасӣ",
+      noPermissionsAssigned: "Ҳанӯз ҳуқуқе нест.",
       deleteUserTitle: "Корбарро нест кунам?",
       deleteUserDesc: (name: string) => `Корбари «${name}»-ро нест кунам? Ин амал бебозгашт аст.`,
       errors: {
         saveUser: "Захираи корбар ноком шуд",
         deleteUser: "Несткунии корбар ноком шуд",
+        uploadAvatar: "Боркунии акс ноком шуд",
         loadRoles: "Боргирии нақшҳо ноком шуд",
+        loadPermissions: "Боргирии ҳуқуқҳо ноком шуд",
+        loadCompany: "Боргирии ширкат ноком шуд",
       },
       toasts: {
         saved: "Корбар захира шуд",

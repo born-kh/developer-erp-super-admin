@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { createUser, listUsers, ApiRequestError, type UserListItem } from "../lib/api";
-import { randomPassword } from "../lib/format";
+import { createAdminUser, listUsers, ApiRequestError, type UserListItem, type UserType } from "../lib/api";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { ActiveBadge } from "@/components/StatusBadge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -21,6 +20,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -34,26 +40,22 @@ import {
 
 const DEFAULT_PAGE_SIZE = 10;
 
+const SELECTABLE_USER_TYPES: UserType[] = ["Admin", "Owner", "Worker", "Client"];
+
 type UserForm = {
   firstName: string;
   lastName: string;
   middleName: string;
-  nickName: string;
   email: string;
-  avatarUrl: string;
-  password: string;
-  active: boolean;
+  isActive: boolean;
 };
 
 const emptyUserForm: UserForm = {
   firstName: "",
   lastName: "",
   middleName: "",
-  nickName: "",
   email: "",
-  avatarUrl: "",
-  password: "",
-  active: true,
+  isActive: true,
 };
 
 function initials(name: string) {
@@ -72,12 +74,22 @@ function errorMessage(err: unknown, fallback: string) {
 export function Users() {
   const nav = useNavigate();
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const initialType = searchParams.get("type");
+  const initialUserType: UserType = SELECTABLE_USER_TYPES.includes(initialType as UserType)
+    ? (initialType as UserType)
+    : "Admin";
+  const initialSearch = searchParams.get("search") ?? "";
+  const initialPage = Number(searchParams.get("page")) || 1;
+
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [loadingList, setLoadingList] = useState(true);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [query, setQuery] = useState("");
-  const [committedQuery, setCommittedQuery] = useState("");
+  const [query, setQuery] = useState(initialSearch);
+  const [committedQuery, setCommittedQuery] = useState(initialSearch);
+  const [userType, setUserType] = useState<UserType>(initialUserType);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
@@ -85,10 +97,24 @@ export function Users() {
   const [form, setForm] = useState<UserForm>(emptyUserForm);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchUsers = async (pageArg: number, pageSizeArg: number, searchArg: string) => {
+  const typeLabels: Record<UserType, string> = {
+    SuperAdmin: "",
+    Admin: t.users.typeAdmin,
+    Owner: t.users.typeOwner,
+    Worker: t.users.typeWorker,
+    Client: t.users.typeClient,
+    Unknown: "",
+  };
+
+  const fetchUsers = async (pageArg: number, pageSizeArg: number, searchArg: string, userTypeArg: UserType) => {
     setLoadingList(true);
     try {
-      const res = await listUsers({ page: pageArg, pageSize: pageSizeArg, search: searchArg || undefined });
+      const res = await listUsers({
+        page: pageArg,
+        pageSize: pageSizeArg,
+        search: searchArg || undefined,
+        userType: userTypeArg,
+      });
       setUsers(res.items ?? []);
       setHasNextPage(res.pagination.hasNextPage);
       setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
@@ -100,20 +126,35 @@ export function Users() {
   };
 
   useEffect(() => {
+    if (query === committedQuery) return;
     const handle = setTimeout(() => {
       setCommittedQuery(query);
       setPage(1);
     }, 300);
     return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
   useEffect(() => {
-    fetchUsers(page, pageSize, committedQuery);
+    fetchUsers(page, pageSize, committedQuery, userType);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, committedQuery]);
+  }, [page, pageSize, committedQuery, userType]);
+
+  useEffect(() => {
+    const params: Record<string, string> = { type: userType };
+    if (committedQuery) params.search = committedQuery;
+    if (page > 1) params.page = String(page);
+    setSearchParams(params, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userType, committedQuery, page]);
 
   const changePageSize = (size: number) => {
     setPageSize(size);
+    setPage(1);
+  };
+
+  const changeUserType = (value: UserType) => {
+    setUserType(value);
     setPage(1);
   };
 
@@ -121,7 +162,7 @@ export function Users() {
     setForm((f) => ({ ...f, [key]: value }));
 
   const openCreate = () => {
-    setForm({ ...emptyUserForm, password: randomPassword() });
+    setForm(emptyUserForm);
     setShowCreate(true);
   };
 
@@ -129,19 +170,16 @@ export function Users() {
     if (!form.firstName.trim() || !form.email.trim() || submitting) return;
     setSubmitting(true);
     try {
-      const created = await createUser({
+      const created = await createAdminUser({
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim() || null,
         middleName: form.middleName.trim() || null,
-        nickName: form.nickName.trim() || null,
         email: form.email.trim(),
-        avatarUrl: form.avatarUrl.trim() || null,
-        password: form.password.trim() || null,
-        active: form.active,
+        isActive: form.isActive,
       });
       toast.success(t.users.toasts.created);
       setShowCreate(false);
-      nav(`/users/${created.id}`);
+      nav(`/users/${created.userId}`);
     } catch (err) {
       toast.error(errorMessage(err, t.users.errors.saveUser));
     } finally {
@@ -161,6 +199,18 @@ export function Users() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+            <Select value={userType} onValueChange={(v) => changeUserType(v as UserType)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SELECTABLE_USER_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {typeLabels[type]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button type="button" onClick={openCreate}>
               {t.users.newUser}
             </Button>
@@ -230,7 +280,6 @@ export function Users() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="size-8">
-                          <AvatarImage src={u.avatarUrl ?? undefined} alt={u.fullName ?? ""} />
                           <AvatarFallback className="bg-secondary text-xs font-semibold text-muted-foreground">
                             {initials(u.fullName ?? "")}
                           </AvatarFallback>
@@ -240,7 +289,7 @@ export function Users() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell>
-                      <ActiveBadge active={u.active} />
+                      <ActiveBadge active={u.isActive} />
                     </TableCell>
                     <TableCell className="w-8 text-muted-foreground">
                       <ChevronRight className="size-4" />
@@ -277,25 +326,14 @@ export function Users() {
                 <Input value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} />
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
-              <Field label={t.users.middleName}>
-                <Input value={form.middleName} onChange={(e) => setField("middleName", e.target.value)} />
-              </Field>
-              <Field label={t.users.nickName}>
-                <Input value={form.nickName} onChange={(e) => setField("nickName", e.target.value)} />
-              </Field>
-            </div>
+            <Field label={t.users.middleName}>
+              <Input value={form.middleName} onChange={(e) => setField("middleName", e.target.value)} />
+            </Field>
             <Field label={t.common.email}>
               <Input value={form.email} onChange={(e) => setField("email", e.target.value)} />
             </Field>
-            <Field label={t.users.avatarUrl}>
-              <Input value={form.avatarUrl} onChange={(e) => setField("avatarUrl", e.target.value)} />
-            </Field>
-            <Field label={t.login.password}>
-              <Input value={form.password} onChange={(e) => setField("password", e.target.value)} />
-            </Field>
             <label className="flex items-center gap-2 text-sm font-medium">
-              <Switch checked={form.active} onCheckedChange={(v) => setField("active", v)} />
+              <Switch checked={form.isActive} onCheckedChange={(v) => setField("isActive", v)} />
               {t.users.userActive}
             </label>
           </div>

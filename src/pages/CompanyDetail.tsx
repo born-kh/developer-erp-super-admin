@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, ImageUp, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { ImageUp, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
+  createOwnerUser,
   deleteCompanyById,
+  deleteUser,
   getAllCitiesCached,
   getCompanyById,
+  getUserById,
   listPackages,
   listTariffsWithPackages,
+  listUsers,
   updateCompanyById,
   updateCompanySubscription,
+  updateUser,
   uploadFile,
   ApiRequestError,
   type CityListItem,
@@ -17,17 +22,18 @@ import {
   type CompanyStatus,
   type PackageListItem,
   type TariffIncludingPackages,
+  type UserListItem,
 } from "../lib/api";
-import { type PlatformUser } from "../data/mock";
-import { useUsers } from "../data/usersStore";
 import { useModuleSettings } from "../data/moduleSettingsStore";
-import { randomPassword, slugify, formatDate, usd } from "../lib/format";
+import { useFileUrl } from "../hooks/useFileUrl";
+import { formatDate, usd } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { CompanyPhoto } from "@/components/CompanyPhoto";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Field } from "@/components/Field";
 import { CompanyStatusBadge } from "@/components/StatusBadge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -45,6 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -76,8 +83,31 @@ function todayStr(): string {
   return formatDateInput(new Date());
 }
 
-type OwnerForm = { name: string; email: string; phone: string; login: string; password: string };
-const emptyOwnerForm: OwnerForm = { name: "", email: "", phone: "", login: "", password: "" };
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+}
+
+type OwnerForm = {
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  email: string;
+  avatarName: string;
+  isActive: boolean;
+};
+const emptyOwnerForm: OwnerForm = {
+  firstName: "",
+  lastName: "",
+  middleName: "",
+  email: "",
+  avatarName: "",
+  isActive: true,
+};
 
 type Translations = Record<string, string>;
 
@@ -105,7 +135,6 @@ export function CompanyDetail() {
   const { settings } = useModuleSettings();
   const langs = settings.supportedLanguages;
   const defaultLang = settings.defaultLanguage;
-  const { users, addUser, updateUser, deleteUser } = useUsers();
 
   const [company, setCompany] = useState<CompanyDetailData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,9 +148,15 @@ export function CompanyDetail() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [owners, setOwners] = useState<UserListItem[]>([]);
+  const [ownersLoading, setOwnersLoading] = useState(true);
+  const [otherUsers, setOtherUsers] = useState<UserListItem[]>([]);
+  const [otherUsersLoading, setOtherUsersLoading] = useState(true);
   const [ownerModal, setOwnerModal] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
   const [ownerForm, setOwnerForm] = useState<OwnerForm>(emptyOwnerForm);
-  const [loginTouched, setLoginTouched] = useState(false);
+  const [ownerSubmitting, setOwnerSubmitting] = useState(false);
+  const [ownerAvatarUploading, setOwnerAvatarUploading] = useState(false);
+  const ownerFileInputRef = useRef<HTMLInputElement>(null);
   const [confirmDeleteOwnerId, setConfirmDeleteOwnerId] = useState<string | null>(null);
 
   const [tariffs, setTariffs] = useState<TariffIncludingPackages[]>([]);
@@ -154,15 +189,48 @@ export function CompanyDetail() {
       .finally(() => setLoading(false));
   };
 
+  const loadOwners = async () => {
+    if (!id) return;
+    setOwnersLoading(true);
+    try {
+      const res = await listUsers({ companyId: id, userType: "Owner", pageSize: 100 });
+      setOwners(res.items ?? []);
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.loadOwners));
+    } finally {
+      setOwnersLoading(false);
+    }
+  };
+
+  const loadOtherUsers = async () => {
+    if (!id) return;
+    setOtherUsersLoading(true);
+    try {
+      const [workers, clients] = await Promise.all([
+        listUsers({ companyId: id, userType: "Worker", pageSize: 100 }),
+        listUsers({ companyId: id, userType: "Client", pageSize: 100 }),
+      ]);
+      setOtherUsers([...(workers.items ?? []), ...(clients.items ?? [])]);
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.loadUsers));
+    } finally {
+      setOtherUsersLoading(false);
+    }
+  };
+
   useEffect(() => {
     load();
+    loadOwners();
+    loadOtherUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const ownerAvatarUrl = useFileUrl(ownerForm.avatarName);
 
   if (loading) {
     return (
       <>
-        <PageHead title={t.common.loading} onBack={() => nav("/companies")} />
+        <PageHead title={t.common.loading} onBack={() => nav(-1)} />
       </>
     );
   }
@@ -170,7 +238,7 @@ export function CompanyDetail() {
   if (!company) {
     return (
       <>
-        <PageHead title={t.companyDetail.notFoundTitle} onBack={() => nav("/companies")} />
+        <PageHead title={t.companyDetail.notFoundTitle} onBack={() => nav(-1)} />
         <Card>
           <CardContent className="grid gap-3">
             <p className="text-sm text-muted-foreground">{t.companyDetail.notFoundText}</p>
@@ -183,61 +251,94 @@ export function CompanyDetail() {
     );
   }
 
-  const owners = users.filter((u) => u.companyId === company.id && u.role === "owner");
   const cityName = cities.find((c) => c.id === company.cityId)?.name || "—";
   const address = company.addressTranslations?.[language] || company.addressTranslations?.[defaultLang] || "—";
   const description =
     company.descriptionTranslations?.[language] || company.descriptionTranslations?.[defaultLang] || "—";
 
   const openCreateOwner = () => {
-    setOwnerForm({ ...emptyOwnerForm, password: randomPassword() });
-    setLoginTouched(false);
+    setOwnerForm(emptyOwnerForm);
     setOwnerModal({ mode: "create" });
   };
 
-  const openEditOwner = (o: PlatformUser) => {
-    setOwnerForm({ name: o.name, email: o.email, phone: o.phone ?? "", login: o.login ?? "", password: o.password ?? "" });
-    setLoginTouched(true);
-    setOwnerModal({ mode: "edit", id: o.id });
-  };
-
-  const setOwnerField = <K extends keyof OwnerForm>(key: K, value: OwnerForm[K]) => {
-    setOwnerForm((f) => {
-      const next = { ...f, [key]: value };
-      if (key === "name" && !loginTouched) next.login = slugify(value as string);
-      return next;
-    });
-    if (key === "login") setLoginTouched(true);
-  };
-
-  const submitOwner = () => {
-    if (!ownerForm.name.trim()) return;
-    if (ownerModal?.mode === "edit" && ownerModal.id) {
-      updateUser(ownerModal.id, { ...ownerForm, role: "owner", companyId: company.id });
-      toast.success(t.companyDetail.toasts.ownerSaved);
-    } else {
-      addUser({ ...ownerForm, role: "owner", companyId: company.id });
-      toast.success(t.companyDetail.toasts.ownerAdded);
+  const openEditOwner = async (ownerId: string) => {
+    try {
+      const detail = await getUserById(ownerId);
+      setOwnerForm({
+        firstName: detail.firstName ?? "",
+        lastName: detail.lastName ?? "",
+        middleName: detail.middleName ?? "",
+        email: detail.email ?? "",
+        avatarName: detail.avatarName ?? "",
+        isActive: detail.isActive,
+      });
+      setOwnerModal({ mode: "edit", id: ownerId });
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.loadOwners));
     }
-    setOwnerModal(null);
   };
 
-  const removeOwner = (ownerId: string) => {
-    deleteUser(ownerId);
-    setConfirmDeleteOwnerId(null);
-    toast.success(t.companyDetail.toasts.ownerDeleted);
+  const setOwnerField = <K extends keyof OwnerForm>(key: K, value: OwnerForm[K]) =>
+    setOwnerForm((f) => ({ ...f, [key]: value }));
+
+  const pickOwnerAvatar = async (file: File | undefined) => {
+    if (!file) return;
+    setOwnerAvatarUploading(true);
+    try {
+      const avatarName = await uploadFile(file);
+      setOwnerField("avatarName", avatarName);
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.saveOwner));
+    } finally {
+      setOwnerAvatarUploading(false);
+    }
   };
 
-  const copyPassword = (o: PlatformUser) => {
-    if (!o.password) return;
-    navigator.clipboard?.writeText(o.password).catch(() => {});
-    toast.success(t.common.passwordCopied);
+  const submitOwner = async () => {
+    if (!ownerForm.firstName.trim() || !ownerForm.email.trim() || ownerSubmitting) return;
+    setOwnerSubmitting(true);
+    try {
+      if (ownerModal?.mode === "edit" && ownerModal.id) {
+        await updateUser(ownerModal.id, {
+          firstName: ownerForm.firstName.trim(),
+          lastName: ownerForm.lastName.trim(),
+          middleName: ownerForm.middleName.trim() || null,
+          email: ownerForm.email.trim(),
+          avatarName: ownerForm.avatarName.trim() || null,
+          isActive: ownerForm.isActive,
+        });
+        toast.success(t.companyDetail.toasts.ownerSaved);
+      } else {
+        await createOwnerUser({
+          companyId: company.id,
+          firstName: ownerForm.firstName.trim(),
+          lastName: ownerForm.lastName.trim() || null,
+          middleName: ownerForm.middleName.trim() || null,
+          email: ownerForm.email.trim(),
+          avatarName: ownerForm.avatarName.trim() || null,
+          isActive: ownerForm.isActive,
+        });
+        toast.success(t.companyDetail.toasts.ownerAdded);
+      }
+      setOwnerModal(null);
+      await loadOwners();
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.saveOwner));
+    } finally {
+      setOwnerSubmitting(false);
+    }
   };
 
-  const copyModalPassword = () => {
-    if (!ownerForm.password) return;
-    navigator.clipboard?.writeText(ownerForm.password).catch(() => {});
-    toast.success(t.common.passwordCopied);
+  const removeOwner = async (ownerId: string) => {
+    try {
+      await deleteUser(ownerId);
+      toast.success(t.companyDetail.toasts.ownerDeleted);
+      await loadOwners();
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.deleteOwner));
+    } finally {
+      setConfirmDeleteOwnerId(null);
+    }
   };
 
   const startEdit = () => {
@@ -411,7 +512,7 @@ export function CompanyDetail() {
 
   return (
     <>
-      <PageHead title={company.name || "—"} sub={t.companyDetail.sub} onBack={() => nav("/companies")} />
+      <PageHead title={company.name || "—"} sub={t.companyDetail.sub} onBack={() => nav(-1)} />
 
       <div className="detail-layout">
         <Card className="detail-media gap-0 overflow-hidden py-0">
@@ -544,10 +645,21 @@ export function CompanyDetail() {
               </div>
             ) : (
               <>
-                <div className="mb-2.5 flex gap-1.5">
-                  <CompanyStatusBadge status={company.subscription?.status ?? ""} />
+                <div className="mb-3 text-xl font-bold">{company.name || "—"}</div>
+                <div className="mb-3">
+                  <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                    {t.common.status}
+                  </div>
+                  <div className="mt-1.5 flex gap-1.5">
+                    <CompanyStatusBadge status={company.subscription?.status ?? ""} />
+                  </div>
                 </div>
-                <p className="mb-4 leading-relaxed text-muted-foreground">{description}</p>
+                <div className="mb-4">
+                  <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                    {t.common.description}
+                  </div>
+                  <p className="mt-1 leading-relaxed text-muted-foreground">{description}</p>
+                </div>
                 <dl className="detail-dl">
                   <div>
                     <dt>{t.common.city}</dt>
@@ -664,32 +776,70 @@ export function CompanyDetail() {
               {t.companyDetail.addOwner}
             </Button>
           </div>
-          {owners.length === 0 && <p className="text-sm text-muted-foreground">{t.companyDetail.noOwners}</p>}
-          {owners.map((o) => (
-            <div className="owner-row" key={o.id}>
-              <div className="owner-row-main">
-                <b>{o.name}</b>
-                <div className="text-sm text-muted-foreground">
-                  {o.email}
-                  {o.phone ? ` · ${o.phone}` : ""}
+          {ownersLoading ? (
+            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
+          ) : owners.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t.companyDetail.noOwners}</p>
+          ) : (
+            owners.map((o) => (
+              <div className="owner-row" key={o.id}>
+                <div className="owner-row-main flex items-center gap-3">
+                  <Avatar className="size-9 shrink-0">
+                    <AvatarFallback className="bg-secondary text-xs font-semibold text-muted-foreground">
+                      {initials(o.fullName ?? "")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <b>{o.fullName}</b>
+                    <div className="text-sm text-muted-foreground">{o.email}</div>
+                  </div>
                 </div>
-                {o.login && <div className="text-sm text-muted-foreground">{t.companyDetail.loginLabel} {o.login}</div>}
-              </div>
-              <div className="owner-row-actions">
-                {o.password && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => copyPassword(o)}>
-                    {t.common.copyPassword}
+                <div className="owner-row-actions">
+                  <Button type="button" variant="outline" size="sm" onClick={() => openEditOwner(o.id)}>
+                    {t.common.edit}
                   </Button>
-                )}
-                <Button type="button" variant="outline" size="sm" onClick={() => openEditOwner(o)}>
-                  {t.common.edit}
-                </Button>
-                <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteOwnerId(o.id)}>
-                  {t.common.delete}
-                </Button>
+                  <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteOwnerId(o.id)}>
+                    {t.common.delete}
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-3.5">
+        <CardContent>
+          <div className="list-head">
+            <h3>{t.companyDetail.otherUsersTitle}</h3>
+          </div>
+          {otherUsersLoading ? (
+            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
+          ) : otherUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t.companyDetail.noOtherUsers}</p>
+          ) : (
+            otherUsers.map((u) => (
+              <div
+                className="owner-row cursor-pointer"
+                key={u.id}
+                tabIndex={0}
+                onClick={() => nav(`/users/${u.id}`)}
+                onKeyDown={(e) => e.key === "Enter" && nav(`/users/${u.id}`)}
+              >
+                <div className="owner-row-main flex items-center gap-3">
+                  <Avatar className="size-9 shrink-0">
+                    <AvatarFallback className="bg-secondary text-xs font-semibold text-muted-foreground">
+                      {initials(u.fullName ?? "")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <b>{u.fullName}</b>
+                    <div className="text-sm text-muted-foreground">{u.email}</div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
 
@@ -713,36 +863,60 @@ export function CompanyDetail() {
             <DialogTitle>{ownerModal?.mode === "edit" ? t.companyDetail.ownerModalTitleEdit : t.companyDetail.ownerModalTitleCreate}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <Field label={t.companyDetail.fullName}>
-              <Input value={ownerForm.name} onChange={(e) => setOwnerField("name", e.target.value)} autoFocus />
+            <div className="flex items-center gap-3">
+              <Avatar className="size-16">
+                <AvatarImage src={ownerAvatarUrl ?? undefined} alt="" />
+                <AvatarFallback className="bg-secondary text-lg font-semibold text-muted-foreground">
+                  {initials(`${ownerForm.firstName} ${ownerForm.lastName}`.trim())}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={ownerAvatarUploading}
+                onClick={() => ownerFileInputRef.current?.click()}
+              >
+                {ownerAvatarUploading && <Loader2 className="size-4 animate-spin" />}
+                {t.common.chooseImage}
+              </Button>
+              <input
+                ref={ownerFileInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => pickOwnerAvatar(e.target.files?.[0])}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3 max-[860px]:grid-cols-1">
+              <Field label={t.users.firstName}>
+                <Input value={ownerForm.firstName} onChange={(e) => setOwnerField("firstName", e.target.value)} autoFocus />
+              </Field>
+              <Field label={t.users.lastName}>
+                <Input value={ownerForm.lastName} onChange={(e) => setOwnerField("lastName", e.target.value)} />
+              </Field>
+            </div>
+            <Field label={t.users.middleName}>
+              <Input value={ownerForm.middleName} onChange={(e) => setOwnerField("middleName", e.target.value)} />
             </Field>
             <Field label={t.common.email}>
               <Input value={ownerForm.email} onChange={(e) => setOwnerField("email", e.target.value)} />
             </Field>
-            <Field label={t.common.phone}>
-              <Input value={ownerForm.phone} onChange={(e) => setOwnerField("phone", e.target.value)} />
-            </Field>
-            <Field label={t.companyDetail.loginLabel}>
-              <Input value={ownerForm.login} onChange={(e) => setOwnerField("login", e.target.value)} />
-            </Field>
-            <Field label={t.login.password}>
-              <div className="password-gen">
-                <Input value={ownerForm.password} onChange={(e) => setOwnerField("password", e.target.value)} />
-                <Button type="button" variant="outline" size="icon" onClick={copyModalPassword} aria-label={t.common.copyPassword}>
-                  <Copy />
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => setOwnerField("password", randomPassword())}>
-                  <RefreshCw />
-                  {t.common.generate}
-                </Button>
-              </div>
-            </Field>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Switch checked={ownerForm.isActive} onCheckedChange={(v) => setOwnerField("isActive", v)} />
+              {t.users.userActive}
+            </label>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOwnerModal(null)}>
+            <Button type="button" variant="outline" onClick={() => setOwnerModal(null)} disabled={ownerSubmitting}>
               {t.common.cancel}
             </Button>
-            <Button type="button" disabled={!ownerForm.name.trim()} onClick={submitOwner}>
+            <Button
+              type="button"
+              disabled={!ownerForm.firstName.trim() || !ownerForm.email.trim() || ownerSubmitting}
+              onClick={submitOwner}
+            >
+              {ownerSubmitting && <Loader2 className="size-4 animate-spin" />}
               {ownerModal?.mode === "edit" ? t.common.save : t.common.create}
             </Button>
           </DialogFooter>
