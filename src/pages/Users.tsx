@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { createAdminUser, listUsers, ApiRequestError, type UserListItem, type UserType } from "../lib/api";
+import {
+  createAdminUser,
+  listCompanies,
+  listUsers,
+  ApiRequestError,
+  type CompanyListItem,
+  type UserListItem,
+  type UserType,
+} from "../lib/api";
+import { randomPassword } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
@@ -11,7 +20,8 @@ import { Field } from "@/components/Field";
 import { ActiveBadge } from "@/components/StatusBadge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -41,12 +51,16 @@ import {
 const DEFAULT_PAGE_SIZE = 10;
 
 const SELECTABLE_USER_TYPES: UserType[] = ["Admin", "Owner", "Worker", "Client"];
+const IS_ACTIVE_ANY = "any";
+const COMPANY_ANY = "any";
+const SHOW_COMPANY_USERS_ANY = "any";
 
 type UserForm = {
   firstName: string;
   lastName: string;
   middleName: string;
   email: string;
+  password: string;
   isActive: boolean;
 };
 
@@ -55,6 +69,7 @@ const emptyUserForm: UserForm = {
   lastName: "",
   middleName: "",
   email: "",
+  password: "",
   isActive: true,
 };
 
@@ -82,6 +97,9 @@ export function Users() {
     : "Admin";
   const initialSearch = searchParams.get("search") ?? "";
   const initialPage = Number(searchParams.get("page")) || 1;
+  const initialIsActive = searchParams.get("isActive") ?? "";
+  const initialCompanyId = searchParams.get("companyId") ?? "";
+  const initialShowCompanyUsers = searchParams.get("showCompanyUsers") ?? "";
 
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -90,8 +108,16 @@ export function Users() {
   const [query, setQuery] = useState(initialSearch);
   const [committedQuery, setCommittedQuery] = useState(initialSearch);
   const [userType, setUserType] = useState<UserType>(initialUserType);
+  const [isActive, setIsActive] = useState(initialIsActive);
+  const [companyId, setCompanyId] = useState(initialCompanyId);
+  const [shouldShowCompanyTypeUsers, setShouldShowCompanyTypeUsers] = useState(initialShowCompanyUsers);
+
+  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
+  const [companiesLoaded, setCompaniesLoaded] = useState(false);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<UserForm>(emptyUserForm);
@@ -106,7 +132,15 @@ export function Users() {
     Unknown: "",
   };
 
-  const fetchUsers = async (pageArg: number, pageSizeArg: number, searchArg: string, userTypeArg: UserType) => {
+  const fetchUsers = async (
+    pageArg: number,
+    pageSizeArg: number,
+    searchArg: string,
+    userTypeArg: UserType,
+    isActiveArg: string,
+    companyIdArg: string,
+    showCompanyUsersArg: string,
+  ) => {
     setLoadingList(true);
     try {
       const res = await listUsers({
@@ -114,6 +148,9 @@ export function Users() {
         pageSize: pageSizeArg,
         search: searchArg || undefined,
         userType: userTypeArg,
+        isActive: isActiveArg === "" ? undefined : isActiveArg === "true",
+        companyId: companyIdArg || undefined,
+        shouldShowCompanyTypeUsers: showCompanyUsersArg === "" ? undefined : showCompanyUsersArg === "true",
       });
       setUsers(res.items ?? []);
       setHasNextPage(res.pagination.hasNextPage);
@@ -123,6 +160,18 @@ export function Users() {
     } finally {
       setLoadingList(false);
     }
+  };
+
+  const loadCompaniesOnce = () => {
+    if (companiesLoaded || companiesLoading) return;
+    setCompaniesLoading(true);
+    listCompanies({ pageSize: 200 })
+      .then((res) => {
+        setCompanies(res.items ?? []);
+        setCompaniesLoaded(true);
+      })
+      .catch((err) => toast.error(errorMessage(err, t.users.errors.loadUsers)))
+      .finally(() => setCompaniesLoading(false));
   };
 
   useEffect(() => {
@@ -136,17 +185,20 @@ export function Users() {
   }, [query]);
 
   useEffect(() => {
-    fetchUsers(page, pageSize, committedQuery, userType);
+    fetchUsers(page, pageSize, committedQuery, userType, isActive, companyId, shouldShowCompanyTypeUsers);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, committedQuery, userType]);
+  }, [page, pageSize, committedQuery, userType, isActive, companyId, shouldShowCompanyTypeUsers]);
 
   useEffect(() => {
     const params: Record<string, string> = { type: userType };
     if (committedQuery) params.search = committedQuery;
     if (page > 1) params.page = String(page);
+    if (isActive) params.isActive = isActive;
+    if (companyId) params.companyId = companyId;
+    if (shouldShowCompanyTypeUsers) params.showCompanyUsers = shouldShowCompanyTypeUsers;
     setSearchParams(params, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userType, committedQuery, page]);
+  }, [userType, committedQuery, page, isActive, companyId, shouldShowCompanyTypeUsers]);
 
   const changePageSize = (size: number) => {
     setPageSize(size);
@@ -158,12 +210,33 @@ export function Users() {
     setPage(1);
   };
 
+  const changeIsActive = (value: string) => {
+    setIsActive(value === IS_ACTIVE_ANY ? "" : value);
+    setPage(1);
+  };
+
+  const changeCompanyId = (value: string) => {
+    setCompanyId(value === COMPANY_ANY ? "" : value);
+    setPage(1);
+  };
+
+  const changeShouldShowCompanyTypeUsers = (value: string) => {
+    setShouldShowCompanyTypeUsers(value === SHOW_COMPANY_USERS_ANY ? "" : value);
+    setPage(1);
+  };
+
   const setField = <K extends keyof UserForm>(key: K, value: UserForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
   const openCreate = () => {
-    setForm(emptyUserForm);
+    setForm({ ...emptyUserForm, password: randomPassword() });
     setShowCreate(true);
+  };
+
+  const copyPassword = () => {
+    if (!form.password) return;
+    navigator.clipboard?.writeText(form.password).catch(() => {});
+    toast.success(t.common.passwordCopied);
   };
 
   const submit = async () => {
@@ -175,6 +248,7 @@ export function Users() {
         lastName: form.lastName.trim() || null,
         middleName: form.middleName.trim() || null,
         email: form.email.trim(),
+        password: form.password.trim() || null,
         isActive: form.isActive,
       });
       toast.success(t.users.toasts.created);
@@ -192,31 +266,101 @@ export function Users() {
       <PageHead
         title={t.users.title}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              className="w-56"
-              placeholder={t.users.searchPlaceholder}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <Select value={userType} onValueChange={(v) => changeUserType(v as UserType)}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SELECTABLE_USER_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {typeLabels[type]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button type="button" onClick={openCreate}>
-              {t.users.newUser}
-            </Button>
-          </div>
+          <Button type="button" onClick={openCreate}>
+            {t.users.newUser}
+          </Button>
         }
       />
+
+      <Card className="mb-4">
+        <CardContent className="grid gap-3">
+          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <CollapsibleContent className="grid gap-3">
+              <div className="grid grid-cols-4 gap-3 max-[1100px]:grid-cols-3 max-[700px]:grid-cols-2 max-[420px]:grid-cols-1">
+                <Field label={t.users.filters.search}>
+                  <Input
+                    placeholder={t.users.searchPlaceholder}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                  />
+                </Field>
+                <Field label={t.userDetail.type}>
+                  <Select value={userType} onValueChange={(v) => changeUserType(v as UserType)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SELECTABLE_USER_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {typeLabels[type]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label={t.common.status}>
+                  <Select value={isActive || IS_ACTIVE_ANY} onValueChange={changeIsActive}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={IS_ACTIVE_ANY}>{t.activityLogs.filters.typeNotSelected}</SelectItem>
+                      <SelectItem value="true">{t.common.active}</SelectItem>
+                      <SelectItem value="false">{t.common.disabled}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label={t.users.filters.companyId}>
+                  <Select
+                    value={companyId || COMPANY_ANY}
+                    onValueChange={changeCompanyId}
+                    onOpenChange={(open) => open && loadCompaniesOnce()}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={t.activityLogs.filters.typeNotSelected} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={COMPANY_ANY}>{t.activityLogs.filters.typeNotSelected}</SelectItem>
+                      {companiesLoading ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">{t.common.loading}</div>
+                      ) : (
+                        companies.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name || c.id}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label={t.users.filters.showCompanyUsers}>
+                  <Select
+                    value={shouldShowCompanyTypeUsers || SHOW_COMPANY_USERS_ANY}
+                    onValueChange={changeShouldShowCompanyTypeUsers}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={SHOW_COMPANY_USERS_ANY}>{t.activityLogs.filters.typeNotSelected}</SelectItem>
+                      <SelectItem value="true">{t.common.yes}</SelectItem>
+                      <SelectItem value="false">{t.common.no}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+            </CollapsibleContent>
+            <div className="flex justify-end">
+              <CollapsibleTrigger asChild>
+                <Button type="button" variant="outline" size="sm">
+                  {filtersOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                  {t.activityLogs.filters.toggle}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+          </Collapsible>
+        </CardContent>
+      </Card>
 
       {!loadingList && users.length === 0 ? (
         <EmptyState
@@ -331,6 +475,18 @@ export function Users() {
             </Field>
             <Field label={t.common.email}>
               <Input value={form.email} onChange={(e) => setField("email", e.target.value)} />
+            </Field>
+            <Field label={t.login.password}>
+              <div className="password-gen">
+                <Input value={form.password} onChange={(e) => setField("password", e.target.value)} />
+                <Button type="button" variant="outline" size="icon" onClick={copyPassword} aria-label={t.common.copyPassword}>
+                  <Copy />
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setField("password", randomPassword())}>
+                  <RefreshCw />
+                  {t.common.generate}
+                </Button>
+              </div>
             </Field>
             <label className="flex items-center gap-2 text-sm font-medium">
               <Switch checked={form.isActive} onCheckedChange={(v) => setField("isActive", v)} />

@@ -8,12 +8,14 @@ import {
   listUsers,
   ApiRequestError,
   type ActivityLogItem,
+  type UserType,
 } from "../lib/api";
 import { formatDateTime } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { Button } from "@/components/ui/button";
+import { UserTypeBadge } from "@/components/StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EmptyState } from "@/components/EmptyState";
@@ -38,6 +40,8 @@ import {
 
 const DEFAULT_PAGE_SIZE = 10;
 const TYPE_NONE = "none";
+const CREATOR_TYPE_NONE = "none";
+const CREATOR_TYPES: UserType[] = ["SuperAdmin", "Admin", "Owner", "Worker", "Client", "Unknown"];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type CreatorMatch = { id: string; fullName?: string | null; email?: string | null };
@@ -48,6 +52,7 @@ type Filters = {
   creatorId: string;
   creatorName: string;
   creatorEmail: string;
+  creatorType: UserType | "";
   creatorIpAddress: string;
   serviceName: string;
   sessionId: string;
@@ -63,6 +68,7 @@ const emptyFilters: Filters = {
   creatorId: "",
   creatorName: "",
   creatorEmail: "",
+  creatorType: "",
   creatorIpAddress: "",
   serviceName: "",
   sessionId: "",
@@ -115,6 +121,7 @@ export function ActivityLogs() {
         entityId: f.entityId.trim() || undefined,
         activityCode: f.activityCode.trim() || undefined,
         creatorId: f.creatorId || undefined,
+        creatorType: f.creatorType || undefined,
         creatorEmail: f.creatorEmail.trim() || undefined,
         creatorIpAddress: f.creatorIpAddress.trim() || undefined,
         serviceName: f.serviceName.trim() || undefined,
@@ -195,6 +202,15 @@ export function ActivityLogs() {
     }
   };
 
+  const creatorTypeLabels: Record<UserType, string> = {
+    SuperAdmin: t.users.typeSuperAdmin,
+    Admin: t.users.typeAdmin,
+    Owner: t.users.typeOwner,
+    Worker: t.users.typeWorker,
+    Client: t.users.typeClient,
+    Unknown: "Unknown",
+  };
+
   return (
     <>
       <PageHead title={t.activityLogs.title} />
@@ -254,6 +270,24 @@ export function ActivityLogs() {
                   </div>
                 )}
               </div>
+            </Field>
+            <Field label={t.activityLogs.filters.creatorType}>
+              <Select
+                value={filters.creatorType || CREATOR_TYPE_NONE}
+                onValueChange={(v) => setFilter("creatorType", v === CREATOR_TYPE_NONE ? "" : (v as UserType))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t.activityLogs.filters.creatorTypeNotSelected} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={CREATOR_TYPE_NONE}>{t.activityLogs.filters.creatorTypeNotSelected}</SelectItem>
+                  {CREATOR_TYPES.map((ct) => (
+                    <SelectItem key={ct} value={ct}>
+                      {creatorTypeLabels[ct]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
             <Field label={t.activityLogs.filters.email}>
               <Input
@@ -345,6 +379,7 @@ export function ActivityLogs() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t.activityLogs.tableCreator}</TableHead>
+                <TableHead>{t.activityLogs.tableCreatorType}</TableHead>
                 <TableHead>{t.activityLogs.tableActivity}</TableHead>
                 <TableHead>{t.activityLogs.tableType}</TableHead>
                 <TableHead>{t.activityLogs.tableService}</TableHead>
@@ -358,6 +393,9 @@ export function ActivityLogs() {
                   <TableRow key={i} className="animate-in fade-in duration-300">
                     <TableCell>
                       <Skeleton className="h-4 w-28" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-16 rounded-full" />
                     </TableCell>
                     <TableCell>
                       <Skeleton className="h-4 w-36" />
@@ -384,6 +422,7 @@ export function ActivityLogs() {
                     onClick={() => nav(`/activity-logs/${log.id}`)}
                   >
                     <TableCell className="font-medium">{log.creatorName || "—"}</TableCell>
+                    <TableCell>{log.creatorType ? <UserTypeBadge type={log.creatorType} /> : "—"}</TableCell>
                     <TableCell>{log.activityTitle || "—"}</TableCell>
                     <TableCell>{typeLabel(log.type)}</TableCell>
                     <TableCell className="text-muted-foreground">{log.serviceName || "—"}</TableCell>

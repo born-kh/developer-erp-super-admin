@@ -8,6 +8,7 @@ import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { JsonTree } from "@/components/JsonTree";
+import { UserTypeBadge } from "@/components/StatusBadge";
 
 function errorMessage(err: unknown, fallback: string) {
   return err instanceof ApiRequestError ? err.message : fallback;
@@ -123,7 +124,10 @@ export function ActivityLogDetail() {
                 </div>
               </Row>
               <Row label={d.creator}>
-                <div className="font-medium">{detail.creatorName || na}</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{detail.creatorName || na}</span>
+                  {detail.creatorType && <UserTypeBadge type={detail.creatorType} />}
+                </div>
                 <div className="mt-1 text-xs text-muted-foreground">
                   {d.id}: <Copyable value={detail.creatorId} />
                 </div>

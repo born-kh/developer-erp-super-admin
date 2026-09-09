@@ -70,6 +70,8 @@ export type Dict = {
     statusSuspended: string;
     active: string;
     disabled: string;
+    yes: string;
+    no: string;
     nothingFound: string;
     package: string;
     rowNumber: string;
@@ -210,6 +212,11 @@ export type Dict = {
     typeOwner: string;
     typeWorker: string;
     typeClient: string;
+    filters: {
+      search: string;
+      companyId: string;
+      showCompanyUsers: string;
+    };
     errors: { loadUsers: string; saveUser: string };
     toasts: { created: string };
   };
@@ -299,6 +306,11 @@ export type Dict = {
     modalTitleCreate: string;
     code: string;
     nameLang: (lang: string) => string;
+    filters: {
+      search: string;
+      companyId: string;
+      showCompanyRoles: string;
+    };
     errors: { loadRoles: string; saveRole: string };
     toasts: { created: string };
   };
@@ -381,6 +393,8 @@ export type Dict = {
       creatorPlaceholder: string;
       creatorSearching: string;
       creatorNotFound: string;
+      creatorType: string;
+      creatorTypeNotSelected: string;
       email: string;
       emailPlaceholder: string;
       ipAddress: string;
@@ -405,6 +419,7 @@ export type Dict = {
       viewed: string;
     };
     tableCreator: string;
+    tableCreatorType: string;
     tableActivity: string;
     tableType: string;
     tableService: string;
@@ -508,6 +523,8 @@ export const translations: Record<Language, Dict> = {
       statusSuspended: "Приостановлена",
       active: "Активен",
       disabled: "Отключен",
+      yes: "Да",
+      no: "Нет",
       nothingFound: "Ничего не найдено.",
       package: "Пакет",
       rowNumber: "№",
@@ -652,6 +669,11 @@ export const translations: Record<Language, Dict> = {
       typeOwner: "Владелец",
       typeWorker: "Сотрудник",
       typeClient: "Клиент",
+      filters: {
+        search: "Поиск",
+        companyId: "Компания",
+        showCompanyUsers: "Показывать пользователей компаний",
+      },
       errors: { loadUsers: "Не удалось загрузить пользователей", saveUser: "Не удалось сохранить пользователя" },
       toasts: { created: "Пользователь создан" },
     },
@@ -745,6 +767,11 @@ export const translations: Record<Language, Dict> = {
       modalTitleCreate: "Новая роль",
       code: "Код роли",
       nameLang: (lang) => `Название (${lang})`,
+      filters: {
+        search: "Поиск",
+        companyId: "Компания",
+        showCompanyRoles: "Показывать роли компаний",
+      },
       errors: { loadRoles: "Не удалось загрузить роли", saveRole: "Не удалось сохранить роль" },
       toasts: { created: "Роль создана" },
     },
@@ -840,6 +867,8 @@ export const translations: Record<Language, Dict> = {
         creatorPlaceholder: "Введите имя пользователя или ID",
         creatorSearching: "Поиск...",
         creatorNotFound: "Пользователь не найден",
+        creatorType: "Тип создателя",
+        creatorTypeNotSelected: "Не выбрано",
         email: "Эл. почта",
         emailPlaceholder: "Введите адрес электронной почты",
         ipAddress: "IP-адрес",
@@ -864,6 +893,7 @@ export const translations: Record<Language, Dict> = {
         viewed: "Просмотрено",
       },
       tableCreator: "Имя создателя",
+      tableCreatorType: "Тип создателя",
       tableActivity: "Название типа активности",
       tableType: "Тип",
       tableService: "Название системы",
@@ -970,6 +1000,8 @@ export const translations: Record<Language, Dict> = {
       statusSuspended: "Suspended",
       active: "Active",
       disabled: "Disabled",
+      yes: "Yes",
+      no: "No",
       nothingFound: "Nothing found.",
       package: "Package",
       rowNumber: "#",
@@ -1114,6 +1146,11 @@ export const translations: Record<Language, Dict> = {
       typeOwner: "Owner",
       typeWorker: "Worker",
       typeClient: "Client",
+      filters: {
+        search: "Search",
+        companyId: "Company",
+        showCompanyUsers: "Show company users",
+      },
       errors: { loadUsers: "Failed to load users", saveUser: "Failed to save user" },
       toasts: { created: "User created" },
     },
@@ -1207,6 +1244,11 @@ export const translations: Record<Language, Dict> = {
       modalTitleCreate: "New role",
       code: "Role code",
       nameLang: (lang) => `Name (${lang})`,
+      filters: {
+        search: "Search",
+        companyId: "Company",
+        showCompanyRoles: "Show company roles",
+      },
       errors: { loadRoles: "Failed to load roles", saveRole: "Failed to save role" },
       toasts: { created: "Role created" },
     },
@@ -1302,6 +1344,8 @@ export const translations: Record<Language, Dict> = {
         creatorPlaceholder: "Enter user name or ID",
         creatorSearching: "Searching...",
         creatorNotFound: "User not found",
+        creatorType: "Creator type",
+        creatorTypeNotSelected: "Not selected",
         email: "Email",
         emailPlaceholder: "Enter email address",
         ipAddress: "IP address",
@@ -1326,6 +1370,7 @@ export const translations: Record<Language, Dict> = {
         viewed: "Viewed",
       },
       tableCreator: "Creator name",
+      tableCreatorType: "Creator type",
       tableActivity: "Activity type",
       tableType: "Type",
       tableService: "Service name",
@@ -1432,6 +1477,8 @@ export const translations: Record<Language, Dict> = {
       statusSuspended: "Боздошта шуда",
       active: "Фаъол",
       disabled: "Ғайрифаъол",
+      yes: "Ҳа",
+      no: "Не",
       nothingFound: "Чизе ёфт нашуд.",
       package: "Баста",
       rowNumber: "№",
@@ -1576,6 +1623,11 @@ export const translations: Record<Language, Dict> = {
       typeOwner: "Соҳиб",
       typeWorker: "Корманд",
       typeClient: "Мизоҷ",
+      filters: {
+        search: "Ҷустуҷӯ",
+        companyId: "Ширкат",
+        showCompanyUsers: "Нишон додани корбарони ширкатҳо",
+      },
       errors: { loadUsers: "Боргирии корбарон ноком шуд", saveUser: "Захираи корбар ноком шуд" },
       toasts: { created: "Корбар эҷод шуд" },
     },
@@ -1669,6 +1721,11 @@ export const translations: Record<Language, Dict> = {
       modalTitleCreate: "Нақши нав",
       code: "Коди нақш",
       nameLang: (lang) => `Ном (${lang})`,
+      filters: {
+        search: "Ҷустуҷӯ",
+        companyId: "Ширкат",
+        showCompanyRoles: "Нишон додани нақшҳои ширкатҳо",
+      },
       errors: { loadRoles: "Нақшҳоро бор карда натавонист", saveRole: "Нақшро захира карда натавонист" },
       toasts: { created: "Нақш эҷод шуд" },
     },
@@ -1764,6 +1821,8 @@ export const translations: Record<Language, Dict> = {
         creatorPlaceholder: "Номи корбар ё ID-ро ворид кунед",
         creatorSearching: "Ҷустуҷӯ...",
         creatorNotFound: "Корбар ёфт нашуд",
+        creatorType: "Навъи эҷодкунанда",
+        creatorTypeNotSelected: "Интихоб нашудааст",
         email: "Email",
         emailPlaceholder: "Суроғаи email-ро ворид кунед",
         ipAddress: "Суроғаи IP",
@@ -1788,6 +1847,7 @@ export const translations: Record<Language, Dict> = {
         viewed: "Дида шуд",
       },
       tableCreator: "Номи эҷодкунанда",
+      tableCreatorType: "Навъи эҷодкунанда",
       tableActivity: "Номи навъи фаъолият",
       tableType: "Навъ",
       tableService: "Номи хидмат",

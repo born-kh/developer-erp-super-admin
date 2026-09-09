@@ -1,16 +1,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
-import { createRole, listRoles, ApiRequestError, type RoleLookup } from "../lib/api";
+import {
+  createRole,
+  listCompanies,
+  listRoles,
+  ApiRequestError,
+  type CompanyListItem,
+  type RoleLookup,
+} from "../lib/api";
 import { useTranslation } from "../i18n/LanguageContext";
 import { useModuleSettings } from "../data/moduleSettingsStore";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
+import { Card, CardContent } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +27,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -30,6 +45,8 @@ import {
 } from "@/components/ui/table";
 
 const DEFAULT_PAGE_SIZE = 10;
+const COMPANY_ANY = "any";
+const SHOW_COMPANY_ROLES_ANY = "any";
 
 type Translations = Record<string, string>;
 
@@ -59,18 +76,37 @@ export function Roles() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [query, setQuery] = useState("");
   const [committedQuery, setCommittedQuery] = useState("");
+  const [companyId, setCompanyId] = useState("");
+  const [shouldShowCompanyRoles, setShouldShowCompanyRoles] = useState("");
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(true);
+
+  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
+  const [companiesLoaded, setCompaniesLoaded] = useState(false);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<RoleForm>(() => makeEmptyForm());
   const [activeLang, setActiveLang] = useState<string>(defaultLang);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchRoles = async (pageArg: number, pageSizeArg: number, searchArg: string) => {
+  const fetchRoles = async (
+    pageArg: number,
+    pageSizeArg: number,
+    searchArg: string,
+    companyIdArg: string,
+    showCompanyRolesArg: string,
+  ) => {
     setLoadingList(true);
     try {
-      const res = await listRoles({ page: pageArg, pageSize: pageSizeArg, search: searchArg || undefined });
+      const res = await listRoles({
+        page: pageArg,
+        pageSize: pageSizeArg,
+        search: searchArg || undefined,
+        companyId: companyIdArg || undefined,
+        shouldShowCompanyRoles: showCompanyRolesArg === "" ? undefined : showCompanyRolesArg === "true",
+      });
       setRoles(res.items ?? []);
       setHasNextPage(res.pagination.hasNextPage);
       setHasPreviousPage(res.pagination.hasPreviousPage ?? pageArg > 1);
@@ -79,6 +115,18 @@ export function Roles() {
     } finally {
       setLoadingList(false);
     }
+  };
+
+  const loadCompaniesOnce = () => {
+    if (companiesLoaded || companiesLoading) return;
+    setCompaniesLoading(true);
+    listCompanies({ pageSize: 200 })
+      .then((res) => {
+        setCompanies(res.items ?? []);
+        setCompaniesLoaded(true);
+      })
+      .catch((err) => toast.error(errorMessage(err, t.roles.errors.loadRoles)))
+      .finally(() => setCompaniesLoading(false));
   };
 
   useEffect(() => {
@@ -90,12 +138,22 @@ export function Roles() {
   }, [query]);
 
   useEffect(() => {
-    fetchRoles(page, pageSize, committedQuery);
+    fetchRoles(page, pageSize, committedQuery, companyId, shouldShowCompanyRoles);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, committedQuery]);
+  }, [page, pageSize, committedQuery, companyId, shouldShowCompanyRoles]);
 
   const changePageSize = (size: number) => {
     setPageSize(size);
+    setPage(1);
+  };
+
+  const changeCompanyId = (value: string) => {
+    setCompanyId(value === COMPANY_ANY ? "" : value);
+    setPage(1);
+  };
+
+  const changeShouldShowCompanyRoles = (value: string) => {
+    setShouldShowCompanyRoles(value === SHOW_COMPANY_ROLES_ANY ? "" : value);
     setPage(1);
   };
 
@@ -134,19 +192,75 @@ export function Roles() {
       <PageHead
         title={t.roles.title}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              className="w-56"
-              placeholder={t.roles.searchPlaceholder}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <Button type="button" onClick={openCreate}>
-              {t.roles.addRole}
-            </Button>
-          </div>
+          <Button type="button" onClick={openCreate}>
+            {t.roles.addRole}
+          </Button>
         }
       />
+
+      <Card className="mb-4">
+        <CardContent className="grid gap-3">
+          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <CollapsibleContent className="grid gap-3">
+              <div className="grid grid-cols-3 gap-3 max-[900px]:grid-cols-2 max-[500px]:grid-cols-1">
+                <Field label={t.roles.filters.search}>
+                  <Input
+                    placeholder={t.roles.searchPlaceholder}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                  />
+                </Field>
+                <Field label={t.roles.filters.companyId}>
+                  <Select
+                    value={companyId || COMPANY_ANY}
+                    onValueChange={changeCompanyId}
+                    onOpenChange={(open) => open && loadCompaniesOnce()}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={t.activityLogs.filters.typeNotSelected} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={COMPANY_ANY}>{t.activityLogs.filters.typeNotSelected}</SelectItem>
+                      {companiesLoading ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">{t.common.loading}</div>
+                      ) : (
+                        companies.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name || c.id}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label={t.roles.filters.showCompanyRoles}>
+                  <Select
+                    value={shouldShowCompanyRoles || SHOW_COMPANY_ROLES_ANY}
+                    onValueChange={changeShouldShowCompanyRoles}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={SHOW_COMPANY_ROLES_ANY}>{t.activityLogs.filters.typeNotSelected}</SelectItem>
+                      <SelectItem value="true">{t.common.yes}</SelectItem>
+                      <SelectItem value="false">{t.common.no}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+            </CollapsibleContent>
+            <div className="flex justify-end">
+              <CollapsibleTrigger asChild>
+                <Button type="button" variant="outline" size="sm">
+                  {filtersOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                  {t.activityLogs.filters.toggle}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+          </Collapsible>
+        </CardContent>
+      </Card>
 
       {!loadingList && roles.length === 0 ? (
         <EmptyState

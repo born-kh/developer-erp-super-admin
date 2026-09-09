@@ -239,6 +239,7 @@ export type CreateAdminUserInput = {
   middleName?: string | null;
   email: string;
   avatarName?: string | null;
+  password?: string | null;
   isActive: boolean;
 };
 
@@ -249,6 +250,7 @@ export type CreateOwnerUserInput = {
   middleName?: string | null;
   email: string;
   avatarName?: string | null;
+  password?: string | null;
   isActive: boolean;
 };
 
@@ -269,6 +271,7 @@ export function listUsers(
     isActive?: boolean;
     userType?: UserType;
     companyId?: string;
+    shouldShowCompanyTypeUsers?: boolean;
     page?: number;
     pageSize?: number;
   } = {},
@@ -278,6 +281,9 @@ export function listUsers(
   if (params.isActive !== undefined) query.set("IsActive", String(params.isActive));
   if (params.userType) query.set("UserType", params.userType);
   if (params.companyId) query.set("CompanyId", params.companyId);
+  if (params.shouldShowCompanyTypeUsers !== undefined) {
+    query.set("ShouldShowCompanyTypeUsers", String(params.shouldShowCompanyTypeUsers));
+  }
   query.set("Page", String(params.page ?? 1));
   query.set("PageSize", String(params.pageSize ?? 100));
   return authRequest<PagedResult<UserListItem>>(`/core/api/users?${query.toString()}`);
@@ -364,9 +370,21 @@ export type RoleLookup = {
   title?: string | null;
 };
 
-export function listRoles(params: { search?: string; page?: number; pageSize?: number } = {}) {
+export function listRoles(
+  params: {
+    search?: string;
+    companyId?: string;
+    shouldShowCompanyRoles?: boolean;
+    page?: number;
+    pageSize?: number;
+  } = {},
+) {
   const query = new URLSearchParams();
   if (params.search) query.set("Search", params.search);
+  if (params.companyId) query.set("CompanyId", params.companyId);
+  if (params.shouldShowCompanyRoles !== undefined) {
+    query.set("ShouldShowCompanyRoles", String(params.shouldShowCompanyRoles));
+  }
   query.set("Page", String(params.page ?? 1));
   query.set("PageSize", String(params.pageSize ?? 100));
   return authRequest<PagedResult<RoleLookup>>(`/core/api/roles?${query.toString()}`);
@@ -802,6 +820,7 @@ export type ActivityLogItem = {
   entityId?: string | null;
   creatorId: string;
   creatorName?: string | null;
+  creatorType?: UserType | null;
   activityCode?: string | null;
   activityTitle?: string | null;
   serviceName?: string | null;
@@ -827,6 +846,7 @@ export function listActivityLogs(
     requestId?: string;
     type?: string;
     creatorId?: string;
+    creatorType?: UserType;
     creatorIpAddress?: string;
     creatorEmail?: string;
     createdFrom?: string;
@@ -843,6 +863,7 @@ export function listActivityLogs(
   if (params.requestId) query.set("RequestId", params.requestId);
   if (params.type) query.set("Type", params.type);
   if (params.creatorId) query.set("CreatorId", params.creatorId);
+  if (params.creatorType) query.set("CreatorType", params.creatorType);
   if (params.creatorIpAddress) query.set("CreatorIpAddress", params.creatorIpAddress);
   if (params.creatorEmail) query.set("CreatorEmail", params.creatorEmail);
   if (params.createdFrom) query.set("CreatedFrom", params.createdFrom);

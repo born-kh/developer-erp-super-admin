@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ImageUp, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Copy, ImageUp, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -26,7 +26,7 @@ import {
 } from "../lib/api";
 import { useModuleSettings } from "../data/moduleSettingsStore";
 import { useFileUrl } from "../hooks/useFileUrl";
-import { formatDate, usd } from "../lib/format";
+import { formatDate, randomPassword, usd } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { CompanyPhoto } from "@/components/CompanyPhoto";
@@ -98,6 +98,7 @@ type OwnerForm = {
   middleName: string;
   email: string;
   avatarName: string;
+  password: string;
   isActive: boolean;
 };
 const emptyOwnerForm: OwnerForm = {
@@ -106,6 +107,7 @@ const emptyOwnerForm: OwnerForm = {
   middleName: "",
   email: "",
   avatarName: "",
+  password: "",
   isActive: true,
 };
 
@@ -257,7 +259,7 @@ export function CompanyDetail() {
     company.descriptionTranslations?.[language] || company.descriptionTranslations?.[defaultLang] || "—";
 
   const openCreateOwner = () => {
-    setOwnerForm(emptyOwnerForm);
+    setOwnerForm({ ...emptyOwnerForm, password: randomPassword() });
     setOwnerModal({ mode: "create" });
   };
 
@@ -270,6 +272,7 @@ export function CompanyDetail() {
         middleName: detail.middleName ?? "",
         email: detail.email ?? "",
         avatarName: detail.avatarName ?? "",
+        password: "",
         isActive: detail.isActive,
       });
       setOwnerModal({ mode: "edit", id: ownerId });
@@ -280,6 +283,12 @@ export function CompanyDetail() {
 
   const setOwnerField = <K extends keyof OwnerForm>(key: K, value: OwnerForm[K]) =>
     setOwnerForm((f) => ({ ...f, [key]: value }));
+
+  const copyOwnerPassword = () => {
+    if (!ownerForm.password) return;
+    navigator.clipboard?.writeText(ownerForm.password).catch(() => {});
+    toast.success(t.common.passwordCopied);
+  };
 
   const pickOwnerAvatar = async (file: File | undefined) => {
     if (!file) return;
@@ -316,6 +325,7 @@ export function CompanyDetail() {
           middleName: ownerForm.middleName.trim() || null,
           email: ownerForm.email.trim(),
           avatarName: ownerForm.avatarName.trim() || null,
+          password: ownerForm.password.trim() || null,
           isActive: ownerForm.isActive,
         });
         toast.success(t.companyDetail.toasts.ownerAdded);
@@ -902,6 +912,31 @@ export function CompanyDetail() {
             <Field label={t.common.email}>
               <Input value={ownerForm.email} onChange={(e) => setOwnerField("email", e.target.value)} />
             </Field>
+            {ownerModal?.mode !== "edit" && (
+              <Field label={t.login.password}>
+                <div className="password-gen">
+                  <Input value={ownerForm.password} onChange={(e) => setOwnerField("password", e.target.value)} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={copyOwnerPassword}
+                    aria-label={t.common.copyPassword}
+                  >
+                    <Copy />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOwnerField("password", randomPassword())}
+                  >
+                    <RefreshCw />
+                    {t.common.generate}
+                  </Button>
+                </div>
+              </Field>
+            )}
             <label className="flex items-center gap-2 text-sm font-medium">
               <Switch checked={ownerForm.isActive} onCheckedChange={(v) => setOwnerField("isActive", v)} />
               {t.users.userActive}
