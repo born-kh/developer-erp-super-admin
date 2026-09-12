@@ -17,6 +17,7 @@ import {
 import { clearTokens } from "./auth";
 import { useCurrentUser } from "./data/currentUserStore";
 import { useFileUrl } from "./hooks/useFileUrl";
+import { logout as logoutRequest } from "./lib/api";
 import { initials } from "./lib/format";
 import { useTranslation } from "./i18n/LanguageContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -98,6 +99,7 @@ export function AppShell() {
   }, [loc.pathname]);
 
   const logout = () => {
+    logoutRequest().catch(() => {});
     clearTokens();
     clearCurrentUser();
     nav("/login");

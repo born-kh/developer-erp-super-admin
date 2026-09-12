@@ -42,6 +42,7 @@ export type Dict = {
     save: string;
     create: string;
     edit: string;
+    view: string;
     delete: string;
     close: string;
     back: string;
@@ -107,18 +108,12 @@ export type Dict = {
     lead: string;
     email: string;
     password: string;
-    forgotPassword: string;
     showPassword: string;
     hidePassword: string;
     submit: string;
     fillFields: string;
     loginFailed: string;
-    forgotTitle: string;
-    forgotEmailRequired: string;
-    forgotSuccess: string;
-    forgotFailed: string;
-    send: string;
-    cancel: string;
+    forgotPassword: string;
   };
   overview: {
     title: string;
@@ -239,6 +234,10 @@ export type Dict = {
     noPermissionsAssigned: string;
     deleteUserTitle: string;
     deleteUserDesc: (name: string) => string;
+    changePassword: string;
+    changePasswordTitle: string;
+    newPassword: string;
+    confirmPassword: string;
     errors: {
       saveUser: string;
       deleteUser: string;
@@ -246,8 +245,11 @@ export type Dict = {
       loadRoles: string;
       loadPermissions: string;
       loadCompany: string;
+      passwordMismatch: string;
+      passwordEmpty: string;
+      changePassword: string;
     };
-    toasts: { saved: string; deleted: string; rolesUpdated: string };
+    toasts: { saved: string; deleted: string; rolesUpdated: string; passwordChanged: string };
   };
   profile: {
     sub: string;
@@ -448,12 +450,17 @@ export type Dict = {
     errors: { loadLogs: string; loadDetail: string };
   };
   resetPassword: {
-    lead: string;
-    invalidLink: string;
+    leadEmail: string;
+    leadCode: string;
+    verificationCode: string;
     newPassword: string;
     repeatPassword: string;
+    sendCode: string;
+    changeEmail: string;
+    resendCode: string;
     submit: string;
-    errors: { missingToken: string; mismatch: string; empty: string; failed: string };
+    errors: { missingEmail: string; mismatch: string; empty: string; failedSendCode: string; failed: string };
+    codeSent: string;
     success: string;
   };
 };
@@ -495,6 +502,7 @@ export const translations: Record<Language, Dict> = {
       save: "Сохранить",
       create: "Создать",
       edit: "Изменить",
+      view: "Просмотр",
       delete: "Удалить",
       close: "Закрыть",
       back: "Назад",
@@ -560,18 +568,12 @@ export const translations: Record<Language, Dict> = {
       lead: "Войдите, чтобы управлять компаниями, тарифами и пользователями.",
       email: "Email",
       password: "Пароль",
-      forgotPassword: "Забыли пароль?",
       showPassword: "Показать пароль",
       hidePassword: "Скрыть пароль",
       submit: "Войти",
       fillFields: "Заполните email и пароль",
       loginFailed: "Не удалось войти",
-      forgotTitle: "Восстановление пароля",
-      forgotEmailRequired: "Введите email",
-      forgotSuccess: "Если email существует, на него отправлена ссылка для сброса пароля",
-      forgotFailed: "Не удалось отправить запрос",
-      send: "Отправить",
-      cancel: "Отмена",
+      forgotPassword: "Забыли пароль?",
     },
     overview: {
       title: "Обзор платформы",
@@ -696,6 +698,10 @@ export const translations: Record<Language, Dict> = {
       noPermissionsAssigned: "Прав пока нет.",
       deleteUserTitle: "Удалить пользователя?",
       deleteUserDesc: (name: string) => `Удалить пользователя «${name}»? Это действие необратимо.`,
+      changePassword: "Изменить пароль",
+      changePasswordTitle: "Изменить пароль пользователя",
+      newPassword: "Новый пароль",
+      confirmPassword: "Повторите пароль",
       errors: {
         saveUser: "Не удалось сохранить пользователя",
         deleteUser: "Не удалось удалить пользователя",
@@ -703,10 +709,14 @@ export const translations: Record<Language, Dict> = {
         loadRoles: "Не удалось загрузить роли",
         loadPermissions: "Не удалось загрузить права доступа",
         loadCompany: "Не удалось загрузить компанию",
+        passwordMismatch: "Пароли не совпадают",
+        passwordEmpty: "Введите новый пароль",
+        changePassword: "Не удалось изменить пароль",
       },
       toasts: {
         saved: "Пользователь сохранён",
         deleted: "Пользователь удалён",
+        passwordChanged: "Пароль изменён",
         rolesUpdated: "Роли обновлены",
       },
     },
@@ -922,17 +932,23 @@ export const translations: Record<Language, Dict> = {
       errors: { loadLogs: "Не удалось загрузить журнал активности", loadDetail: "Не удалось загрузить запись" },
     },
     resetPassword: {
-      lead: "Придумайте новый пароль для входа.",
-      invalidLink: "Ссылка недействительна или устарела. Запросите восстановление пароля заново.",
+      leadEmail: "Введите email, чтобы получить код подтверждения.",
+      leadCode: "Введите код из письма и новый пароль.",
+      verificationCode: "Код подтверждения",
       newPassword: "Новый пароль",
       repeatPassword: "Повторите пароль",
+      sendCode: "Отправить код",
+      changeEmail: "Изменить email",
+      resendCode: "Отправить код повторно",
       submit: "Сохранить пароль",
       errors: {
-        missingToken: "Ссылка недействительна: отсутствует токен",
+        missingEmail: "Введите email",
         mismatch: "Пароли не совпадают",
         empty: "Введите новый пароль",
+        failedSendCode: "Не удалось отправить код",
         failed: "Не удалось изменить пароль",
       },
+      codeSent: "Код отправлен на почту",
       success: "Пароль изменён, войдите с новым паролем",
     },
   },
@@ -972,6 +988,7 @@ export const translations: Record<Language, Dict> = {
       save: "Save",
       create: "Create",
       edit: "Edit",
+      view: "View",
       delete: "Delete",
       close: "Close",
       back: "Back",
@@ -1037,18 +1054,12 @@ export const translations: Record<Language, Dict> = {
       lead: "Sign in to manage companies, tariffs and users.",
       email: "Email",
       password: "Password",
-      forgotPassword: "Forgot password?",
       showPassword: "Show password",
       hidePassword: "Hide password",
       submit: "Sign in",
       fillFields: "Enter your email and password",
       loginFailed: "Failed to sign in",
-      forgotTitle: "Password recovery",
-      forgotEmailRequired: "Enter your email",
-      forgotSuccess: "If the email exists, a password reset link has been sent to it",
-      forgotFailed: "Failed to send the request",
-      send: "Send",
-      cancel: "Cancel",
+      forgotPassword: "Forgot password?",
     },
     overview: {
       title: "Platform overview",
@@ -1173,6 +1184,10 @@ export const translations: Record<Language, Dict> = {
       noPermissionsAssigned: "No permissions yet.",
       deleteUserTitle: "Delete user?",
       deleteUserDesc: (name: string) => `Delete user "${name}"? This action cannot be undone.`,
+      changePassword: "Change password",
+      changePasswordTitle: "Change user password",
+      newPassword: "New password",
+      confirmPassword: "Repeat password",
       errors: {
         saveUser: "Failed to save user",
         deleteUser: "Failed to delete user",
@@ -1180,10 +1195,14 @@ export const translations: Record<Language, Dict> = {
         loadRoles: "Failed to load roles",
         loadPermissions: "Failed to load permissions",
         loadCompany: "Failed to load company",
+        passwordMismatch: "Passwords do not match",
+        passwordEmpty: "Enter a new password",
+        changePassword: "Failed to change password",
       },
       toasts: {
         saved: "User saved",
         deleted: "User deleted",
+        passwordChanged: "Password changed",
         rolesUpdated: "Roles updated",
       },
     },
@@ -1399,17 +1418,23 @@ export const translations: Record<Language, Dict> = {
       errors: { loadLogs: "Failed to load the activity log", loadDetail: "Failed to load the record" },
     },
     resetPassword: {
-      lead: "Come up with a new sign-in password.",
-      invalidLink: "The link is invalid or expired. Request a password reset again.",
+      leadEmail: "Enter your email to receive a verification code.",
+      leadCode: "Enter the code from your email and a new password.",
+      verificationCode: "Verification code",
       newPassword: "New password",
       repeatPassword: "Repeat password",
+      sendCode: "Send code",
+      changeEmail: "Change email",
+      resendCode: "Resend code",
       submit: "Save password",
       errors: {
-        missingToken: "The link is invalid: token is missing",
+        missingEmail: "Enter your email",
         mismatch: "Passwords do not match",
         empty: "Enter a new password",
+        failedSendCode: "Failed to send the code",
         failed: "Failed to change the password",
       },
+      codeSent: "Code sent to your email",
       success: "Password changed, sign in with the new password",
     },
   },
@@ -1449,6 +1474,7 @@ export const translations: Record<Language, Dict> = {
       save: "Захира кардан",
       create: "Эҷод кардан",
       edit: "Таҳрир кардан",
+      view: "Дидан",
       delete: "Нест кардан",
       close: "Пӯшидан",
       back: "Бозгашт",
@@ -1514,18 +1540,12 @@ export const translations: Record<Language, Dict> = {
       lead: "Барои идоракунии ширкатҳо, тарифҳо ва корбарон ворид шавед.",
       email: "Email",
       password: "Парол",
-      forgotPassword: "Паролро фаромӯш кардед?",
       showPassword: "Паролро нишон диҳед",
       hidePassword: "Паролро пинҳон кунед",
       submit: "Ворид шудан",
       fillFields: "Email ва паролро ворид кунед",
       loginFailed: "Ворид шудан имконнопазир аст",
-      forgotTitle: "Барқарорсозии парол",
-      forgotEmailRequired: "Email-ро ворид кунед",
-      forgotSuccess: "Агар email мавҷуд бошад, ба он пайванди барқарорсозии парол фиристода шуд",
-      forgotFailed: "Дархостро фиристодан имконнопазир аст",
-      send: "Фиристодан",
-      cancel: "Бекор кардан",
+      forgotPassword: "Пароли худро фаромӯш кардед?",
     },
     overview: {
       title: "Дурнамои платформа",
@@ -1650,6 +1670,10 @@ export const translations: Record<Language, Dict> = {
       noPermissionsAssigned: "Ҳанӯз ҳуқуқе нест.",
       deleteUserTitle: "Корбарро нест кунам?",
       deleteUserDesc: (name: string) => `Корбари «${name}»-ро нест кунам? Ин амал бебозгашт аст.`,
+      changePassword: "Тағйири парол",
+      changePasswordTitle: "Тағйири пароли корбар",
+      newPassword: "Пароли нав",
+      confirmPassword: "Паролро такрор кунед",
       errors: {
         saveUser: "Захираи корбар ноком шуд",
         deleteUser: "Несткунии корбар ноком шуд",
@@ -1657,10 +1681,14 @@ export const translations: Record<Language, Dict> = {
         loadRoles: "Боргирии нақшҳо ноком шуд",
         loadPermissions: "Боргирии ҳуқуқҳо ноком шуд",
         loadCompany: "Боргирии ширкат ноком шуд",
+        passwordMismatch: "Паролҳо мувофиқат намекунанд",
+        passwordEmpty: "Пароли навро ворид кунед",
+        changePassword: "Тағйири парол ноком шуд",
       },
       toasts: {
         saved: "Корбар захира шуд",
         deleted: "Корбар нест карда шуд",
+        passwordChanged: "Парол тағйир ёфт",
         rolesUpdated: "Нақшҳо навсозӣ шуданд",
       },
     },
@@ -1876,17 +1904,23 @@ export const translations: Record<Language, Dict> = {
       errors: { loadLogs: "Боргирии рӯзномаи фаъолият ноком шуд", loadDetail: "Боргирии сабт ноком шуд" },
     },
     resetPassword: {
-      lead: "Барои воридшавӣ пароли нави худро таъин кунед.",
-      invalidLink: "Пайванд эътибор надорад ё кӯҳна шудааст. Барқарорсозии паролро аз нав дархост кунед.",
+      leadEmail: "Email-ро ворид кунед, то коди тасдиқ фирситода шавад.",
+      leadCode: "Коди аз почта ва пароли навро ворид кунед.",
+      verificationCode: "Коди тасдиқ",
       newPassword: "Пароли нав",
       repeatPassword: "Паролро такрор кунед",
+      sendCode: "Фиристодани код",
+      changeEmail: "Тағйири email",
+      resendCode: "Фиристодани коди такрорӣ",
       submit: "Паролро захира кунед",
       errors: {
-        missingToken: "Пайванд эътибор надорад: токен мавҷуд нест",
+        missingEmail: "Email-ро ворид кунед",
         mismatch: "Паролҳо мувофиқат намекунанд",
         empty: "Пароли навро ворид кунед",
+        failedSendCode: "Фиристодани код ноком шуд",
         failed: "Тағйири парол ноком шуд",
       },
+      codeSent: "Код ба почта фиристода шуд",
       success: "Парол тағйир ёфт, бо пароли нав ворид шавед",
     },
   },

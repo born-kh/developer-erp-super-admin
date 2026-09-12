@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Copy, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   assignUserRoles,
@@ -12,6 +12,7 @@ import {
   listRoles,
   unassignUserRoles,
   updateUser,
+  updateUserPassword,
   uploadFile,
   ApiRequestError,
   type RoleLookup,
@@ -20,9 +21,10 @@ import {
   type UserRole,
   type UserType,
 } from "../lib/api";
+import { useCurrentUser } from "../data/currentUserStore";
 import { useFileUrl } from "../hooks/useFileUrl";
 import { useTranslation } from "../i18n/LanguageContext";
-import { formatDate } from "../lib/format";
+import { formatDate, randomPassword } from "../lib/format";
 import { PageHead } from "../AppShell";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Field } from "@/components/Field";
@@ -31,6 +33,7 @@ import { ActiveBadge } from "@/components/StatusBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 
@@ -64,6 +67,7 @@ export function UserDetail() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const { t, language } = useTranslation();
+  const { user: currentUser } = useCurrentUser();
 
   const [user, setUser] = useState<UserDetailData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,6 +80,11 @@ export function UserDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const [assignedRoles, setAssignedRoles] = useState<UserRole[]>([]);
   const [allRoles, setAllRoles] = useState<RoleLookup[]>([]);
@@ -234,6 +243,42 @@ export function UserDetail() {
     }
   };
 
+  const openChangePassword = () => {
+    setNewPassword(randomPassword());
+    setConfirmPassword("");
+    setPasswordDialogOpen(true);
+  };
+
+  const copyNewPassword = () => {
+    if (!newPassword) return;
+    navigator.clipboard?.writeText(newPassword).catch(() => {});
+    toast.success(t.common.passwordCopied);
+  };
+
+  const changePassword = async () => {
+    if (!id || changingPassword) return;
+    if (!newPassword.trim()) {
+      toast.error(t.userDetail.errors.passwordEmpty);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error(t.userDetail.errors.passwordMismatch);
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await updateUserPassword(id, newPassword, confirmPassword);
+      toast.success(t.userDetail.toasts.passwordChanged);
+      setPasswordDialogOpen(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      toast.error(errorMessage(err, t.userDetail.errors.changePassword));
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const remove = async () => {
     if (!id) return;
     try {
@@ -258,6 +303,7 @@ export function UserDetail() {
     }
   };
 
+  const isSelf = currentUser?.id === user.id;
   const showRoles = canShowRoles(user.type);
   const canManageRoles = user.type === "Admin";
   const roleTitleById = new Map(allRoles.map((role) => [role.id, role.title]));
@@ -287,6 +333,9 @@ export function UserDetail() {
             </>
           ) : (
             <>
+              <Button type="button" variant="outline" onClick={openChangePassword}>
+                {t.userDetail.changePassword}
+              </Button>
               <Button type="button" variant="outline" onClick={startEdit}>
                 {t.common.edit}
               </Button>
@@ -341,10 +390,12 @@ export function UserDetail() {
               <Field label={t.common.email}>
                 <Input value={form.email} onChange={(e) => setField("email", e.target.value)} />
               </Field>
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <Switch checked={form.isActive} onCheckedChange={(v) => setField("isActive", v)} />
-                {t.users.userActive}
-              </label>
+              {!isSelf && (
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <Switch checked={form.isActive} onCheckedChange={(v) => setField("isActive", v)} />
+                  {t.users.userActive}
+                </label>
+              )}
             </div>
           ) : (
             <>
@@ -355,7 +406,7 @@ export function UserDetail() {
                     {initials(displayName)}
                   </AvatarFallback>
                 </Avatar>
-                <ActiveBadge active={user.isActive} />
+                {!isSelf && <ActiveBadge active={user.isActive} />}
               </div>
               <dl className="detail-dl">
                 <div>
@@ -482,6 +533,46 @@ export function UserDetail() {
         assignedIds={assignedRoles.map((r) => r.roleId)}
         onSave={saveRoles}
       />
+
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.userDetail.changePasswordTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Field label={t.userDetail.newPassword}>
+              <div className="password-gen">
+                <Input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoFocus />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={copyNewPassword}
+                  aria-label={t.common.copyPassword}
+                >
+                  <Copy />
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setNewPassword(randomPassword())}>
+                  <RefreshCw />
+                  {t.common.generate}
+                </Button>
+              </div>
+            </Field>
+            <Field label={t.userDetail.confirmPassword}>
+              <Input value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPasswordDialogOpen(false)} disabled={changingPassword}>
+              {t.common.cancel}
+            </Button>
+            <Button type="button" onClick={changePassword} disabled={changingPassword}>
+              {changingPassword && <Loader2 className="size-4 animate-spin" />}
+              {t.common.save}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

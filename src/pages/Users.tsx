@@ -11,6 +11,7 @@ import {
   type UserListItem,
   type UserType,
 } from "../lib/api";
+import { useCurrentUser } from "../data/currentUserStore";
 import { randomPassword } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
@@ -89,6 +90,7 @@ function errorMessage(err: unknown, fallback: string) {
 export function Users() {
   const nav = useNavigate();
   const { t } = useTranslation();
+  const { user: currentUser } = useCurrentUser();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const initialType = searchParams.get("type");
@@ -433,7 +435,7 @@ export function Users() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell>
-                      <ActiveBadge active={u.isActive} />
+                      {u.id !== currentUser?.id && <ActiveBadge active={u.isActive} />}
                     </TableCell>
                     <TableCell className="w-8 text-muted-foreground">
                       <ChevronRight className="size-4" />

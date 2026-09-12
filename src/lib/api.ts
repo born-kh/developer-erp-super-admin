@@ -188,10 +188,20 @@ function redirectToLogin() {
   }
 }
 
+const PLATFORM_TYPE_HEADER = { "X-Platform": "SuperAdminPanel" };
+
 export function login(email: string, password: string) {
   return request<TokenInfo>("/core/api/auth/token", {
     method: "POST",
+    headers: PLATFORM_TYPE_HEADER,
     body: JSON.stringify({ email, password }),
+  });
+}
+
+export function logout() {
+  return authRequest<unknown>("/core/api/auth/logout", {
+    method: "POST",
+    headers: PLATFORM_TYPE_HEADER,
   });
 }
 
@@ -209,10 +219,10 @@ export function forgotPassword(email: string) {
   });
 }
 
-export function resetPassword(token: string, password: string, verifyPassword: string) {
+export function resetPassword(email: string, verificationCode: string, password: string, verifyPassword: string) {
   return request<string | null>("/core/api/auth/reset-password", {
     method: "POST",
-    body: JSON.stringify({ token, password, verifyPassword }),
+    body: JSON.stringify({ email, verificationCode, password, verifyPassword }),
   });
 }
 
@@ -320,6 +330,13 @@ export function activateUser(id: string) {
 
 export function deactivateUser(id: string) {
   return authRequest<unknown>(`/core/api/users/${id}/deactivate`, { method: "PUT" });
+}
+
+export function updateUserPassword(id: string, password: string, verifyPassword: string) {
+  return authRequest<unknown>(`/core/api/users/${id}/password`, {
+    method: "PUT",
+    body: JSON.stringify({ password, verifyPassword }),
+  });
 }
 
 export type UserRole = {

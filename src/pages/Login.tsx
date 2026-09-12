@@ -4,21 +4,13 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { setTokens } from "../auth";
 import { useCurrentUser } from "../data/currentUserStore";
-import { login as loginRequest, forgotPassword, ApiRequestError } from "../lib/api";
+import { login as loginRequest, ApiRequestError } from "../lib/api";
 import { useTranslation } from "../i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Field } from "@/components/Field";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 export function Login() {
   const nav = useNavigate();
@@ -28,10 +20,6 @@ export function Login() {
   const [password, setPassword] = useState("admin");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotSubmitting, setForgotSubmitting] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,32 +41,6 @@ export function Login() {
       toast.error(message);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const openForgot = () => {
-    setForgotEmail(email);
-    setForgotOpen(true);
-  };
-
-  const submitForgot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (forgotSubmitting) return;
-    const trimmedEmail = forgotEmail.trim();
-    if (!trimmedEmail) {
-      toast.error(t.login.forgotEmailRequired);
-      return;
-    }
-    setForgotSubmitting(true);
-    try {
-      await forgotPassword(trimmedEmail);
-      toast.success(t.login.forgotSuccess);
-      setForgotOpen(false);
-    } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : t.login.forgotFailed;
-      toast.error(message);
-    } finally {
-      setForgotSubmitting(false);
     }
   };
 
@@ -114,8 +76,8 @@ export function Login() {
               <Label className="text-xs text-muted-foreground">{t.login.password}</Label>
               <button
                 type="button"
-                className="text-xs font-medium text-primary hover:underline"
-                onClick={openForgot}
+                className="hidden text-xs text-primary hover:underline"
+                onClick={() => nav("/reset-password")}
               >
                 {t.login.forgotPassword}
               </button>
@@ -146,36 +108,6 @@ export function Login() {
           </Button>
         </form>
       </div>
-
-      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t.login.forgotTitle}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={submitForgot} className="grid gap-3">
-            <Field label={t.login.email}>
-              <Input
-                type="email"
-                autoComplete="username"
-                placeholder="example@mail.com"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                autoFocus
-                required
-              />
-            </Field>
-            <DialogFooter>
-              <Button type="submit" disabled={forgotSubmitting}>
-                {forgotSubmitting && <Loader2 className="size-4 animate-spin" />}
-                {t.login.send}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setForgotOpen(false)}>
-                {t.login.cancel}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

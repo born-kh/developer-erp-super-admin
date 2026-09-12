@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, ImageUp, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Copy, ImageUp, Info, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -810,6 +810,15 @@ export function CompanyDetail() {
                   </Button>
                   <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmDeleteOwnerId(o.id)}>
                     {t.common.delete}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => nav(`/users/${o.id}`)}
+                    aria-label={t.common.view}
+                  >
+                    <Info />
                   </Button>
                 </div>
               </div>
