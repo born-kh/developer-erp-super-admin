@@ -13,7 +13,7 @@ import {
   type PackageListItem,
   type TariffIncludingPackages,
 } from "../lib/api";
-import { usd } from "../lib/format";
+import { formatMoney } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { useModuleSettings } from "../data/moduleSettingsStore";
 import { PageHead } from "../AppShell";
@@ -315,10 +315,10 @@ export function Tariffs() {
                         </div>
                       </TableCell>
                       <TableCell className="tabular-nums font-medium">
-                        {usd(row.cost)} {t.tariffs.perMonth}
+                        {formatMoney(row.cost, settings.subscriptionCurrencyCode)} {t.tariffs.perMonth}
                         {row.originalCost > row.cost && (
                           <div className="text-xs text-muted-foreground line-through">
-                            {usd(row.originalCost)}
+                            {formatMoney(row.originalCost, settings.subscriptionCurrencyCode)}
                           </div>
                         )}
                       </TableCell>

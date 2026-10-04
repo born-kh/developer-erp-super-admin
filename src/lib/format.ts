@@ -32,6 +32,13 @@ export const usd = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
+export const formatMoney = (n: number, currencyCode?: string | null) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currencyCode || "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
+
 const CYRILLIC_TO_LATIN: Record<string, string> = {
   а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i",
   й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t",

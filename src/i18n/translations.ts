@@ -18,6 +18,7 @@ export type Dict = {
     permissions: string;
     roles: string;
     activityLogs: string;
+    paymentHistories: string;
   };
   titles: {
     companyDetail: string;
@@ -169,6 +170,27 @@ export type Dict = {
     fromTariff: string;
     subscriptionPrice: string;
     subscriptionRealCost: string;
+    subscriptionFinalCost: string;
+    discount: string;
+    activateSubscription: string;
+    balanceTitle: string;
+    topUpBalance: string;
+    refundBalance: string;
+    amount: string;
+    paymentMethod: string;
+    paymentHistoryTitle: string;
+    noPaymentHistory: string;
+    paymentAmount: string;
+    paymentType: string;
+    paymentReceiver: string;
+    paymentTypeAdd: string;
+    paymentTypeWithdraw: string;
+    paymentTypeRefund: string;
+    paymentMethodCash: string;
+    paymentMethodCard: string;
+    paymentMethodBankTransfer: string;
+    paymentMethodWallet: string;
+    paymentMethodOther: string;
     toasts: {
       ownerSaved: string;
       ownerAdded: string;
@@ -176,16 +198,23 @@ export type Dict = {
       companySaved: string;
       companyDeleted: string;
       subscriptionSaved: string;
+      subscriptionActivated: string;
+      balanceToppedUp: string;
+      balanceRefunded: string;
     };
     errors: {
       loadCompany: string;
       saveCompany: string;
       deleteCompany: string;
       saveSubscription: string;
+      activateSubscription: string;
       loadOwners: string;
       saveOwner: string;
       deleteOwner: string;
       loadUsers: string;
+      loadPaymentHistory: string;
+      invalidAmount: string;
+      saveBalance: string;
     };
   };
   users: {
@@ -449,6 +478,13 @@ export type Dict = {
     };
     errors: { loadLogs: string; loadDetail: string };
   };
+  paymentHistories: {
+    title: string;
+    filters: { company: string; type: string };
+    tableCompany: string;
+    noItemsYet: string;
+    errors: { loadList: string };
+  };
   resetPassword: {
     leadEmail: string;
     leadCode: string;
@@ -478,6 +514,7 @@ export const translations: Record<Language, Dict> = {
       permissions: "Права доступа",
       roles: "Роли",
       activityLogs: "Журнал активности",
+      paymentHistories: "История платежей",
     },
     titles: {
       companyDetail: "Компания",
@@ -633,6 +670,27 @@ export const translations: Record<Language, Dict> = {
       fromTariff: "Входит в тариф",
       subscriptionPrice: "Цена",
       subscriptionRealCost: "Реальная стоимость",
+      subscriptionFinalCost: "Итого со скидкой",
+      discount: "Скидка",
+      activateSubscription: "Активировать",
+      balanceTitle: "Баланс",
+      topUpBalance: "Пополнить баланс",
+      refundBalance: "Возврат средств",
+      amount: "Сумма",
+      paymentMethod: "Способ оплаты",
+      paymentHistoryTitle: "История платежей",
+      noPaymentHistory: "Платежей пока нет.",
+      paymentAmount: "Сумма",
+      paymentType: "Тип",
+      paymentReceiver: "Получатель",
+      paymentTypeAdd: "Пополнение",
+      paymentTypeWithdraw: "Списание",
+      paymentTypeRefund: "Возврат",
+      paymentMethodCash: "Наличные",
+      paymentMethodCard: "Карта",
+      paymentMethodBankTransfer: "Банковский перевод",
+      paymentMethodWallet: "Электронный кошелёк",
+      paymentMethodOther: "Другое",
       toasts: {
         ownerSaved: "Владелец сохранён",
         ownerAdded: "Владелец добавлен",
@@ -640,16 +698,23 @@ export const translations: Record<Language, Dict> = {
         companySaved: "Компания сохранена",
         companyDeleted: "Компания удалена",
         subscriptionSaved: "Подписка сохранена",
+        subscriptionActivated: "Подписка активирована",
+        balanceToppedUp: "Баланс пополнен",
+        balanceRefunded: "Средства возвращены",
       },
       errors: {
         loadCompany: "Не удалось загрузить компанию",
         saveCompany: "Не удалось сохранить компанию",
         deleteCompany: "Не удалось удалить компанию",
         saveSubscription: "Не удалось сохранить подписку",
+        activateSubscription: "Не удалось активировать подписку",
         loadOwners: "Не удалось загрузить владельцев",
         saveOwner: "Не удалось сохранить владельца",
         deleteOwner: "Не удалось удалить владельца",
         loadUsers: "Не удалось загрузить пользователей",
+        loadPaymentHistory: "Не удалось загрузить историю платежей",
+        invalidAmount: "Введите корректную сумму",
+        saveBalance: "Не удалось выполнить операцию с балансом",
       },
     },
     users: {
@@ -931,6 +996,13 @@ export const translations: Record<Language, Dict> = {
       },
       errors: { loadLogs: "Не удалось загрузить журнал активности", loadDetail: "Не удалось загрузить запись" },
     },
+    paymentHistories: {
+      title: "История платежей",
+      filters: { company: "Компания", type: "Тип" },
+      tableCompany: "Компания",
+      noItemsYet: "Платежей пока нет.",
+      errors: { loadList: "Не удалось загрузить историю платежей" },
+    },
     resetPassword: {
       leadEmail: "Введите email, чтобы получить код подтверждения.",
       leadCode: "Введите код из письма и новый пароль.",
@@ -964,6 +1036,7 @@ export const translations: Record<Language, Dict> = {
       permissions: "Permissions",
       roles: "Roles",
       activityLogs: "Activity Log",
+      paymentHistories: "Payment Histories",
     },
     titles: {
       companyDetail: "Company",
@@ -1119,6 +1192,27 @@ export const translations: Record<Language, Dict> = {
       fromTariff: "Included in tariff",
       subscriptionPrice: "Price",
       subscriptionRealCost: "Real cost",
+      subscriptionFinalCost: "Total after discount",
+      discount: "Discount",
+      activateSubscription: "Activate",
+      balanceTitle: "Balance",
+      topUpBalance: "Top up balance",
+      refundBalance: "Refund balance",
+      amount: "Amount",
+      paymentMethod: "Payment method",
+      paymentHistoryTitle: "Payment history",
+      noPaymentHistory: "No payments yet.",
+      paymentAmount: "Amount",
+      paymentType: "Type",
+      paymentReceiver: "Receiver",
+      paymentTypeAdd: "Top-up",
+      paymentTypeWithdraw: "Withdrawal",
+      paymentTypeRefund: "Refund",
+      paymentMethodCash: "Cash",
+      paymentMethodCard: "Card",
+      paymentMethodBankTransfer: "Bank transfer",
+      paymentMethodWallet: "Wallet",
+      paymentMethodOther: "Other",
       toasts: {
         ownerSaved: "Owner saved",
         ownerAdded: "Owner added",
@@ -1126,16 +1220,23 @@ export const translations: Record<Language, Dict> = {
         companySaved: "Company saved",
         companyDeleted: "Company deleted",
         subscriptionSaved: "Subscription saved",
+        subscriptionActivated: "Subscription activated",
+        balanceToppedUp: "Balance topped up",
+        balanceRefunded: "Balance refunded",
       },
       errors: {
         loadCompany: "Failed to load the company",
         saveCompany: "Failed to save the company",
         deleteCompany: "Failed to delete the company",
         saveSubscription: "Failed to save the subscription",
+        activateSubscription: "Failed to activate the subscription",
         loadOwners: "Failed to load owners",
         saveOwner: "Failed to save owner",
         deleteOwner: "Failed to delete owner",
         loadUsers: "Failed to load users",
+        loadPaymentHistory: "Failed to load payment history",
+        invalidAmount: "Enter a valid amount",
+        saveBalance: "Failed to process the balance operation",
       },
     },
     users: {
@@ -1417,6 +1518,13 @@ export const translations: Record<Language, Dict> = {
       },
       errors: { loadLogs: "Failed to load the activity log", loadDetail: "Failed to load the record" },
     },
+    paymentHistories: {
+      title: "Payment Histories",
+      filters: { company: "Company", type: "Type" },
+      tableCompany: "Company",
+      noItemsYet: "No payments yet.",
+      errors: { loadList: "Failed to load payment histories" },
+    },
     resetPassword: {
       leadEmail: "Enter your email to receive a verification code.",
       leadCode: "Enter the code from your email and a new password.",
@@ -1450,6 +1558,7 @@ export const translations: Record<Language, Dict> = {
       permissions: "Ҳуқуқҳои дастрасӣ",
       roles: "Нақшҳо",
       activityLogs: "Рӯзномаи фаъолият",
+      paymentHistories: "Таърихи пардохтҳо",
     },
     titles: {
       companyDetail: "Ширкат",
@@ -1605,6 +1714,27 @@ export const translations: Record<Language, Dict> = {
       fromTariff: "Дар тариф дохил аст",
       subscriptionPrice: "Нарх",
       subscriptionRealCost: "Арзиши воқеӣ",
+      subscriptionFinalCost: "Ҷамъ бо тахфиф",
+      discount: "Тахфиф",
+      activateSubscription: "Фаъол кардан",
+      balanceTitle: "Баланс",
+      topUpBalance: "Пур кардани баланс",
+      refundBalance: "Баргардонидани пул",
+      amount: "Маблағ",
+      paymentMethod: "Усули пардохт",
+      paymentHistoryTitle: "Таърихи пардохтҳо",
+      noPaymentHistory: "Ҳанӯз пардохте нест.",
+      paymentAmount: "Маблағ",
+      paymentType: "Навъ",
+      paymentReceiver: "Қабулкунанда",
+      paymentTypeAdd: "Пуркунӣ",
+      paymentTypeWithdraw: "Бардошт",
+      paymentTypeRefund: "Баргардонидан",
+      paymentMethodCash: "Пули нақд",
+      paymentMethodCard: "Корт",
+      paymentMethodBankTransfer: "Гузариши бонкӣ",
+      paymentMethodWallet: "Ҳамён",
+      paymentMethodOther: "Дигар",
       toasts: {
         ownerSaved: "Соҳиб захира шуд",
         ownerAdded: "Соҳиб илова шуд",
@@ -1612,16 +1742,23 @@ export const translations: Record<Language, Dict> = {
         companySaved: "Ширкат захира шуд",
         companyDeleted: "Ширкат нест карда шуд",
         subscriptionSaved: "Обуна захира шуд",
+        subscriptionActivated: "Обуна фаъол карда шуд",
+        balanceToppedUp: "Баланс пур карда шуд",
+        balanceRefunded: "Пул баргардонида шуд",
       },
       errors: {
         loadCompany: "Боргирии ширкат ноком шуд",
         saveCompany: "Захираи ширкат ноком шуд",
         deleteCompany: "Несткунии ширкат ноком шуд",
         saveSubscription: "Захираи обуна ноком шуд",
+        activateSubscription: "Фаъолкунии обуна ноком шуд",
         loadOwners: "Боргирии соҳибон ноком шуд",
         saveOwner: "Захираи соҳиб ноком шуд",
         deleteOwner: "Несткунии соҳиб ноком шуд",
         loadUsers: "Боргирии корбарон ноком шуд",
+        loadPaymentHistory: "Боргирии таърихи пардохтҳо ноком шуд",
+        invalidAmount: "Маблағи дурустро ворид кунед",
+        saveBalance: "Амалиёт бо баланс ноком шуд",
       },
     },
     users: {
@@ -1902,6 +2039,13 @@ export const translations: Record<Language, Dict> = {
         notFound: "Сабт ёфт нашуд.",
       },
       errors: { loadLogs: "Боргирии рӯзномаи фаъолият ноком шуд", loadDetail: "Боргирии сабт ноком шуд" },
+    },
+    paymentHistories: {
+      title: "Таърихи пардохтҳо",
+      filters: { company: "Ширкат", type: "Навъ" },
+      tableCompany: "Ширкат",
+      noItemsYet: "Ҳанӯз пардохте нест.",
+      errors: { loadList: "Боргирии таърихи пардохтҳо ноком шуд" },
     },
     resetPassword: {
       leadEmail: "Email-ро ворид кунед, то коди тасдиқ фирситода шавад.",

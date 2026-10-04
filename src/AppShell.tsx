@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
+  Receipt,
   ShieldCheck,
   User,
   Users,
@@ -71,6 +72,7 @@ export function AppShell() {
     { to: "/roles", label: t.nav.roles, icon: KeyRound },
     { to: "/cities", label: t.nav.cities, icon: MapPin },
     { to: "/activity-logs", label: t.nav.activityLogs, icon: History },
+    { to: "/payment-histories", label: t.nav.paymentHistories, icon: Receipt },
   ];
 
   const titles: Record<string, string> = {
@@ -83,6 +85,7 @@ export function AppShell() {
     "/roles": t.nav.roles,
     "/cities": t.nav.cities,
     "/activity-logs": t.nav.activityLogs,
+    "/payment-histories": t.nav.paymentHistories,
   };
 
   const currentTitle = (pathname: string) => {

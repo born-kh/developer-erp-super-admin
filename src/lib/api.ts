@@ -486,6 +486,7 @@ export type ModuleDefaultOptions = {
   supportedLanguages: string[];
   /** Not yet returned by the backend in all environments — treat as optional. */
   trialSubscriptionDurationInDays?: number;
+  subscriptionCurrencyCode?: string | null;
 };
 
 export function getModuleDefaultOptions() {
@@ -910,6 +911,9 @@ export type CompanySubscription = {
   date: { startDate: string; endDate?: string | null };
   packages?: PackageListItem[] | null;
   originalCost: number;
+  cost: number;
+  discount?: number | null;
+  costAfterDiscount?: number | null;
 };
 
 export type CompanyDetail = {
@@ -923,6 +927,7 @@ export type CompanyDetail = {
   descriptionTranslations?: Record<string, string> | null;
   createdAt: string;
   subscription?: CompanySubscription | null;
+  balance: number;
 };
 
 export type CreateCompanyInput = {
@@ -991,6 +996,7 @@ export type UpdateSubscriptionInput = {
   status: CompanyStatus;
   startDate: string;
   packageIds: string[];
+  discount?: number | null;
 };
 
 export function updateCompanySubscription(id: string, data: UpdateSubscriptionInput) {
@@ -998,6 +1004,78 @@ export function updateCompanySubscription(id: string, data: UpdateSubscriptionIn
     method: "PUT",
     body: JSON.stringify(data),
   });
+}
+
+export function activateCompanySubscription(id: string) {
+  return authRequest<unknown>(`/core/api/companies/${id}/subscription/activate`, { method: "POST" });
+}
+
+export type PaymentMethod = "Cash" | "Card" | "BankTransfer" | "Wallet" | "Other";
+export type PaymentType = "Add" | "Withdraw" | "Refund";
+
+export function topUpCompanyBalance(id: string, amount: number, paymentMethod: PaymentMethod) {
+  return authRequest<unknown>(`/core/api/companies/${id}/balance/top-up`, {
+    method: "POST",
+    body: JSON.stringify({ amount, paymentMethod }),
+  });
+}
+
+export function refundCompanyBalance(id: string, amount: number, paymentMethod: PaymentMethod) {
+  return authRequest<unknown>(`/core/api/companies/${id}/balance/refund`, {
+    method: "POST",
+    body: JSON.stringify({ amount, paymentMethod }),
+  });
+}
+
+export type PaymentHistoryItem = {
+  id: string;
+  amount: number;
+  type: PaymentType;
+  method?: PaymentMethod | null;
+  receiverInfo?: { id: string; name?: string | null } | null;
+  subscriptionRange?: { startDate: string; endDate?: string | null } | null;
+  createdAt: string;
+};
+
+export type CompanyPaymentHistoryItem = PaymentHistoryItem & {
+  companyId: string;
+  companyName?: string | null;
+};
+
+export function listCompanyPaymentHistories(
+  companyId: string,
+  params: { page?: number; pageSize?: number } = {},
+) {
+  const query = new URLSearchParams();
+  query.set("Page", String(params.page ?? 1));
+  query.set("PageSize", String(params.pageSize ?? 10));
+  return authRequest<PagedResult<PaymentHistoryItem>>(
+    `/core/api/companies/${companyId}/payment-histories?${query.toString()}`,
+  );
+}
+
+export function listPaymentHistories(
+  params: {
+    companyId?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    type?: PaymentType;
+    page?: number;
+    pageSize?: number;
+    orderBy?: string;
+    orderDirection?: "asc" | "desc";
+  } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.companyId) query.set("CompanyId", params.companyId);
+  if (params.createdAtFrom) query.set("CreatedAtFrom", params.createdAtFrom);
+  if (params.createdAtTo) query.set("CreatedAtTo", params.createdAtTo);
+  if (params.type) query.set("Type", params.type);
+  if (params.orderBy) query.set("OrderBy", params.orderBy);
+  if (params.orderDirection) query.set("OrderDirection", params.orderDirection);
+  query.set("Page", String(params.page ?? 1));
+  query.set("PageSize", String(params.pageSize ?? 20));
+  return authRequest<PagedResult<CompanyPaymentHistoryItem>>(`/core/api/payment-histories?${query.toString()}`);
 }
 
 export async function uploadFile(file: File) {

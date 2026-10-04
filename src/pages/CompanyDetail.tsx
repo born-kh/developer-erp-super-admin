@@ -3,15 +3,19 @@ import { Copy, ImageUp, Info, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
+  activateCompanySubscription,
   createOwnerUser,
   deleteCompanyById,
   deleteUser,
   getAllCitiesCached,
   getCompanyById,
   getUserById,
+  listCompanyPaymentHistories,
   listPackages,
   listTariffsWithPackages,
   listUsers,
+  refundCompanyBalance,
+  topUpCompanyBalance,
   updateCompanyById,
   updateCompanySubscription,
   updateUser,
@@ -21,14 +25,17 @@ import {
   type CompanyDetail as CompanyDetailData,
   type CompanyStatus,
   type PackageListItem,
+  type PaymentHistoryItem,
+  type PaymentMethod,
   type TariffIncludingPackages,
   type UserListItem,
 } from "../lib/api";
 import { useModuleSettings } from "../data/moduleSettingsStore";
 import { useFileUrl } from "../hooks/useFileUrl";
-import { formatDate, randomPassword, usd } from "../lib/format";
+import { formatDate, formatMoney, randomPassword } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
+import { AppPagination } from "@/components/AppPagination";
 import { CompanyPhoto } from "@/components/CompanyPhoto";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Field } from "@/components/Field";
@@ -36,6 +43,15 @@ import { CompanyStatusBadge } from "@/components/StatusBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -65,7 +81,17 @@ type SubscriptionForm = {
   status: CompanyStatus;
   startDate: string;
   packageIds: string[];
+  discount: number;
 };
+
+type BalanceForm = {
+  mode: "topup" | "refund";
+  amount: string;
+  paymentMethod: PaymentMethod;
+};
+
+const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "Card", "BankTransfer", "Wallet", "Other"];
+const PAYMENT_HISTORY_PAGE_SIZE = 10;
 
 function formatDateInput(date: Date): string {
   const y = date.getFullYear();
@@ -166,6 +192,16 @@ export function CompanyDetail() {
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const [subForm, setSubForm] = useState<SubscriptionForm | null>(null);
   const [subSubmitting, setSubSubmitting] = useState(false);
+  const [activating, setActivating] = useState(false);
+
+  const [balanceForm, setBalanceForm] = useState<BalanceForm | null>(null);
+  const [balanceSubmitting, setBalanceSubmitting] = useState(false);
+
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
+  const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(true);
+  const [paymentHistoryPage, setPaymentHistoryPage] = useState(1);
+  const [paymentHistoryHasNext, setPaymentHistoryHasNext] = useState(false);
+  const [paymentHistoryHasPrev, setPaymentHistoryHasPrev] = useState(false);
 
   useEffect(() => {
     getAllCitiesCached()
@@ -220,12 +256,32 @@ export function CompanyDetail() {
     }
   };
 
+  const loadPaymentHistory = async (pageArg: number) => {
+    if (!id) return;
+    setPaymentHistoryLoading(true);
+    try {
+      const res = await listCompanyPaymentHistories(id, { page: pageArg, pageSize: PAYMENT_HISTORY_PAGE_SIZE });
+      setPaymentHistory(res.items ?? []);
+      setPaymentHistoryHasNext(res.pagination.hasNextPage);
+      setPaymentHistoryHasPrev(res.pagination.hasPreviousPage ?? pageArg > 1);
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.loadPaymentHistory));
+    } finally {
+      setPaymentHistoryLoading(false);
+    }
+  };
+
   useEffect(() => {
     load();
     loadOwners();
     loadOtherUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    loadPaymentHistory(paymentHistoryPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, paymentHistoryPage]);
 
   const ownerAvatarUrl = useFileUrl(ownerForm.avatarName);
 
@@ -442,8 +498,56 @@ export function CompanyDetail() {
       status: company.subscription?.status ?? "Trial",
       startDate: company.subscription?.date.startDate?.slice(0, 10) ?? todayStr(),
       packageIds: (company.subscription?.packages ?? []).map((p) => p.id),
+      discount: company.subscription?.discount ?? 0,
     });
     setSubscriptionModalOpen(true);
+  };
+
+  const activateSubscription = async () => {
+    if (activating) return;
+    setActivating(true);
+    try {
+      await activateCompanySubscription(company.id);
+      toast.success(t.companyDetail.toasts.subscriptionActivated);
+      load();
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.activateSubscription));
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  const openBalanceDialog = (mode: "topup" | "refund") => {
+    setBalanceForm({ mode, amount: "", paymentMethod: "Cash" });
+  };
+
+  const setBalanceField = <K extends keyof BalanceForm>(key: K, value: BalanceForm[K]) =>
+    setBalanceForm((f) => (f ? { ...f, [key]: value } : f));
+
+  const submitBalance = async () => {
+    if (!balanceForm || balanceSubmitting) return;
+    const amount = Number(balanceForm.amount);
+    if (!amount || amount <= 0) {
+      toast.error(t.companyDetail.errors.invalidAmount);
+      return;
+    }
+    setBalanceSubmitting(true);
+    try {
+      if (balanceForm.mode === "topup") {
+        await topUpCompanyBalance(company.id, amount, balanceForm.paymentMethod);
+        toast.success(t.companyDetail.toasts.balanceToppedUp);
+      } else {
+        await refundCompanyBalance(company.id, amount, balanceForm.paymentMethod);
+        toast.success(t.companyDetail.toasts.balanceRefunded);
+      }
+      setBalanceForm(null);
+      load();
+      loadPaymentHistory(paymentHistoryPage);
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.saveBalance));
+    } finally {
+      setBalanceSubmitting(false);
+    }
   };
 
   const setSubField = <K extends keyof SubscriptionForm>(key: K, value: SubscriptionForm[K]) =>
@@ -483,6 +587,7 @@ export function CompanyDetail() {
         status: subForm.status,
         startDate: subForm.startDate,
         packageIds: subForm.packageIds,
+        discount: subForm.discount || 0,
       });
       toast.success(t.companyDetail.toasts.subscriptionSaved);
       setSubscriptionModalOpen(false);
@@ -513,12 +618,52 @@ export function CompanyDetail() {
         )
       : null;
 
+  const editDiscount = subForm?.discount || 0;
+  const editListPrice = showTariffPrice ? selectedFormTariff!.cost : subCost;
+  const editFinalPrice = Math.max(0, editListPrice - editDiscount);
+
   const subscriptionTariff = tariffs.find((tr) => tr.id === company.subscription?.tariffId);
   const subscriptionTariffPackageIds = (subscriptionTariff?.packages ?? []).map((p) => p.id);
   const subscriptionExtraPackages = (company.subscription?.packages ?? []).filter(
     (p) => !subscriptionTariffPackageIds.includes(p.id),
   );
   const showSubscriptionTariffPrice = Boolean(subscriptionTariff) && subscriptionExtraPackages.length === 0;
+  const subDiscount = company.subscription?.discount ?? 0;
+  const subListPrice = showSubscriptionTariffPrice ? subscriptionTariff!.cost : company.subscription?.originalCost ?? 0;
+  const subFinalPrice = subDiscount > 0 ? company.subscription?.costAfterDiscount ?? subListPrice : subListPrice;
+  const canActivateSubscription =
+    Boolean(company.subscription) &&
+    (company.subscription?.status === "Trial" || company.subscription?.status === "Suspended");
+
+  const paymentTypeLabel = (type: string) => {
+    switch (type) {
+      case "Add":
+        return t.companyDetail.paymentTypeAdd;
+      case "Withdraw":
+        return t.companyDetail.paymentTypeWithdraw;
+      case "Refund":
+        return t.companyDetail.paymentTypeRefund;
+      default:
+        return type;
+    }
+  };
+
+  const paymentMethodLabel = (method: string) => {
+    switch (method) {
+      case "Cash":
+        return t.companyDetail.paymentMethodCash;
+      case "Card":
+        return t.companyDetail.paymentMethodCard;
+      case "BankTransfer":
+        return t.companyDetail.paymentMethodBankTransfer;
+      case "Wallet":
+        return t.companyDetail.paymentMethodWallet;
+      case "Other":
+        return t.companyDetail.paymentMethodOther;
+      default:
+        return method;
+    }
+  };
 
   return (
     <>
@@ -706,9 +851,17 @@ export function CompanyDetail() {
         <CardContent>
           <div className="list-head">
             <h3>{t.companyDetail.subscriptionTitle}</h3>
-            <Button type="button" variant="outline" size="sm" onClick={openEditSubscription}>
-              {t.common.edit}
-            </Button>
+            <div className="flex gap-2">
+              {canActivateSubscription && (
+                <Button type="button" variant="outline" size="sm" disabled={activating} onClick={activateSubscription}>
+                  {activating && <Loader2 className="size-4 animate-spin" />}
+                  {t.companyDetail.activateSubscription}
+                </Button>
+              )}
+              <Button type="button" variant="outline" size="sm" onClick={openEditSubscription}>
+                {t.common.edit}
+              </Button>
+            </div>
           </div>
           {company.subscription ? (
             <div className="grid grid-cols-6 gap-4 max-[1024px]:grid-cols-3 max-[640px]:grid-cols-2 max-[420px]:grid-cols-1">
@@ -762,12 +915,18 @@ export function CompanyDetail() {
                 <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
                   {t.companyDetail.subscriptionPrice}
                 </div>
-                <div className="mt-1 font-semibold">
-                  {usd(showSubscriptionTariffPrice ? subscriptionTariff!.cost : company.subscription.originalCost)}
-                </div>
-                {showSubscriptionTariffPrice && (
+                <div className="mt-1 font-semibold">{formatMoney(subFinalPrice, settings.subscriptionCurrencyCode)}</div>
+                {(subDiscount > 0 || showSubscriptionTariffPrice) && (
                   <div className="text-xs text-muted-foreground line-through">
-                    {usd(company.subscription.originalCost)}
+                    {formatMoney(
+                      subDiscount > 0 ? subListPrice : company.subscription.originalCost,
+                      settings.subscriptionCurrencyCode,
+                    )}
+                  </div>
+                )}
+                {subDiscount > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    {t.companyDetail.discount}: -{formatMoney(subDiscount, settings.subscriptionCurrencyCode)}
                   </div>
                 )}
               </div>
@@ -775,6 +934,79 @@ export function CompanyDetail() {
           ) : (
             <p className="text-sm text-muted-foreground">{t.companyDetail.noSubscription}</p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-3.5">
+        <CardContent>
+          <div className="list-head">
+            <h3>{t.companyDetail.balanceTitle}</h3>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => openBalanceDialog("topup")}>
+                {t.companyDetail.topUpBalance}
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => openBalanceDialog("refund")}>
+                {t.companyDetail.refundBalance}
+              </Button>
+            </div>
+          </div>
+          <div className="mt-1 text-2xl font-semibold">
+            {formatMoney(company.balance, settings.nationalCurrencyCode)}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-3.5">
+        <CardContent>
+          <div className="list-head">
+            <h3>{t.companyDetail.paymentHistoryTitle}</h3>
+          </div>
+          {!paymentHistoryLoading && paymentHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t.companyDetail.noPaymentHistory}</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t.companyDetail.paymentAmount}</TableHead>
+                  <TableHead>{t.companyDetail.paymentType}</TableHead>
+                  <TableHead>{t.companyDetail.paymentMethod}</TableHead>
+                  <TableHead>{t.companyDetail.paymentReceiver}</TableHead>
+                  <TableHead>{t.common.created}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paymentHistoryLoading ? (
+                  Array.from({ length: 3 }, (_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={5}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  paymentHistory.map((ph) => (
+                    <TableRow key={ph.id}>
+                      <TableCell className="font-medium">
+                        {formatMoney(ph.amount, settings.nationalCurrencyCode)}
+                      </TableCell>
+                      <TableCell>{paymentTypeLabel(ph.type)}</TableCell>
+                      <TableCell>{ph.method ? paymentMethodLabel(ph.method) : "—"}</TableCell>
+                      <TableCell>{ph.receiverInfo?.name || "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(ph.createdAt, language)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
+          <AppPagination
+            page={paymentHistoryPage}
+            onPage={setPaymentHistoryPage}
+            hasNextPage={paymentHistoryHasNext}
+            hasPreviousPage={paymentHistoryHasPrev}
+          />
         </CardContent>
       </Card>
 
@@ -1053,15 +1285,34 @@ export function CompanyDetail() {
                   )}
                 </div>
               </Field>
+              <Field label={t.companyDetail.discount}>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={subForm.discount || ""}
+                  onChange={(e) => setSubField("discount", Number(e.target.value) || 0)}
+                />
+              </Field>
               <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">{t.companyDetail.subscriptionPrice}</span>
-                  <span className="font-semibold">{usd(showTariffPrice ? selectedFormTariff!.cost : subCost)}</span>
+                  <span className="font-semibold">{formatMoney(editListPrice, settings.subscriptionCurrencyCode)}</span>
                 </div>
                 {showTariffPrice && (
                   <div className="mt-1 flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">{t.companyDetail.subscriptionRealCost}</span>
-                    <span className="text-xs text-muted-foreground line-through">{usd(selectedFormTariff!.originalCost)}</span>
+                    <span className="text-xs text-muted-foreground line-through">
+                      {formatMoney(selectedFormTariff!.originalCost, settings.subscriptionCurrencyCode)}
+                    </span>
+                  </div>
+                )}
+                {editDiscount > 0 && (
+                  <div className="mt-1 flex items-center justify-between border-t pt-1">
+                    <span className="text-xs text-muted-foreground">{t.companyDetail.subscriptionFinalCost}</span>
+                    <span className="text-sm font-semibold">
+                      {formatMoney(editFinalPrice, settings.subscriptionCurrencyCode)}
+                    </span>
                   </div>
                 )}
               </div>
@@ -1076,6 +1327,56 @@ export function CompanyDetail() {
               disabled={subSubmitting || !subForm || subForm.packageIds.length === 0}
               onClick={submitSubscription}
             >
+              {t.common.save}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(balanceForm)} onOpenChange={(open) => !open && setBalanceForm(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {balanceForm?.mode === "refund" ? t.companyDetail.refundBalance : t.companyDetail.topUpBalance}
+            </DialogTitle>
+          </DialogHeader>
+          {balanceForm && (
+            <div className="grid gap-3">
+              <Field label={t.companyDetail.amount}>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={balanceForm.amount}
+                  onChange={(e) => setBalanceField("amount", e.target.value)}
+                  autoFocus
+                />
+              </Field>
+              <Field label={t.companyDetail.paymentMethod}>
+                <Select
+                  value={balanceForm.paymentMethod}
+                  onValueChange={(v) => setBalanceField("paymentMethod", v as PaymentMethod)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_METHODS.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {paymentMethodLabel(m)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setBalanceForm(null)}>
+              {t.common.cancel}
+            </Button>
+            <Button type="button" disabled={balanceSubmitting} onClick={submitBalance}>
+              {balanceSubmitting && <Loader2 className="size-4 animate-spin" />}
               {t.common.save}
             </Button>
           </DialogFooter>

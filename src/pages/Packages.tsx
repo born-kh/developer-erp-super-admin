@@ -10,7 +10,7 @@ import {
 } from "../lib/api";
 import { useTranslation } from "../i18n/LanguageContext";
 import { useModuleSettings } from "../data/moduleSettingsStore";
-import { usd } from "../lib/format";
+import { formatMoney } from "../lib/format";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { EmptyState } from "@/components/EmptyState";
@@ -232,7 +232,7 @@ export function Packages() {
                       )}
                     </TableCell>
                     <TableCell className="tabular-nums font-medium">
-                      {usd(p.cost)} {t.tariffs.perMonth}
+                      {formatMoney(p.cost, settings.subscriptionCurrencyCode)} {t.tariffs.perMonth}
                     </TableCell>
                     <TableCell>
                       {p.permissionGroupCodes.length === 0 ? (

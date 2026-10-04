@@ -250,7 +250,7 @@ export function Roles() {
                 </Field>
               </div>
             </CollapsibleContent>
-            <div className="flex justify-end">
+            <div className="mt-3 flex justify-end">
               <CollapsibleTrigger asChild>
                 <Button type="button" variant="outline" size="sm">
                   {filtersOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}

@@ -23,6 +23,7 @@ import { RoleDetail } from "./pages/RoleDetail";
 import { Cities } from "./pages/Cities";
 import { ActivityLogs } from "./pages/ActivityLogs";
 import { ActivityLogDetail } from "./pages/ActivityLogDetail";
+import { PaymentHistories } from "./pages/PaymentHistories";
 
 function Guard({ children }: { children: ReactNode }) {
   if (!isAuthenticated()) return <Navigate to="/login" replace />;
@@ -61,6 +62,7 @@ export default function App() {
               <Route path="/cities" element={<Cities />} />
               <Route path="/activity-logs" element={<ActivityLogs />} />
               <Route path="/activity-logs/:id" element={<ActivityLogDetail />} />
+              <Route path="/payment-histories" element={<PaymentHistories />} />
             </Route>
           </Routes>
         </CityCatalogProvider>
