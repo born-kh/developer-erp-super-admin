@@ -156,8 +156,10 @@ export type Dict = {
     noOwners: string;
     ownerModalTitleEdit: string;
     ownerModalTitleCreate: string;
-    otherUsersTitle: string;
-    noOtherUsers: string;
+    workersTitle: string;
+    noWorkers: string;
+    clientsTitle: string;
+    noClients: string;
     deleteCompanyTitle: string;
     deleteCompanyDesc: (name: string) => string;
     ownerWillBeDeleted: string;
@@ -657,8 +659,10 @@ export const translations: Record<Language, Dict> = {
       noOwners: "Пока нет владельцев.",
       ownerModalTitleEdit: "Редактировать владельца",
       ownerModalTitleCreate: "Новый владелец",
-      otherUsersTitle: "Другие пользователи",
-      noOtherUsers: "Других пользователей пока нет.",
+      workersTitle: "Сотрудники",
+      noWorkers: "Сотрудников пока нет.",
+      clientsTitle: "Клиенты",
+      noClients: "Клиентов пока нет.",
       deleteCompanyTitle: "Удалить компанию?",
       deleteCompanyDesc: (name) => `Удалить компанию «${name}»? Это действие необратимо.`,
       ownerWillBeDeleted: "Владелец будет удалён.",
@@ -1180,8 +1184,10 @@ export const translations: Record<Language, Dict> = {
       noOwners: "No owners yet.",
       ownerModalTitleEdit: "Edit owner",
       ownerModalTitleCreate: "New owner",
-      otherUsersTitle: "Other Users",
-      noOtherUsers: "No other users yet.",
+      workersTitle: "Workers",
+      noWorkers: "No workers yet.",
+      clientsTitle: "Clients",
+      noClients: "No clients yet.",
       deleteCompanyTitle: "Delete company?",
       deleteCompanyDesc: (name) => `Delete company "${name}"? This action cannot be undone.`,
       ownerWillBeDeleted: "The owner will be deleted.",
@@ -1703,8 +1709,10 @@ export const translations: Record<Language, Dict> = {
       noOwners: "Ҳанӯз соҳибе нест.",
       ownerModalTitleEdit: "Таҳрири соҳиб",
       ownerModalTitleCreate: "Соҳиби нав",
-      otherUsersTitle: "Дигар корбарон",
-      noOtherUsers: "Ҳанӯз корбари дигаре нест.",
+      workersTitle: "Кормандон",
+      noWorkers: "Ҳанӯз корманде нест.",
+      clientsTitle: "Мизоҷон",
+      noClients: "Ҳанӯз мизоҷе нест.",
       deleteCompanyTitle: "Ширкатро нест кардан?",
       deleteCompanyDesc: (name) => `Ширкати «${name}»-ро нест кардан? Ин амал баргарданашаванда аст.`,
       ownerWillBeDeleted: "Соҳиб нест карда мешавад.",

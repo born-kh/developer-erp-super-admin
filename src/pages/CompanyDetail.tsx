@@ -178,8 +178,10 @@ export function CompanyDetail() {
 
   const [owners, setOwners] = useState<UserListItem[]>([]);
   const [ownersLoading, setOwnersLoading] = useState(true);
-  const [otherUsers, setOtherUsers] = useState<UserListItem[]>([]);
-  const [otherUsersLoading, setOtherUsersLoading] = useState(true);
+  const [workers, setWorkers] = useState<UserListItem[]>([]);
+  const [workersLoading, setWorkersLoading] = useState(true);
+  const [clients, setClients] = useState<UserListItem[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(true);
   const [ownerModal, setOwnerModal] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
   const [ownerForm, setOwnerForm] = useState<OwnerForm>(emptyOwnerForm);
   const [ownerSubmitting, setOwnerSubmitting] = useState(false);
@@ -240,19 +242,29 @@ export function CompanyDetail() {
     }
   };
 
-  const loadOtherUsers = async () => {
+  const loadWorkers = async () => {
     if (!id) return;
-    setOtherUsersLoading(true);
+    setWorkersLoading(true);
     try {
-      const [workers, clients] = await Promise.all([
-        listUsers({ companyId: id, userType: "Worker", pageSize: 100 }),
-        listUsers({ companyId: id, userType: "Customer", pageSize: 100 }),
-      ]);
-      setOtherUsers([...(workers.items ?? []), ...(clients.items ?? [])]);
+      const res = await listUsers({ companyId: id, userType: "Worker", pageSize: 100 });
+      setWorkers(res.items ?? []);
     } catch (err) {
       toast.error(errorMessage(err, t.companyDetail.errors.loadUsers));
     } finally {
-      setOtherUsersLoading(false);
+      setWorkersLoading(false);
+    }
+  };
+
+  const loadClients = async () => {
+    if (!id) return;
+    setClientsLoading(true);
+    try {
+      const res = await listUsers({ companyId: id, userType: "Customer", pageSize: 100 });
+      setClients(res.items ?? []);
+    } catch (err) {
+      toast.error(errorMessage(err, t.companyDetail.errors.loadUsers));
+    } finally {
+      setClientsLoading(false);
     }
   };
 
@@ -274,7 +286,8 @@ export function CompanyDetail() {
   useEffect(() => {
     load();
     loadOwners();
-    loadOtherUsers();
+    loadWorkers();
+    loadClients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -1070,14 +1083,49 @@ export function CompanyDetail() {
       <Card className="mt-3.5">
         <CardContent>
           <div className="list-head">
-            <h3>{t.companyDetail.otherUsersTitle}</h3>
+            <h3>{t.companyDetail.workersTitle}</h3>
           </div>
-          {otherUsersLoading ? (
+          {workersLoading ? (
             <p className="text-sm text-muted-foreground">{t.common.loading}</p>
-          ) : otherUsers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t.companyDetail.noOtherUsers}</p>
+          ) : workers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t.companyDetail.noWorkers}</p>
           ) : (
-            otherUsers.map((u) => (
+            workers.map((u) => (
+              <div
+                className="owner-row cursor-pointer"
+                key={u.id}
+                tabIndex={0}
+                onClick={() => nav(`/users/${u.id}`)}
+                onKeyDown={(e) => e.key === "Enter" && nav(`/users/${u.id}`)}
+              >
+                <div className="owner-row-main flex items-center gap-3">
+                  <Avatar className="size-9 shrink-0">
+                    <AvatarFallback className="bg-secondary text-xs font-semibold text-muted-foreground">
+                      {initials(u.fullName ?? "")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <b>{u.fullName}</b>
+                    <div className="text-sm text-muted-foreground">{u.email}</div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-3.5">
+        <CardContent>
+          <div className="list-head">
+            <h3>{t.companyDetail.clientsTitle}</h3>
+          </div>
+          {clientsLoading ? (
+            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
+          ) : clients.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t.companyDetail.noClients}</p>
+          ) : (
+            clients.map((u) => (
               <div
                 className="owner-row cursor-pointer"
                 key={u.id}
