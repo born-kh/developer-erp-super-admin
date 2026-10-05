@@ -16,6 +16,7 @@ import {
 } from "../lib/api";
 import { useTranslation } from "../i18n/LanguageContext";
 import { useModuleSettings } from "../data/moduleSettingsStore";
+import { formatMoney } from "../lib/format";
 import { PageHead } from "../AppShell";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Field } from "@/components/Field";
@@ -267,7 +268,7 @@ export function PackageDetail() {
                   />
                 </Field>
               </div>
-              <Field label={t.common.price}>
+              <Field label={t.common.price(settings.subscriptionCurrencyCode || "USD")}>
                 <Input type="number" min="0" value={form.cost} onChange={(e) => setField("cost", e.target.value)} />
               </Field>
               <label className="flex items-center gap-2 text-sm font-medium">
@@ -309,9 +310,9 @@ export function PackageDetail() {
                 </div>
                 <div>
                   <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t.common.price}
+                    {t.common.price(settings.subscriptionCurrencyCode || "USD")}
                   </dt>
-                  <dd className="mt-1 font-semibold">{pkg.cost}</dd>
+                  <dd className="mt-1 font-semibold">{formatMoney(pkg.cost, settings.subscriptionCurrencyCode)}</dd>
                 </div>
               </div>
             </>

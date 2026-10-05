@@ -267,7 +267,7 @@ export function Tariffs() {
                 <TableHead className="w-10">{t.common.rowNumber}</TableHead>
                 <TableHead>{t.tariffs.tableTariff}</TableHead>
                 <TableHead>{t.common.description}</TableHead>
-                <TableHead>{t.common.price}</TableHead>
+                <TableHead>{t.common.price(settings.subscriptionCurrencyCode || "USD")}</TableHead>
                 <TableHead>{t.tariffs.tablePackages}</TableHead>
                 <TableHead>{t.common.status}</TableHead>
                 <TableHead className="text-right">{t.common.actions}</TableHead>
@@ -375,7 +375,7 @@ export function Tariffs() {
               <Field label={t.tariffs.code}>
                 <Input value={form.code} onChange={(e) => set("code", e.target.value)} autoFocus />
               </Field>
-              <Field label={t.common.price}>
+              <Field label={t.common.price(settings.subscriptionCurrencyCode || "USD")}>
                 <Input type="number" min="0" value={form.cost} onChange={(e) => set("cost", e.target.value)} />
               </Field>
             </div>

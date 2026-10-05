@@ -315,7 +315,7 @@ export function Packages() {
                 />
               </Field>
             </div>
-            <Field label={t.common.price}>
+            <Field label={t.common.price(settings.subscriptionCurrencyCode || "USD")}>
               <Input
                 type="number"
                 min="0"

@@ -253,6 +253,7 @@ export function PaymentHistories() {
                 <TableHead>{t.companyDetail.paymentType}</TableHead>
                 <TableHead>{t.companyDetail.paymentMethod}</TableHead>
                 <TableHead>{t.companyDetail.paymentReceiver}</TableHead>
+                <TableHead>{t.companyDetail.paymentSubscriptionRange}</TableHead>
                 <TableHead>{t.common.created}</TableHead>
               </TableRow>
             </TableHeader>
@@ -260,7 +261,7 @@ export function PaymentHistories() {
               {loadingList ? (
                 Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                   <TableRow key={i} className="animate-in fade-in duration-300">
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={7}>
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
                   </TableRow>
@@ -273,6 +274,13 @@ export function PaymentHistories() {
                     <TableCell>{typeLabel(item.type)}</TableCell>
                     <TableCell>{item.method ? methodLabel(item.method) : "—"}</TableCell>
                     <TableCell>{item.receiverInfo?.name || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {item.subscriptionRange
+                        ? `${formatDate(item.subscriptionRange.startDate, language)} – ${
+                            item.subscriptionRange.endDate ? formatDate(item.subscriptionRange.endDate, language) : "—"
+                          }`
+                        : "—"}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{formatDate(item.createdAt, language)}</TableCell>
                   </TableRow>
                 ))

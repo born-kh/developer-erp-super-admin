@@ -66,7 +66,7 @@ export type Dict = {
     address: string;
     created: string;
     image: string;
-    price: string;
+    price: (currency: string) => string;
     statusActive: string;
     statusTrial: string;
     statusSuspended: string;
@@ -183,6 +183,7 @@ export type Dict = {
     paymentAmount: string;
     paymentType: string;
     paymentReceiver: string;
+    paymentSubscriptionRange: string;
     paymentTypeAdd: string;
     paymentTypeWithdraw: string;
     paymentTypeRefund: string;
@@ -562,7 +563,7 @@ export const translations: Record<Language, Dict> = {
       address: "Адрес",
       created: "Создана",
       image: "Изображение",
-      price: "Цена, $/мес",
+      price: (currency: string) => `Цена, ${currency}/мес`,
       statusActive: "Активна",
       statusTrial: "Триал",
       statusSuspended: "Приостановлена",
@@ -683,6 +684,7 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Сумма",
       paymentType: "Тип",
       paymentReceiver: "Получатель",
+      paymentSubscriptionRange: "Период подписки",
       paymentTypeAdd: "Пополнение",
       paymentTypeWithdraw: "Списание",
       paymentTypeRefund: "Возврат",
@@ -1084,7 +1086,7 @@ export const translations: Record<Language, Dict> = {
       address: "Address",
       created: "Created",
       image: "Image",
-      price: "Price, $/mo",
+      price: (currency: string) => `Price, ${currency}/mo`,
       statusActive: "Active",
       statusTrial: "Trial",
       statusSuspended: "Suspended",
@@ -1205,6 +1207,7 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Amount",
       paymentType: "Type",
       paymentReceiver: "Receiver",
+      paymentSubscriptionRange: "Subscription period",
       paymentTypeAdd: "Top-up",
       paymentTypeWithdraw: "Withdrawal",
       paymentTypeRefund: "Refund",
@@ -1606,7 +1609,7 @@ export const translations: Record<Language, Dict> = {
       address: "Суроға",
       created: "Сохта шуд",
       image: "Расм",
-      price: "Нарх, $/моҳ",
+      price: (currency: string) => `Нарх, ${currency}/моҳ`,
       statusActive: "Фаъол",
       statusTrial: "Озмоишӣ",
       statusSuspended: "Боздошта шуда",
@@ -1727,6 +1730,7 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Маблағ",
       paymentType: "Навъ",
       paymentReceiver: "Қабулкунанда",
+      paymentSubscriptionRange: "Давраи обуна",
       paymentTypeAdd: "Пуркунӣ",
       paymentTypeWithdraw: "Бардошт",
       paymentTypeRefund: "Баргардонидан",

@@ -10,11 +10,6 @@ export type PlatformUser = {
   image?: string;
 };
 
-export const income = {
-  thisMonth: 4820,
-  lastMonth: 4120,
-};
-
 export type CityItem = {
   id: string;
   name: string;

@@ -620,7 +620,7 @@ export function CompanyDetail() {
 
   const editDiscount = subForm?.discount || 0;
   const editListPrice = showTariffPrice ? selectedFormTariff!.cost : subCost;
-  const editFinalPrice = Math.max(0, editListPrice - editDiscount);
+  const editFinalPrice = Math.max(0, editListPrice * (1 - editDiscount / 100));
 
   const subscriptionTariff = tariffs.find((tr) => tr.id === company.subscription?.tariffId);
   const subscriptionTariffPackageIds = (subscriptionTariff?.packages ?? []).map((p) => p.id);
@@ -853,7 +853,7 @@ export function CompanyDetail() {
             <h3>{t.companyDetail.subscriptionTitle}</h3>
             <div className="flex gap-2">
               {canActivateSubscription && (
-                <Button type="button" variant="outline" size="sm" disabled={activating} onClick={activateSubscription}>
+                <Button type="button" variant="success" size="sm" disabled={activating} onClick={activateSubscription}>
                   {activating && <Loader2 className="size-4 animate-spin" />}
                   {t.companyDetail.activateSubscription}
                 </Button>
@@ -915,18 +915,18 @@ export function CompanyDetail() {
                 <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
                   {t.companyDetail.subscriptionPrice}
                 </div>
-                <div className="mt-1 font-semibold">{formatMoney(subFinalPrice, settings.subscriptionCurrencyCode)}</div>
+                <div className="mt-1 font-semibold">
+                  {formatMoney(subFinalPrice, settings.subscriptionCurrencyCode)}
+                  {subDiscount > 0 && (
+                    <span className="ml-1 font-normal text-muted-foreground">(-{subDiscount}%)</span>
+                  )}
+                </div>
                 {(subDiscount > 0 || showSubscriptionTariffPrice) && (
                   <div className="text-xs text-muted-foreground line-through">
                     {formatMoney(
                       subDiscount > 0 ? subListPrice : company.subscription.originalCost,
                       settings.subscriptionCurrencyCode,
                     )}
-                  </div>
-                )}
-                {subDiscount > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    {t.companyDetail.discount}: -{formatMoney(subDiscount, settings.subscriptionCurrencyCode)}
                   </div>
                 )}
               </div>
@@ -971,6 +971,7 @@ export function CompanyDetail() {
                   <TableHead>{t.companyDetail.paymentType}</TableHead>
                   <TableHead>{t.companyDetail.paymentMethod}</TableHead>
                   <TableHead>{t.companyDetail.paymentReceiver}</TableHead>
+                  <TableHead>{t.companyDetail.paymentSubscriptionRange}</TableHead>
                   <TableHead>{t.common.created}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -978,7 +979,7 @@ export function CompanyDetail() {
                 {paymentHistoryLoading ? (
                   Array.from({ length: 3 }, (_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={5}>
+                      <TableCell colSpan={6}>
                         <Skeleton className="h-4 w-full" />
                       </TableCell>
                     </TableRow>
@@ -992,6 +993,13 @@ export function CompanyDetail() {
                       <TableCell>{paymentTypeLabel(ph.type)}</TableCell>
                       <TableCell>{ph.method ? paymentMethodLabel(ph.method) : "—"}</TableCell>
                       <TableCell>{ph.receiverInfo?.name || "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {ph.subscriptionRange
+                          ? `${formatDate(ph.subscriptionRange.startDate, language)} – ${
+                              ph.subscriptionRange.endDate ? formatDate(ph.subscriptionRange.endDate, language) : "—"
+                            }`
+                          : "—"}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(ph.createdAt, language)}
                       </TableCell>
@@ -1285,10 +1293,11 @@ export function CompanyDetail() {
                   )}
                 </div>
               </Field>
-              <Field label={t.companyDetail.discount}>
+              <Field label={`${t.companyDetail.discount} (%)`}>
                 <Input
                   type="number"
                   min={0}
+                  max={100}
                   step="0.01"
                   value={subForm.discount || ""}
                   onChange={(e) => setSubField("discount", Number(e.target.value) || 0)}
@@ -1311,7 +1320,8 @@ export function CompanyDetail() {
                   <div className="mt-1 flex items-center justify-between border-t pt-1">
                     <span className="text-xs text-muted-foreground">{t.companyDetail.subscriptionFinalCost}</span>
                     <span className="text-sm font-semibold">
-                      {formatMoney(editFinalPrice, settings.subscriptionCurrencyCode)}
+                      {formatMoney(editFinalPrice, settings.subscriptionCurrencyCode)}{" "}
+                      <span className="font-normal text-muted-foreground">(-{editDiscount}%)</span>
                     </span>
                   </div>
                 )}
