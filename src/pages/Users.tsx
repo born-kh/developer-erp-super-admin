@@ -51,7 +51,7 @@ import {
 
 const DEFAULT_PAGE_SIZE = 10;
 
-const SELECTABLE_USER_TYPES: UserType[] = ["Admin", "Owner", "Worker", "Client"];
+const SELECTABLE_USER_TYPES: UserType[] = ["Admin", "Owner", "Worker", "Customer"];
 const IS_ACTIVE_ANY = "any";
 const COMPANY_ANY = "any";
 const SHOW_COMPANY_USERS_ANY = "any";
@@ -130,7 +130,7 @@ export function Users() {
     Admin: t.users.typeAdmin,
     Owner: t.users.typeOwner,
     Worker: t.users.typeWorker,
-    Client: t.users.typeClient,
+    Customer: t.users.typeClient,
     Unknown: "",
   };
 

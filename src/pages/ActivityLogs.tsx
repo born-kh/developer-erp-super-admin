@@ -41,7 +41,7 @@ import {
 const DEFAULT_PAGE_SIZE = 10;
 const TYPE_NONE = "none";
 const CREATOR_TYPE_NONE = "none";
-const CREATOR_TYPES: UserType[] = ["SuperAdmin", "Admin", "Owner", "Worker", "Client", "Unknown"];
+const CREATOR_TYPES: UserType[] = ["SuperAdmin", "Admin", "Owner", "Worker", "Customer", "Unknown"];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type CreatorMatch = { id: string; fullName?: string | null; email?: string | null };
@@ -207,7 +207,7 @@ export function ActivityLogs() {
     Admin: t.users.typeAdmin,
     Owner: t.users.typeOwner,
     Worker: t.users.typeWorker,
-    Client: t.users.typeClient,
+    Customer: t.users.typeClient,
     Unknown: "Unknown",
   };
 

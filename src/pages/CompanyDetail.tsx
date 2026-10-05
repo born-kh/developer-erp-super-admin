@@ -246,7 +246,7 @@ export function CompanyDetail() {
     try {
       const [workers, clients] = await Promise.all([
         listUsers({ companyId: id, userType: "Worker", pageSize: 100 }),
-        listUsers({ companyId: id, userType: "Client", pageSize: 100 }),
+        listUsers({ companyId: id, userType: "Customer", pageSize: 100 }),
       ]);
       setOtherUsers([...(workers.items ?? []), ...(clients.items ?? [])]);
     } catch (err) {

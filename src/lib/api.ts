@@ -241,7 +241,7 @@ export type UserListItem = {
   isActive: boolean;
 };
 
-export type UserType = "SuperAdmin" | "Admin" | "Owner" | "Worker" | "Client" | "Unknown";
+export type UserType = "SuperAdmin" | "Admin" | "Owner" | "Worker" | "Customer" | "Unknown";
 
 export type CreateAdminUserInput = {
   firstName: string;

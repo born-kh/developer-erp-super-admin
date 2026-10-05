@@ -56,7 +56,7 @@ export function UserTypeBadge({ type, className }: { type: UserType; className?:
     Admin: { tone: "info", label: t.users.typeAdmin },
     Owner: { tone: "warning", label: t.users.typeOwner },
     Worker: { tone: "success", label: t.users.typeWorker },
-    Client: { tone: "info", label: t.users.typeClient },
+    Customer: { tone: "info", label: t.users.typeClient },
     Unknown: { tone: "info", label: type },
   };
   const item = userTypes[type];
