@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import { toast } from "sonner";
 import {
+  getSubscriptionPaymentHistory,
   listCompanies,
   listPaymentHistories,
+  listTariffsWithPackages,
   ApiRequestError,
   type CompanyListItem,
   type CompanyPaymentHistoryItem,
   type PaymentType,
+  type SubscriptionPaymentHistoryItem,
+  type TariffIncludingPackages,
 } from "../lib/api";
 import { formatDate, formatMoney } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
@@ -18,6 +22,12 @@ import { AppPagination } from "@/components/AppPagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { Input } from "@/components/ui/input";
@@ -75,6 +85,11 @@ export function PaymentHistories() {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
+  const [tariffs, setTariffs] = useState<TariffIncludingPackages[]>([]);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detail, setDetail] = useState<SubscriptionPaymentHistoryItem | null>(null);
+
   const [filters, setFilters] = useState<Filters>({ ...emptyFilters, companyId: initialCompanyId });
   const [appliedFilters, setAppliedFilters] = useState<Filters>({ ...emptyFilters, companyId: initialCompanyId });
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -101,6 +116,12 @@ export function PaymentHistories() {
   useEffect(() => {
     if (initialCompanyId) loadCompaniesOnce();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    listTariffsWithPackages({ pageSize: 100 })
+      .then((res) => setTariffs(res.items ?? []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -144,6 +165,34 @@ export function PaymentHistories() {
 
   const changeCompanyId = (v: string) => setFilter("companyId", v === COMPANY_ANY ? "" : v);
   const changeType = (v: string) => setFilter("type", v === TYPE_ANY ? "" : (v as PaymentType));
+
+  const openDetail = (paymentHistoryId: string) => {
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetail(null);
+    getSubscriptionPaymentHistory(paymentHistoryId)
+      .then(setDetail)
+      .catch((err) => toast.error(errorMessage(err, t.paymentHistories.errors.loadList)))
+      .finally(() => setDetailLoading(false));
+  };
+
+  const unitTypeLabel = (type: string) => {
+    switch (type) {
+      case "Residential":
+        return t.tariffs.unitTypeResidential;
+      case "Commercial":
+        return t.tariffs.unitTypeCommercial;
+      case "Parking":
+        return t.tariffs.unitTypeParking;
+      case "Basement":
+        return t.tariffs.unitTypeBasement;
+      default:
+        return type;
+    }
+  };
+
+  const unitStageLabel = (stage: string) =>
+    stage === "Active" ? t.tariffs.unitStageActive : t.tariffs.unitStageCompleted;
 
   const typeLabel = (type: string) => {
     switch (type) {
@@ -263,28 +312,39 @@ export function PaymentHistories() {
                 <TableHead>{t.companyDetail.paymentMethod}</TableHead>
                 <TableHead>{t.companyDetail.paymentReceiver}</TableHead>
                 <TableHead>{t.companyDetail.paymentDate}</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {loadingList ? (
                 Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                   <TableRow key={i} className="animate-in fade-in duration-300">
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={7}>
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
-                items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.companyName || "—"}</TableCell>
-                    <TableCell>{formatMoney(item.amount, settings.nationalCurrencyCode)}</TableCell>
-                    <TableCell>{typeLabel(item.type)}</TableCell>
-                    <TableCell>{item.method ? methodLabel(item.method) : "—"}</TableCell>
-                    <TableCell>{item.receiverInfo?.name || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatDate(item.createdAt, language)}</TableCell>
-                  </TableRow>
-                ))
+                items.map((item) => {
+                  const isWithdraw = item.type === "Withdraw";
+                  return (
+                    <TableRow
+                      key={item.id}
+                      className={isWithdraw ? "cursor-pointer" : undefined}
+                      tabIndex={isWithdraw ? 0 : undefined}
+                      onClick={() => isWithdraw && openDetail(item.id)}
+                      onKeyDown={(e) => isWithdraw && e.key === "Enter" && openDetail(item.id)}
+                    >
+                      <TableCell className="font-medium">{item.companyName || "—"}</TableCell>
+                      <TableCell>{formatMoney(item.amount, settings.nationalCurrencyCode)}</TableCell>
+                      <TableCell>{typeLabel(item.type)}</TableCell>
+                      <TableCell>{item.method ? methodLabel(item.method) : "—"}</TableCell>
+                      <TableCell>{item.receiverInfo?.name || "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">{formatDate(item.createdAt, language)}</TableCell>
+                      <TableCell className="w-8 text-muted-foreground">{isWithdraw && <Info className="size-4" />}</TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -300,6 +360,76 @@ export function PaymentHistories() {
         pageSize={pageSize}
         onPageSizeChange={changePageSize}
       />
+
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.companyDetail.subPaymentHistoryTitle}</DialogTitle>
+          </DialogHeader>
+          {detailLoading ? (
+            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
+          ) : detail ? (
+            <div className="grid gap-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.tariffs.title}</span>
+                {tariffs.find((tr) => tr.id === detail.tariffId) ? (
+                  <button type="button" className="text-primary hover:underline" onClick={() => nav("/tariffs")}>
+                    {tariffs.find((tr) => tr.id === detail.tariffId)?.code}
+                  </button>
+                ) : (
+                  <span>—</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.companyDetail.paymentSubscriptionPeriod}</span>
+                <span>
+                  {formatDate(detail.subscriptionPeriod.startDate, language)} –{" "}
+                  {formatDate(detail.subscriptionPeriod.endDate, language)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.companyDetail.discount}</span>
+                <span>{detail.discount ? `-${detail.discount}%` : "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.companyDetail.paymentAmount}</span>
+                <span className="font-semibold">
+                  {formatMoney(detail.totalCostAfterDiscount, settings.subscriptionCurrencyCode)}
+                  {detail.discount ? (
+                    <span className="ml-1 text-xs font-normal text-muted-foreground line-through">
+                      {formatMoney(detail.totalCost, settings.subscriptionCurrencyCode)}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+              {detail.priceLines?.length ? (
+                <div className="rounded-md border divide-y">
+                  <div className="flex items-center justify-between gap-2 px-3 py-2">
+                    <span className="text-muted-foreground">{t.companyDetail.tariffBaseCost}</span>
+                    <span className="font-medium tabular-nums">
+                      {formatMoney(detail.baseCost, settings.subscriptionCurrencyCode)}
+                    </span>
+                  </div>
+                  {detail.priceLines.map((pl) => (
+                    <div
+                      key={`${pl.unitType}-${pl.unitStage}`}
+                      className="flex items-center justify-between gap-2 px-3 py-2"
+                    >
+                      <span className="text-muted-foreground">
+                        {unitTypeLabel(pl.unitType)} · {unitStageLabel(pl.unitStage)} ·{" "}
+                        {formatMoney(pl.unitCost, settings.subscriptionCurrencyCode)} × {pl.quantity}
+                      </span>
+                      <span className="font-medium tabular-nums">
+                        {formatMoney(pl.totalCost, settings.subscriptionCurrencyCode)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
