@@ -182,6 +182,7 @@ export type Dict = {
     paymentSubscriptionPeriod: string;
     noPaymentHistory: string;
     paymentAmount: string;
+    totalAmount: string;
     paymentType: string;
     paymentReceiver: string;
     paymentDate: string;
@@ -696,6 +697,7 @@ export const translations: Record<Language, Dict> = {
       paymentSubscriptionPeriod: "Период подписки",
       noPaymentHistory: "Платежей пока нет.",
       paymentAmount: "Сумма",
+      totalAmount: "Итоговая цена",
       paymentType: "Тип",
       paymentReceiver: "Получатель",
       paymentDate: "Дата операции",
@@ -1232,6 +1234,7 @@ export const translations: Record<Language, Dict> = {
       paymentSubscriptionPeriod: "Subscription period",
       noPaymentHistory: "No payments yet.",
       paymentAmount: "Amount",
+      totalAmount: "Total price",
       paymentType: "Type",
       paymentReceiver: "Receiver",
       paymentDate: "Operation date",
@@ -1768,6 +1771,7 @@ export const translations: Record<Language, Dict> = {
       paymentSubscriptionPeriod: "Давраи обуна",
       noPaymentHistory: "Ҳанӯз пардохте нест.",
       paymentAmount: "Маблағ",
+      totalAmount: "Ҳамагӣ",
       paymentType: "Навъ",
       paymentReceiver: "Қабулкунанда",
       paymentDate: "Санаи амалиёт",

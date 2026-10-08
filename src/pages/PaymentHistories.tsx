@@ -387,21 +387,6 @@ export function PaymentHistories() {
                   {formatDate(detail.subscriptionPeriod.endDate, language)}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t.companyDetail.discount}</span>
-                <span>{detail.discount ? `-${detail.discount}%` : "—"}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t.companyDetail.paymentAmount}</span>
-                <span className="font-semibold">
-                  {formatMoney(detail.totalCostAfterDiscount, settings.subscriptionCurrencyCode)}
-                  {detail.discount ? (
-                    <span className="ml-1 text-xs font-normal text-muted-foreground line-through">
-                      {formatMoney(detail.totalCost, settings.subscriptionCurrencyCode)}
-                    </span>
-                  ) : null}
-                </span>
-              </div>
               {detail.priceLines?.length ? (
                 <div className="rounded-md border divide-y">
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
@@ -426,6 +411,20 @@ export function PaymentHistories() {
                   ))}
                 </div>
               ) : null}
+              <div className="flex items-center justify-between border-t pt-3">
+                <span className="text-base font-semibold">{t.companyDetail.totalAmount}</span>
+                <div className="flex flex-col items-end">
+                  {detail.discount ? (
+                    <span className="text-xs text-muted-foreground line-through">
+                      {formatMoney(detail.totalCost, settings.subscriptionCurrencyCode)}
+                    </span>
+                  ) : null}
+                  <span className="text-base font-semibold">
+                    {formatMoney(detail.totalCostAfterDiscount, settings.subscriptionCurrencyCode)}
+                    {detail.discount ? ` (-${detail.discount}%)` : ""}
+                  </span>
+                </div>
+              </div>
             </div>
           ) : null}
         </DialogContent>
