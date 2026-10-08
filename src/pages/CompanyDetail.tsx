@@ -922,9 +922,17 @@ export function CompanyDetail() {
                   )}
                 </div>
               </div>
-              {subPriceInfo?.priceLines?.length ? (
+              {subPriceInfo ? (
                 <div className="mt-4 rounded-md border divide-y">
-                  {subPriceInfo.priceLines.map((pl) => (
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">
+                      {t.companyDetail.tariffBaseCost} · {subscription.tariff?.code || t.companyDetail.noTariff}
+                    </span>
+                    <span className="font-medium tabular-nums">
+                      {formatMoney(subPriceInfo.baseCost, settings.subscriptionCurrencyCode)}
+                    </span>
+                  </div>
+                  {subPriceInfo.priceLines?.map((pl) => (
                     <div
                       key={`${pl.unitType}-${pl.unitStage}`}
                       className="flex items-center justify-between gap-2 px-3 py-2 text-sm"

@@ -48,7 +48,7 @@ function errorMessage(err: unknown, fallback: string) {
 export function PackageDetail() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { settings } = useModuleSettings();
   const langs = settings.supportedLanguages;
   const defaultLang = settings.defaultLanguage;
@@ -286,27 +286,15 @@ export function PackageDetail() {
                   <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {t.common.name}
                   </div>
-                  <dl className="detail-dl">
-                    {langs.map((l) => (
-                      <div key={l}>
-                        <dt>{l.toUpperCase()}</dt>
-                        <dd>{pkg.title?.[l] || "—"}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                  <p className="font-semibold">{pkg.title?.[language] || pkg.title?.[defaultLang] || "—"}</p>
                 </div>
                 <div className="rounded-md border p-3">
                   <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {t.common.description}
                   </div>
-                  <dl className="detail-dl">
-                    {langs.map((l) => (
-                      <div key={l}>
-                        <dt>{l.toUpperCase()}</dt>
-                        <dd>{pkg.description?.[l] || "—"}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                  <p className="font-semibold">
+                    {pkg.description?.[language] || pkg.description?.[defaultLang] || "—"}
+                  </p>
                 </div>
                 <div>
                   <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   addTariffPackages,
@@ -76,6 +77,19 @@ type TariffForm = {
   priceLines: PriceLineForm[];
 };
 
+function nextAvailableLine(
+  used: { unitType: BillableUnitCategoryType; unitStage: BillableUnitStage }[],
+): PriceLineForm | null {
+  for (const ut of UNIT_TYPES) {
+    for (const us of UNIT_STAGES) {
+      if (!used.some((pl) => pl.unitType === ut && pl.unitStage === us)) {
+        return { unitType: ut, unitStage: us, cost: "" };
+      }
+    }
+  }
+  return null;
+}
+
 const emptyTranslations = (langs: string[]): Translations =>
   Object.fromEntries(langs.map((l) => [l, ""]));
 
@@ -112,7 +126,8 @@ export function Tariffs() {
   const [form, setForm] = useState<TariffForm>(() => makeEmptyForm());
   const [activeLang, setActiveLang] = useState<string>(defaultLang);
   const [originalPackageIds, setOriginalPackageIds] = useState<string[]>([]);
-  const [newLine, setNewLine] = useState<PriceLineForm>({ unitType: "Residential", unitStage: "Active", cost: "" });
+  const [newLine, setNewLine] = useState<PriceLineForm | null>(() => nextAvailableLine([]));
+  const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -157,7 +172,8 @@ export function Tariffs() {
     setForm(makeEmptyForm());
     setActiveLang(defaultLang);
     setOriginalPackageIds([]);
-    setNewLine({ unitType: "Residential", unitStage: "Active", cost: "" });
+    setNewLine(nextAvailableLine([]));
+    setEditingLineIndex(null);
     setConfirmDelete(false);
     setModal({ mode: "create" });
   };
@@ -167,7 +183,8 @@ export function Tariffs() {
     setForm(makeEmptyForm());
     setOriginalPackageIds(packageIds);
     setActiveLang(defaultLang);
-    setNewLine({ unitType: "Residential", unitStage: "Active", cost: "" });
+    setNewLine(nextAvailableLine([]));
+    setEditingLineIndex(null);
     setConfirmDelete(false);
     setModal({ mode: "edit", id: row.id });
     try {
@@ -184,6 +201,7 @@ export function Tariffs() {
           cost: String(pl.cost),
         })),
       });
+      setNewLine(nextAvailableLine(detail.priceLines ?? []));
     } catch (err) {
       toast.error(errorMessage(err, t.tariffs.errors.loadTariffs));
     }
@@ -194,18 +212,26 @@ export function Tariffs() {
     set("packageIds", [...form.packageIds, pkgId]);
   };
 
+  const updatePriceLineCost = (index: number, cost: string) => {
+    set(
+      "priceLines",
+      form.priceLines.map((pl, i) => (i === index ? { ...pl, cost } : pl)),
+    );
+  };
+
   const addPriceLine = () => {
-    if (!newLine.cost.trim()) return;
+    if (!newLine || !newLine.cost.trim()) return;
     if (form.priceLines.some((pl) => pl.unitType === newLine.unitType && pl.unitStage === newLine.unitStage)) return;
-    set("priceLines", [...form.priceLines, newLine]);
-    setNewLine({ unitType: "Residential", unitStage: "Active", cost: "" });
+    const updated = [...form.priceLines, newLine];
+    set("priceLines", updated);
+    setNewLine(nextAvailableLine(updated));
   };
 
   const removePriceLine = (index: number) => {
-    set(
-      "priceLines",
-      form.priceLines.filter((_, i) => i !== index),
-    );
+    const updated = form.priceLines.filter((_, i) => i !== index);
+    set("priceLines", updated);
+    setNewLine((l) => l ?? nextAvailableLine(updated));
+    setEditingLineIndex(null);
   };
 
   const removePackageFromForm = (pkgId: string) => {
@@ -297,6 +323,10 @@ export function Tariffs() {
 
   const unitStageLabel = (stage: BillableUnitStage) =>
     stage === "Active" ? t.tariffs.unitStageActive : t.tariffs.unitStageCompleted;
+
+  const stagesForType = (ut: BillableUnitCategoryType) =>
+    UNIT_STAGES.filter((us) => !form.priceLines.some((pl) => pl.unitType === ut && pl.unitStage === us));
+  const availableUnitTypes = UNIT_TYPES.filter((ut) => stagesForType(ut).length > 0);
 
   return (
     <>
@@ -446,9 +476,32 @@ export function Tariffs() {
                           {unitTypeLabel(pl.unitType)} · {unitStageLabel(pl.unitStage)}
                         </span>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium tabular-nums">
-                            {formatMoney(Number(pl.cost) || 0, settings.subscriptionCurrencyCode)}
-                          </span>
+                          {editingLineIndex === idx ? (
+                            <Input
+                              type="number"
+                              min="0"
+                              autoFocus
+                              className="h-7 w-24 text-right tabular-nums"
+                              value={pl.cost}
+                              onChange={(e) => updatePriceLineCost(idx, e.target.value)}
+                              onBlur={() => setEditingLineIndex(null)}
+                              onKeyDown={(e) => e.key === "Enter" && setEditingLineIndex(null)}
+                            />
+                          ) : (
+                            <>
+                              <span className="font-medium tabular-nums">
+                                {formatMoney(Number(pl.cost) || 0, settings.subscriptionCurrencyCode)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setEditingLineIndex(idx)}
+                                aria-label={t.common.edit}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <Pencil className="size-3.5" />
+                              </button>
+                            </>
+                          )}
                           <button
                             type="button"
                             onClick={() => removePriceLine(idx)}
@@ -462,49 +515,59 @@ export function Tariffs() {
                     ))}
                   </div>
                 )}
-                <div className="flex flex-wrap items-center gap-2">
-                  <Select
-                    value={newLine.unitType}
-                    onValueChange={(v) => setNewLine((l) => ({ ...l, unitType: v as BillableUnitCategoryType }))}
-                  >
-                    <SelectTrigger className="w-36">
-                      <SelectValue placeholder={t.tariffs.unitType} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {UNIT_TYPES.map((ut) => (
-                        <SelectItem key={ut} value={ut}>
-                          {unitTypeLabel(ut)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={newLine.unitStage}
-                    onValueChange={(v) => setNewLine((l) => ({ ...l, unitStage: v as BillableUnitStage }))}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder={t.tariffs.unitStage} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {UNIT_STAGES.map((us) => (
-                        <SelectItem key={us} value={us}>
-                          {unitStageLabel(us)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number"
-                    min="0"
-                    className="w-28"
-                    placeholder={t.common.price(settings.subscriptionCurrencyCode || "USD")}
-                    value={newLine.cost}
-                    onChange={(e) => setNewLine((l) => ({ ...l, cost: e.target.value }))}
-                  />
-                  <Button type="button" variant="outline" size="sm" onClick={addPriceLine}>
-                    {t.tariffs.addPriceLine}
-                  </Button>
-                </div>
+                {newLine ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select
+                      value={newLine.unitType}
+                      onValueChange={(v) => {
+                        const ut = v as BillableUnitCategoryType;
+                        const stages = stagesForType(ut);
+                        setNewLine((l) =>
+                          l ? { ...l, unitType: ut, unitStage: stages.includes(l.unitStage) ? l.unitStage : stages[0] } : l,
+                        );
+                      }}
+                    >
+                      <SelectTrigger className="w-36">
+                        <SelectValue placeholder={t.tariffs.unitType} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableUnitTypes.map((ut) => (
+                          <SelectItem key={ut} value={ut}>
+                            {unitTypeLabel(ut)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={newLine.unitStage}
+                      onValueChange={(v) => setNewLine((l) => (l ? { ...l, unitStage: v as BillableUnitStage } : l))}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder={t.tariffs.unitStage} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stagesForType(newLine.unitType).map((us) => (
+                          <SelectItem key={us} value={us}>
+                            {unitStageLabel(us)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      min="0"
+                      className="w-28"
+                      placeholder={t.common.price(settings.subscriptionCurrencyCode || "USD")}
+                      value={newLine.cost}
+                      onChange={(e) => setNewLine((l) => (l ? { ...l, cost: e.target.value } : l))}
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={addPriceLine}>
+                      {t.tariffs.addPriceLine}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{t.tariffs.allPriceLinesAdded}</p>
+                )}
               </div>
             </Field>
             <Field label={t.tariffs.packagesLabel}>

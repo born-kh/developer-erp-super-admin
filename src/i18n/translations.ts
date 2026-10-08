@@ -173,6 +173,7 @@ export type Dict = {
     subscriptionPrice: string;
     subscriptionPriceHint: string;
     subscriptionFinalCost: string;
+    tariffBaseCost: string;
     discount: string;
     activateSubscription: string;
     balanceTitle: string;
@@ -402,6 +403,7 @@ export type Dict = {
     priceLines: string;
     noPriceLines: string;
     addPriceLine: string;
+    allPriceLinesAdded: string;
     unitType: string;
     unitStage: string;
     unitTypeResidential: string;
@@ -686,6 +688,7 @@ export const translations: Record<Language, Dict> = {
       subscriptionPrice: "Цена",
       subscriptionPriceHint: "Итоговая цена может включать дополнительные начисления по юнитам компании.",
       subscriptionFinalCost: "Итого со скидкой",
+      tariffBaseCost: "Базовая цена тарифа",
       discount: "Скидка",
       activateSubscription: "Активировать",
       balanceTitle: "Баланс",
@@ -920,6 +923,7 @@ export const translations: Record<Language, Dict> = {
       priceLines: "Цены по юнитам",
       noPriceLines: "Строк пока нет.",
       addPriceLine: "Добавить строку",
+      allPriceLinesAdded: "Все комбинации уже добавлены.",
       unitType: "Тип юнита",
       unitStage: "Стадия",
       unitTypeResidential: "Жилой",
@@ -1221,6 +1225,7 @@ export const translations: Record<Language, Dict> = {
       subscriptionPrice: "Price",
       subscriptionPriceHint: "The final price may include additional charges based on the company's units.",
       subscriptionFinalCost: "Total after discount",
+      tariffBaseCost: "Tariff base price",
       discount: "Discount",
       activateSubscription: "Activate",
       balanceTitle: "Balance",
@@ -1455,6 +1460,7 @@ export const translations: Record<Language, Dict> = {
       priceLines: "Unit price lines",
       noPriceLines: "No price lines yet.",
       addPriceLine: "Add line",
+      allPriceLinesAdded: "All combinations are already added.",
       unitType: "Unit type",
       unitStage: "Stage",
       unitTypeResidential: "Residential",
@@ -1756,6 +1762,7 @@ export const translations: Record<Language, Dict> = {
       subscriptionPrice: "Нарх",
       subscriptionPriceHint: "Нархи ниҳоӣ метавонад боваситаи воҳидҳои ширкатро низ дар бар гирад.",
       subscriptionFinalCost: "Ҷамъ бо тахфиф",
+      tariffBaseCost: "Нархи асосии тариф",
       discount: "Тахфиф",
       activateSubscription: "Фаъол кардан",
       balanceTitle: "Баланс",
@@ -1990,6 +1997,7 @@ export const translations: Record<Language, Dict> = {
       priceLines: "Нархҳо аз рӯи воҳидҳо",
       noPriceLines: "Ҳанӯз сатре нест.",
       addPriceLine: "Илова кардани сатр",
+      allPriceLinesAdded: "Ҳамаи комбинатсияҳо аллакай илова шудаанд.",
       unitType: "Навъи воҳид",
       unitStage: "Марҳила",
       unitTypeResidential: "Истиқоматӣ",
