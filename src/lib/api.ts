@@ -1093,18 +1093,30 @@ export function refundCompanyBalance(id: string, amount: number, paymentMethod: 
   });
 }
 
+export type PaymentStatus = "Pending" | "Confirmed" | "Rejected";
+
+export type ExecutionInfo = {
+  executedAt?: string | null;
+  executedBy?: { id: string; name?: string | null } | null;
+};
+
 export type PaymentHistoryItem = {
   id: string;
   amount: number;
   type: PaymentType;
   method?: PaymentMethod | null;
-  receiverInfo?: { id: string; name?: string | null } | null;
+  status: PaymentStatus;
+  requesterInfo?: ExecutionInfo | null;
+  receiverInfo?: ExecutionInfo | null;
+  receiptPhotoName?: string | null;
+  rejectionReason?: string | null;
   createdAt: string;
 };
 
-export type CompanyPaymentHistoryItem = PaymentHistoryItem & {
+export type CompanyPaymentHistoryItem = Omit<PaymentHistoryItem, "createdAt"> & {
   companyId: string;
   companyName?: string | null;
+  operationDateTime: string;
 };
 
 export function listCompanyPaymentHistories(
@@ -1125,6 +1137,7 @@ export function listPaymentHistories(
     createdAtFrom?: string;
     createdAtTo?: string;
     type?: PaymentType;
+    status?: PaymentStatus;
     page?: number;
     pageSize?: number;
     orderBy?: string;
@@ -1136,11 +1149,47 @@ export function listPaymentHistories(
   if (params.createdAtFrom) query.set("CreatedAtFrom", params.createdAtFrom);
   if (params.createdAtTo) query.set("CreatedAtTo", params.createdAtTo);
   if (params.type) query.set("Type", params.type);
+  if (params.status) query.set("Status", params.status);
   if (params.orderBy) query.set("OrderBy", params.orderBy);
   if (params.orderDirection) query.set("OrderDirection", params.orderDirection);
   query.set("Page", String(params.page ?? 1));
   query.set("PageSize", String(params.pageSize ?? 20));
   return authRequest<PagedResult<CompanyPaymentHistoryItem>>(`/core/api/payment-histories?${query.toString()}`);
+}
+
+export function listTopUpRequests(
+  params: {
+    companyId?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    page?: number;
+    pageSize?: number;
+    orderBy?: string;
+    orderDirection?: "asc" | "desc";
+  } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.companyId) query.set("CompanyId", params.companyId);
+  if (params.createdAtFrom) query.set("CreatedAtFrom", params.createdAtFrom);
+  if (params.createdAtTo) query.set("CreatedAtTo", params.createdAtTo);
+  if (params.orderBy) query.set("OrderBy", params.orderBy);
+  if (params.orderDirection) query.set("OrderDirection", params.orderDirection);
+  query.set("Page", String(params.page ?? 1));
+  query.set("PageSize", String(params.pageSize ?? 20));
+  return authRequest<PagedResult<CompanyPaymentHistoryItem>>(
+    `/core/api/payment-histories/top-up-requests?${query.toString()}`,
+  );
+}
+
+export function confirmTopUpRequest(id: string) {
+  return authRequest<unknown>(`/core/api/payment-histories/${id}/confirm`, { method: "PUT" });
+}
+
+export function rejectTopUpRequest(id: string, reason?: string | null) {
+  return authRequest<unknown>(`/core/api/payment-histories/${id}/reject`, {
+    method: "PUT",
+    body: JSON.stringify({ reason: reason || null }),
+  });
 }
 
 export async function uploadFile(file: File) {

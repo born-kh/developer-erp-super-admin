@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import type { Button } from "@/components/ui/button";
 import { useTranslation } from "@/i18n/LanguageContext";
 
 export function ConfirmDialog({
@@ -17,6 +19,7 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   onConfirm,
+  variant = "destructive",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,6 +27,7 @@ export function ConfirmDialog({
   description?: string;
   confirmLabel?: string;
   onConfirm: () => void;
+  variant?: ComponentProps<typeof Button>["variant"];
 }) {
   const { t } = useTranslation();
   return (
@@ -35,7 +39,7 @@ export function ConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={onConfirm}>
+          <AlertDialogAction variant={variant} onClick={onConfirm}>
             {confirmLabel ?? t.common.confirmDelete}
           </AlertDialogAction>
         </AlertDialogFooter>

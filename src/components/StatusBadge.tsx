@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/LanguageContext";
-import type { UserType } from "@/lib/api";
+import type { PaymentStatus, UserType } from "@/lib/api";
 
 const tones = {
   success: "border-transparent bg-[var(--success-bg)] text-[var(--success)]",
@@ -45,6 +45,21 @@ export function ActiveBadge({ active }: { active: boolean }) {
   return (
     <StatusBadge tone={active ? "success" : "destructive"}>
       {active ? t.common.active : t.common.disabled}
+    </StatusBadge>
+  );
+}
+
+export function PaymentStatusBadge({ status, className }: { status: PaymentStatus; className?: string }) {
+  const { t } = useTranslation();
+  const statuses: Record<PaymentStatus, { tone: StatusTone; label: string }> = {
+    Pending: { tone: "warning", label: t.companyDetail.paymentStatusPending },
+    Confirmed: { tone: "success", label: t.companyDetail.paymentStatusConfirmed },
+    Rejected: { tone: "destructive", label: t.companyDetail.paymentStatusRejected },
+  };
+  const item = statuses[status];
+  return (
+    <StatusBadge tone={item.tone} className={className}>
+      {item.label}
     </StatusBadge>
   );
 }

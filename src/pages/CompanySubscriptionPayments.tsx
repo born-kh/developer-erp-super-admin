@@ -9,6 +9,7 @@ import {
   ApiRequestError,
   type CompanyDetail,
   type SubscriptionPaymentHistoryItem,
+  type SubscriptionPriceLine,
   type TariffIncludingPackages,
 } from "../lib/api";
 import { formatDate, formatMoney } from "../lib/format";
@@ -93,8 +94,20 @@ export function CompanySubscriptionPayments() {
     }
   };
 
-  const unitStageLabel = (stage: string) =>
-    stage === "Active" ? t.tariffs.unitStageActive : t.tariffs.unitStageCompleted;
+  const groupPriceLines = (lines: SubscriptionPriceLine[] | null | undefined) => {
+    const order: string[] = [];
+    const map = new Map<string, { active?: SubscriptionPriceLine; completed?: SubscriptionPriceLine }>();
+    for (const pl of lines ?? []) {
+      if (!map.has(pl.unitType)) {
+        order.push(pl.unitType);
+        map.set(pl.unitType, {});
+      }
+      const entry = map.get(pl.unitType)!;
+      if (pl.unitStage === "Active") entry.active = pl;
+      else entry.completed = pl;
+    }
+    return order.map((type) => ({ type, ...map.get(type)! }));
+  };
 
   return (
     <>
@@ -181,7 +194,7 @@ export function CompanySubscriptionPayments() {
       <AppPagination page={page} onPage={setPage} hasNextPage={hasNextPage} hasPreviousPage={hasPreviousPage} alwaysShow />
 
       <Dialog open={Boolean(detail)} onOpenChange={(open) => !open && setDetail(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{t.companyDetail.subPaymentHistoryTitle}</DialogTitle>
           </DialogHeader>
@@ -204,42 +217,70 @@ export function CompanySubscriptionPayments() {
                   {formatDate(detail.subscriptionPeriod.endDate, language)}
                 </span>
               </div>
-              {detail.priceLines?.length ? (
-                <div className="rounded-md border divide-y">
-                  <div className="flex items-center justify-between gap-2 px-3 py-2">
-                    <span className="text-muted-foreground">{t.companyDetail.tariffBaseCost}</span>
-                    <span className="font-medium tabular-nums">
-                      {formatMoney(detail.baseCost, settings.subscriptionCurrencyCode)}
-                    </span>
-                  </div>
-                  {detail.priceLines.map((pl) => (
-                    <div
-                      key={`${pl.unitType}-${pl.unitStage}`}
-                      className="flex items-center justify-between gap-2 px-3 py-2"
-                    >
-                      <span className="text-muted-foreground">
-                        {unitTypeLabel(pl.unitType)} · {unitStageLabel(pl.unitStage)} ·{" "}
-                        {formatMoney(pl.unitCost, settings.subscriptionCurrencyCode)} × {pl.quantity}
-                      </span>
-                      <span className="font-medium tabular-nums">
-                        {formatMoney(pl.totalCost, settings.subscriptionCurrencyCode)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-              <div className="flex items-center justify-between border-t pt-3">
-                <span className="text-base font-semibold">{t.companyDetail.totalAmount}</span>
-                <div className="flex flex-col items-end">
-                  {detail.discount ? (
-                    <span className="text-xs text-muted-foreground line-through">
-                      {formatMoney(detail.totalCost, settings.subscriptionCurrencyCode)}
-                    </span>
-                  ) : null}
-                  <span className="text-base font-semibold">
-                    {formatMoney(detail.totalCostAfterDiscount, settings.subscriptionCurrencyCode)}
-                    {detail.discount ? ` (-${detail.discount}%)` : ""}
+              <div className="rounded-xl border bg-muted/30 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">{t.companyDetail.tariffBaseCost}</span>
+                  <span className="text-base font-semibold tabular-nums">
+                    {formatMoney(detail.baseCost, settings.subscriptionCurrencyCode)}
                   </span>
+                </div>
+                {groupPriceLines(detail.priceLines).length > 0 && (
+                  <>
+                    <div className="mt-4 grid grid-cols-3 gap-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                      <span>{t.tariffs.unitType}</span>
+                      <span>{t.common.status}</span>
+                      <span className="text-right">{t.companyDetail.paymentAmount}</span>
+                    </div>
+                    <div className="mt-2 divide-y">
+                      {groupPriceLines(detail.priceLines).map(({ type, active, completed }) => (
+                        <div key={type} className="grid grid-cols-3 items-center gap-2 py-3">
+                          <span className="font-semibold">{unitTypeLabel(type)}</span>
+                          <div className="flex flex-col gap-1.5">
+                            {active && (
+                              <span className="text-muted-foreground whitespace-nowrap">
+                                {t.tariffs.unitStageActive} ({active.quantity} ×{" "}
+                                {formatMoney(active.unitCost, settings.subscriptionCurrencyCode)})
+                              </span>
+                            )}
+                            {completed && (
+                              <span className="text-muted-foreground whitespace-nowrap">
+                                {t.tariffs.unitStageCompleted} ({completed.quantity} ×{" "}
+                                {formatMoney(completed.unitCost, settings.subscriptionCurrencyCode)})
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-1.5">
+                            {active && (
+                              <span className="font-semibold tabular-nums">
+                                {formatMoney(active.totalCost, settings.subscriptionCurrencyCode)}
+                              </span>
+                            )}
+                            {completed && (
+                              <span className="font-semibold tabular-nums">
+                                {formatMoney(completed.totalCost, settings.subscriptionCurrencyCode)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <div className="mt-4 flex items-center justify-between border-t pt-3">
+                  <span className="text-base font-semibold">{t.companyDetail.totalAmount}</span>
+                  <div className="flex items-center gap-2">
+                    {detail.discount ? (
+                      <span className="text-sm text-muted-foreground line-through">
+                        {formatMoney(detail.totalCost, settings.subscriptionCurrencyCode)}
+                      </span>
+                    ) : null}
+                    <span className="text-base font-semibold tabular-nums">
+                      {formatMoney(detail.totalCostAfterDiscount, settings.subscriptionCurrencyCode)}
+                    </span>
+                    {detail.discount ? (
+                      <span className="text-sm font-semibold text-[var(--success)]">-{detail.discount}%</span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>

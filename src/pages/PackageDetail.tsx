@@ -333,8 +333,8 @@ export function PackageDetail() {
                 <p className="text-sm text-muted-foreground">{t.permissionsPicker.noResults}</p>
               ) : (
                 <div className="grid gap-3">
-                  {visibleAssignedGroups.map((g) => (
-                    <div key={g.code} className="grid gap-1.5">
+                  {visibleAssignedGroups.map((g, i) => (
+                    <div key={`${g.moduleDisplayName ?? ""}-${g.code ?? i}`} className="grid gap-1.5">
                       <div className="text-xs font-semibold text-muted-foreground">{g.title}</div>
                       <div className="flex flex-wrap gap-1">
                         {g.permissions.map((p) => (

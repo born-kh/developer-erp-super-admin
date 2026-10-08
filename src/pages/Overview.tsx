@@ -8,6 +8,7 @@ import {
   listPackages,
   listPaymentHistories,
   listTariffs,
+  listTopUpRequests,
   listUsers,
   type CityListItem,
   type CompanyListItem,
@@ -17,15 +18,8 @@ import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CompanyPhoto } from "@/components/CompanyPhoto";
 import { CompanyStatusBadge } from "@/components/StatusBadge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 function monthRange(monthOffset: number) {
   const now = new Date();
@@ -52,6 +46,18 @@ async function sumAddPayments(from: Date, to: Date): Promise<number> {
   return total;
 }
 
+async function countPendingTopUps(): Promise<number> {
+  let count = 0;
+  let page = 1;
+  for (;;) {
+    const res = await listTopUpRequests({ page, pageSize: 200 });
+    for (const item of res.items ?? []) if (item.status === "Pending") count += 1;
+    if (!res.pagination.hasNextPage) break;
+    page += 1;
+  }
+  return count;
+}
+
 export function Overview() {
   const { t } = useTranslation();
   const { cityCatalog } = useCityCatalog();
@@ -62,6 +68,7 @@ export function Overview() {
   const [tariffStats, setTariffStats] = useState({ total: 0, active: 0 });
   const [userCount, setUserCount] = useState(0);
   const [income, setIncome] = useState({ thisMonth: 0, lastMonth: 0 });
+  const [pendingTopUps, setPendingTopUps] = useState(0);
 
   useEffect(() => {
     listCompanies({ pageSize: 200, orderBy: "CreatedAt", orderDirection: "desc" })
@@ -93,13 +100,16 @@ export function Overview() {
     ])
       .then(([thisMonthTotal, lastMonthTotal]) => setIncome({ thisMonth: thisMonthTotal, lastMonth: lastMonthTotal }))
       .catch(() => {});
+    countPendingTopUps()
+      .then(setPendingTopUps)
+      .catch(() => {});
   }, []);
 
   const cityName = (id?: string | null) => (id && cities.find((c) => c.id === id)?.name) || "—";
   const activeCompanies = companies.filter((c) => (c.status ?? "").toLowerCase() === "active").length;
   const recent = companies.slice(0, 6);
 
-  const kpis = [
+  const kpis: { label: string; value: string | number; hint: string; href?: string }[] = [
     { label: t.nav.companies, value: companies.length, hint: `${activeCompanies} ${t.overview.activeSuffix}` },
     {
       label: t.overview.incomeMonth,
@@ -110,21 +120,39 @@ export function Overview() {
     { label: t.nav.packages, value: packageStats.total, hint: `${packageStats.active} ${t.overview.activeSuffix}` },
     { label: t.nav.tariffs, value: tariffStats.total, hint: `${tariffStats.active} ${t.overview.activeSuffix}` },
     { label: t.nav.cities, value: cityCatalog.length, hint: t.overview.catalog },
+    { label: t.overview.pendingTopUps, value: pendingTopUps, hint: t.overview.pendingTopUpsHint, href: "/top-up-requests" },
   ];
+
+  const renderKpi = (k: (typeof kpis)[number]) => {
+    const card = (
+      <Card className={`kpi gap-0 py-3 ${k.href ? "h-full transition-colors hover:border-primary/40" : ""}`}>
+        <CardContent className="px-4">
+          <div className="text-xs text-muted-foreground">{k.label}</div>
+          <div className="value mt-1 text-[22px] font-semibold tracking-tight">{k.value}</div>
+          <div className="mt-1 text-[11px] text-muted-foreground">{k.hint}</div>
+        </CardContent>
+      </Card>
+    );
+    return k.href ? (
+      <Link key={k.label} to={k.href} className="block">
+        {card}
+      </Link>
+    ) : (
+      <div key={k.label}>{card}</div>
+    );
+  };
+
+  const kpiRow1 = kpis.slice(0, 4);
+  const kpiRow2 = kpis.slice(4);
 
   return (
     <>
       <PageHead title={t.overview.title} />
-      <div className="grid grid-cols-6 gap-3 max-[1200px]:grid-cols-3 max-[860px]:grid-cols-2">
-        {kpis.map((k) => (
-          <Card key={k.label} className="kpi gap-0 py-3">
-            <CardContent className="px-4">
-              <div className="text-xs text-muted-foreground">{k.label}</div>
-              <div className="value mt-1 text-[22px] font-semibold tracking-tight">{k.value}</div>
-              <div className="mt-1 text-[11px] text-muted-foreground">{k.hint}</div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-4 gap-3 max-[1100px]:grid-cols-2 max-[500px]:grid-cols-1">
+        {kpiRow1.map(renderKpi)}
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-3 max-[1100px]:grid-cols-2 max-[500px]:grid-cols-1">
+        {kpiRow2.map(renderKpi)}
       </div>
 
       <Card className="mt-4 gap-0 overflow-hidden py-0">
@@ -142,30 +170,24 @@ export function Overview() {
             </Link>
           </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t.common.name}</TableHead>
-                <TableHead>{t.common.city}</TableHead>
-                <TableHead>{t.common.status}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recent.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer">
-                  <TableCell className="font-medium">
-                    <Link to={`/companies/${c.id}`} className="hover:text-primary">
-                      {c.name || "—"}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{cityName(c.cityId)}</TableCell>
-                  <TableCell>
-                    <CompanyStatusBadge status={c.status ?? ""} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="divide-y">
+            {recent.map((c) => (
+              <Link
+                key={c.id}
+                to={`/companies/${c.id}`}
+                className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+              >
+                <div className="size-9 shrink-0 overflow-hidden rounded-full">
+                  <CompanyPhoto photoName={c.photoName} alt={c.name ?? ""} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{c.name || "—"}</div>
+                  <div className="truncate text-xs text-muted-foreground">{cityName(c.cityId)}</div>
+                </div>
+                <CompanyStatusBadge status={c.status ?? ""} />
+              </Link>
+            ))}
+          </div>
         )}
       </Card>
     </>

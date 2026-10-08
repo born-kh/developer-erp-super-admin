@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   User,
   Users,
+  Wallet,
 } from "lucide-react";
 import { clearTokens } from "./auth";
 import { useCurrentUser } from "./data/currentUserStore";
@@ -73,6 +74,7 @@ export function AppShell() {
     { to: "/cities", label: t.nav.cities, icon: MapPin },
     { to: "/activity-logs", label: t.nav.activityLogs, icon: History },
     { to: "/payment-histories", label: t.nav.paymentHistories, icon: Receipt },
+    { to: "/top-up-requests", label: t.nav.topUpRequests, icon: Wallet },
   ];
 
   const titles: Record<string, string> = {
@@ -86,6 +88,7 @@ export function AppShell() {
     "/cities": t.nav.cities,
     "/activity-logs": t.nav.activityLogs,
     "/payment-histories": t.nav.paymentHistories,
+    "/top-up-requests": t.nav.topUpRequests,
   };
 
   const currentTitle = (pathname: string) => {

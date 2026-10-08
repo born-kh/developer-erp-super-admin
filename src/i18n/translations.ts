@@ -19,6 +19,7 @@ export type Dict = {
     roles: string;
     activityLogs: string;
     paymentHistories: string;
+    topUpRequests: string;
   };
   titles: {
     companyDetail: string;
@@ -128,6 +129,8 @@ export type Dict = {
     viewAll: string;
     noCompanies: string;
     createTenant: string;
+    pendingTopUps: string;
+    pendingTopUpsHint: string;
   };
   companies: {
     title: string;
@@ -186,6 +189,16 @@ export type Dict = {
     paymentType: string;
     paymentReceiver: string;
     paymentDate: string;
+    paymentStatusPending: string;
+    paymentStatusConfirmed: string;
+    paymentStatusRejected: string;
+    confirmTopUp: string;
+    confirmTopUpTitle: string;
+    rejectTopUp: string;
+    rejectTopUpTitle: string;
+    rejectReasonLabel: string;
+    viewReceipt: string;
+    receiptPhoto: string;
     paymentTypeAdd: string;
     paymentTypeWithdraw: string;
     paymentTypeRefund: string;
@@ -204,6 +217,8 @@ export type Dict = {
       subscriptionActivated: string;
       balanceToppedUp: string;
       balanceRefunded: string;
+      topUpConfirmed: string;
+      topUpRejected: string;
     };
     errors: {
       loadCompany: string;
@@ -218,6 +233,8 @@ export type Dict = {
       loadPaymentHistory: string;
       invalidAmount: string;
       saveBalance: string;
+      confirmTopUp: string;
+      rejectTopUp: string;
     };
   };
   users: {
@@ -500,6 +517,13 @@ export type Dict = {
     noItemsYet: string;
     errors: { loadList: string };
   };
+  topUpRequests: {
+    title: string;
+    filters: { company: string };
+    tableCompany: string;
+    noItemsYet: string;
+    errors: { loadList: string };
+  };
   resetPassword: {
     leadEmail: string;
     leadCode: string;
@@ -530,6 +554,7 @@ export const translations: Record<Language, Dict> = {
       roles: "Роли",
       activityLogs: "Журнал активности",
       paymentHistories: "История платежей",
+      topUpRequests: "Заявки на пополнение",
     },
     titles: {
       companyDetail: "Компания",
@@ -639,6 +664,8 @@ export const translations: Record<Language, Dict> = {
       viewAll: "Все",
       noCompanies: "Компаний пока нет.",
       createTenant: "Создать тенанта",
+      pendingTopUps: "Заявки на пополнение",
+      pendingTopUpsHint: "Ожидают подтверждения",
     },
     companies: {
       title: "Компании",
@@ -701,6 +728,16 @@ export const translations: Record<Language, Dict> = {
       paymentType: "Тип",
       paymentReceiver: "Получатель",
       paymentDate: "Дата операции",
+      paymentStatusPending: "Ожидает",
+      paymentStatusConfirmed: "Подтверждено",
+      paymentStatusRejected: "Отклонено",
+      confirmTopUp: "Подтвердить",
+      confirmTopUpTitle: "Подтвердить заявку на пополнение?",
+      rejectTopUp: "Отклонить",
+      rejectTopUpTitle: "Отклонить заявку на пополнение?",
+      rejectReasonLabel: "Причина (необязательно)",
+      viewReceipt: "Чек",
+      receiptPhoto: "Чек оплаты",
       paymentTypeAdd: "Пополнение",
       paymentTypeWithdraw: "Списание за подписку",
       paymentTypeRefund: "Возврат",
@@ -719,6 +756,8 @@ export const translations: Record<Language, Dict> = {
         subscriptionActivated: "Подписка активирована",
         balanceToppedUp: "Баланс пополнен",
         balanceRefunded: "Средства возвращены",
+        topUpConfirmed: "Заявка подтверждена",
+        topUpRejected: "Заявка отклонена",
       },
       errors: {
         loadCompany: "Не удалось загрузить компанию",
@@ -730,6 +769,8 @@ export const translations: Record<Language, Dict> = {
         saveOwner: "Не удалось сохранить владельца",
         deleteOwner: "Не удалось удалить владельца",
         loadUsers: "Не удалось загрузить пользователей",
+        confirmTopUp: "Не удалось подтвердить заявку",
+        rejectTopUp: "Не удалось отклонить заявку",
         loadPaymentHistory: "Не удалось загрузить историю платежей",
         invalidAmount: "Введите корректную сумму",
         saveBalance: "Не удалось выполнить операцию с балансом",
@@ -930,8 +971,8 @@ export const translations: Record<Language, Dict> = {
       unitTypeCommercial: "Коммерческий",
       unitTypeParking: "Паркинг",
       unitTypeBasement: "Подвал",
-      unitStageActive: "В эксплуатации",
-      unitStageCompleted: "Сдан",
+      unitStageActive: "В продаже",
+      unitStageCompleted: "Завершено",
       errors: {
         loadTariffs: "Не удалось загрузить тарифы",
         loadPackages: "Не удалось загрузить пакеты",
@@ -1033,6 +1074,13 @@ export const translations: Record<Language, Dict> = {
       noItemsYet: "Платежей пока нет.",
       errors: { loadList: "Не удалось загрузить историю платежей" },
     },
+    topUpRequests: {
+      title: "Заявки на пополнение",
+      filters: { company: "Компания" },
+      tableCompany: "Компания",
+      noItemsYet: "Заявок пока нет.",
+      errors: { loadList: "Не удалось загрузить заявки на пополнение" },
+    },
     resetPassword: {
       leadEmail: "Введите email, чтобы получить код подтверждения.",
       leadCode: "Введите код из письма и новый пароль.",
@@ -1067,6 +1115,7 @@ export const translations: Record<Language, Dict> = {
       roles: "Roles",
       activityLogs: "Activity Log",
       paymentHistories: "Payment Histories",
+      topUpRequests: "Top-up Requests",
     },
     titles: {
       companyDetail: "Company",
@@ -1176,6 +1225,8 @@ export const translations: Record<Language, Dict> = {
       viewAll: "View all",
       noCompanies: "No companies yet.",
       createTenant: "Create tenant",
+      pendingTopUps: "Top-up requests",
+      pendingTopUpsHint: "Awaiting confirmation",
     },
     companies: {
       title: "Companies",
@@ -1238,6 +1289,16 @@ export const translations: Record<Language, Dict> = {
       paymentType: "Type",
       paymentReceiver: "Receiver",
       paymentDate: "Operation date",
+      paymentStatusPending: "Pending",
+      paymentStatusConfirmed: "Confirmed",
+      paymentStatusRejected: "Rejected",
+      confirmTopUp: "Confirm",
+      confirmTopUpTitle: "Confirm this top-up request?",
+      rejectTopUp: "Reject",
+      rejectTopUpTitle: "Reject this top-up request?",
+      rejectReasonLabel: "Reason (optional)",
+      viewReceipt: "Receipt",
+      receiptPhoto: "Payment receipt",
       paymentTypeAdd: "Top-up",
       paymentTypeWithdraw: "Withdrawal for subscription",
       paymentTypeRefund: "Refund",
@@ -1256,6 +1317,8 @@ export const translations: Record<Language, Dict> = {
         subscriptionActivated: "Subscription activated",
         balanceToppedUp: "Balance topped up",
         balanceRefunded: "Balance refunded",
+        topUpConfirmed: "Request confirmed",
+        topUpRejected: "Request rejected",
       },
       errors: {
         loadCompany: "Failed to load the company",
@@ -1267,6 +1330,8 @@ export const translations: Record<Language, Dict> = {
         saveOwner: "Failed to save owner",
         deleteOwner: "Failed to delete owner",
         loadUsers: "Failed to load users",
+        confirmTopUp: "Failed to confirm the request",
+        rejectTopUp: "Failed to reject the request",
         loadPaymentHistory: "Failed to load payment history",
         invalidAmount: "Enter a valid amount",
         saveBalance: "Failed to process the balance operation",
@@ -1467,7 +1532,7 @@ export const translations: Record<Language, Dict> = {
       unitTypeCommercial: "Commercial",
       unitTypeParking: "Parking",
       unitTypeBasement: "Basement",
-      unitStageActive: "Active",
+      unitStageActive: "On sale",
       unitStageCompleted: "Completed",
       errors: {
         loadTariffs: "Failed to load tariffs",
@@ -1570,6 +1635,13 @@ export const translations: Record<Language, Dict> = {
       noItemsYet: "No payments yet.",
       errors: { loadList: "Failed to load payment histories" },
     },
+    topUpRequests: {
+      title: "Top-up Requests",
+      filters: { company: "Company" },
+      tableCompany: "Company",
+      noItemsYet: "No requests yet.",
+      errors: { loadList: "Failed to load top-up requests" },
+    },
     resetPassword: {
       leadEmail: "Enter your email to receive a verification code.",
       leadCode: "Enter the code from your email and a new password.",
@@ -1604,6 +1676,7 @@ export const translations: Record<Language, Dict> = {
       roles: "Нақшҳо",
       activityLogs: "Рӯзномаи фаъолият",
       paymentHistories: "Таърихи пардохтҳо",
+      topUpRequests: "Дархостҳои пуркунӣ",
     },
     titles: {
       companyDetail: "Ширкат",
@@ -1713,6 +1786,8 @@ export const translations: Record<Language, Dict> = {
       viewAll: "Ҳама",
       noCompanies: "Ҳанӯз ширкате нест.",
       createTenant: "Эҷоди тенант",
+      pendingTopUps: "Дархостҳои пуркунӣ",
+      pendingTopUpsHint: "Интизори тасдиқ",
     },
     companies: {
       title: "Ширкатҳо",
@@ -1775,6 +1850,16 @@ export const translations: Record<Language, Dict> = {
       paymentType: "Навъ",
       paymentReceiver: "Қабулкунанда",
       paymentDate: "Санаи амалиёт",
+      paymentStatusPending: "Интизор",
+      paymentStatusConfirmed: "Тасдиқ шуд",
+      paymentStatusRejected: "Рад шуд",
+      confirmTopUp: "Тасдиқ кардан",
+      confirmTopUpTitle: "Дархости пуркуниро тасдиқ мекунед?",
+      rejectTopUp: "Рад кардан",
+      rejectTopUpTitle: "Дархости пуркуниро рад мекунед?",
+      rejectReasonLabel: "Сабаб (ихтиёрӣ)",
+      viewReceipt: "Чек",
+      receiptPhoto: "Чеки пардохт",
       paymentTypeAdd: "Пуркунӣ",
       paymentTypeWithdraw: "Бардошт барои обуна",
       paymentTypeRefund: "Баргардонидан",
@@ -1793,6 +1878,8 @@ export const translations: Record<Language, Dict> = {
         subscriptionActivated: "Обуна фаъол карда шуд",
         balanceToppedUp: "Баланс пур карда шуд",
         balanceRefunded: "Пул баргардонида шуд",
+        topUpConfirmed: "Дархост тасдиқ шуд",
+        topUpRejected: "Дархост рад шуд",
       },
       errors: {
         loadCompany: "Боргирии ширкат ноком шуд",
@@ -1804,6 +1891,8 @@ export const translations: Record<Language, Dict> = {
         saveOwner: "Захираи соҳиб ноком шуд",
         deleteOwner: "Несткунии соҳиб ноком шуд",
         loadUsers: "Боргирии корбарон ноком шуд",
+        confirmTopUp: "Тасдиқи дархост ноком шуд",
+        rejectTopUp: "Радкунии дархост ноком шуд",
         loadPaymentHistory: "Боргирии таърихи пардохтҳо ноком шуд",
         invalidAmount: "Маблағи дурустро ворид кунед",
         saveBalance: "Амалиёт бо баланс ноком шуд",
@@ -2004,8 +2093,8 @@ export const translations: Record<Language, Dict> = {
       unitTypeCommercial: "Тиҷоратӣ",
       unitTypeParking: "Боргоҳ",
       unitTypeBasement: "Таҳхона",
-      unitStageActive: "Дар истифода",
-      unitStageCompleted: "Супорида шуда",
+      unitStageActive: "Дар фурӯш",
+      unitStageCompleted: "Анҷом ёфт",
       errors: {
         loadTariffs: "Боргирии тарифҳо ноком шуд",
         loadPackages: "Боргирии бастаҳо ноком шуд",
@@ -2106,6 +2195,13 @@ export const translations: Record<Language, Dict> = {
       tableCompany: "Ширкат",
       noItemsYet: "Ҳанӯз пардохте нест.",
       errors: { loadList: "Боргирии таърихи пардохтҳо ноком шуд" },
+    },
+    topUpRequests: {
+      title: "Дархостҳои пуркунӣ",
+      filters: { company: "Ширкат" },
+      tableCompany: "Ширкат",
+      noItemsYet: "Ҳанӯз дархосте нест.",
+      errors: { loadList: "Боргирии дархостҳои пуркунӣ ноком шуд" },
     },
     resetPassword: {
       leadEmail: "Email-ро ворид кунед, то коди тасдиқ фирситода шавад.",
