@@ -178,6 +178,9 @@ export type Dict = {
     amount: string;
     paymentMethod: string;
     paymentHistoryTitle: string;
+    subPaymentHistoryTitle: string;
+    paymentSubscriptionPeriod: string;
+    noPaymentHistory: string;
     paymentAmount: string;
     paymentType: string;
     paymentReceiver: string;
@@ -688,6 +691,9 @@ export const translations: Record<Language, Dict> = {
       amount: "Сумма",
       paymentMethod: "Способ оплаты",
       paymentHistoryTitle: "История платежей",
+      subPaymentHistoryTitle: "История оплаты подписки",
+      paymentSubscriptionPeriod: "Период подписки",
+      noPaymentHistory: "Пока нет платежей.",
       paymentAmount: "Сумма",
       paymentType: "Тип",
       paymentReceiver: "Получатель",
@@ -1217,6 +1223,9 @@ export const translations: Record<Language, Dict> = {
       balanceTitle: "Balance",
       topUpBalance: "Top up balance",
       refundBalance: "Refund balance",
+      subPaymentHistoryTitle: "Subscription payment history",
+      paymentSubscriptionPeriod: "Subscription period",
+      noPaymentHistory: "No payment history yet.",
       amount: "Amount",
       paymentMethod: "Payment method",
       paymentHistoryTitle: "Payment history",
