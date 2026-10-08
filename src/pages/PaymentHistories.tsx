@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -64,6 +64,7 @@ function errorMessage(err: unknown, fallback: string) {
 export function PaymentHistories() {
   const { t, language } = useTranslation();
   const { settings } = useModuleSettings();
+  const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const initialCompanyId = searchParams.get("companyId") ?? "";
 
@@ -176,7 +177,7 @@ export function PaymentHistories() {
 
   return (
     <>
-      <PageHead title={t.paymentHistories.title} />
+      <PageHead title={t.paymentHistories.title} onBack={initialCompanyId ? () => nav(-1) : undefined} />
 
       <Card className="mb-4">
         <CardContent className="grid gap-3">
@@ -261,7 +262,7 @@ export function PaymentHistories() {
                 <TableHead>{t.companyDetail.paymentType}</TableHead>
                 <TableHead>{t.companyDetail.paymentMethod}</TableHead>
                 <TableHead>{t.companyDetail.paymentReceiver}</TableHead>
-                <TableHead>{t.common.created}</TableHead>
+                <TableHead>{t.companyDetail.paymentDate}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

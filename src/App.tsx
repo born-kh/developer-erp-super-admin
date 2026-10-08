@@ -11,6 +11,7 @@ import { ResetPassword } from "./pages/ResetPassword";
 import { Overview } from "./pages/Overview";
 import { Companies } from "./pages/Companies";
 import { CompanyDetail } from "./pages/CompanyDetail";
+import { CompanySubscriptionPayments } from "./pages/CompanySubscriptionPayments";
 import { Users } from "./pages/Users";
 import { UserDetail } from "./pages/UserDetail";
 import { Profile } from "./pages/Profile";
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="/" element={<Overview />} />
               <Route path="/companies" element={<Companies />} />
               <Route path="/companies/:id" element={<CompanyDetail />} />
+              <Route path="/companies/:id/subscription-payments" element={<CompanySubscriptionPayments />} />
               <Route path="/users" element={<Users />} />
               <Route path="/users/:id" element={<UserDetail />} />
               <Route path="/profile" element={<Profile />} />

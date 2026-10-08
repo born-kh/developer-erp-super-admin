@@ -177,6 +177,11 @@ export function Users() {
   };
 
   useEffect(() => {
+    if (initialCompanyId) loadCompaniesOnce();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (query === committedQuery) return;
     const handle = setTimeout(() => {
       setCommittedQuery(query);

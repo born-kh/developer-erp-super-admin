@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Copy, ImageUp, Info, Loader2, RefreshCw } from "lucide-react";
+import {
+  Copy,
+  CreditCard,
+  ImageUp,
+  Info,
+  Loader2,
+  Receipt,
+  RefreshCw,
+  UserRound,
+  Users,
+} from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -848,7 +858,14 @@ export function CompanyDetail() {
                 <div className="mt-4 rounded-md border divide-y">
                   <div className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
                     <span className="text-muted-foreground">
-                      {t.companyDetail.tariffBaseCost} · {subscription.tariff?.code || t.companyDetail.noTariff}
+                      {t.companyDetail.tariffBaseCost} ·{" "}
+                      {subscription.tariff ? (
+                        <button type="button" className="text-primary hover:underline" onClick={() => nav("/tariffs")}>
+                          {subscription.tariff.code}
+                        </button>
+                      ) : (
+                        t.companyDetail.noTariff
+                      )}
                     </span>
                     <span className="font-medium tabular-nums">
                       {formatMoney(subPriceInfo.baseCost, settings.subscriptionCurrencyCode)}
@@ -945,32 +962,48 @@ export function CompanyDetail() {
         </CardContent>
       </Card>
 
-      <Card className="mt-3.5 gap-0 overflow-hidden py-0">
+      <div className="mt-3.5 grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
         <button
           type="button"
-          className="flex w-full items-center justify-between gap-2 border-b px-4 py-3.5 text-left hover:bg-accent/50"
+          className="flex flex-col items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/50"
           onClick={() => nav(`/users?companyId=${company.id}&type=Worker`)}
         >
+          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Users className="size-4.5" />
+          </div>
           <span className="text-sm font-medium">{t.companyDetail.workersTitle}</span>
-          <ChevronRight className="size-4 text-muted-foreground" />
         </button>
         <button
           type="button"
-          className="flex w-full items-center justify-between gap-2 border-b px-4 py-3.5 text-left hover:bg-accent/50"
+          className="flex flex-col items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/50"
           onClick={() => nav(`/users?companyId=${company.id}&type=Customer`)}
         >
+          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <UserRound className="size-4.5" />
+          </div>
           <span className="text-sm font-medium">{t.companyDetail.clientsTitle}</span>
-          <ChevronRight className="size-4 text-muted-foreground" />
         </button>
         <button
           type="button"
-          className="flex w-full items-center justify-between gap-2 px-4 py-3.5 text-left hover:bg-accent/50"
+          className="flex flex-col items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/50"
           onClick={() => nav(`/payment-histories?companyId=${company.id}`)}
         >
+          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Receipt className="size-4.5" />
+          </div>
           <span className="text-sm font-medium">{t.companyDetail.paymentHistoryTitle}</span>
-          <ChevronRight className="size-4 text-muted-foreground" />
         </button>
-      </Card>
+        <button
+          type="button"
+          className="flex flex-col items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/50"
+          onClick={() => nav(`/companies/${company.id}/subscription-payments`)}
+        >
+          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <CreditCard className="size-4.5" />
+          </div>
+          <span className="text-sm font-medium">{t.companyDetail.subPaymentHistoryTitle}</span>
+        </button>
+      </div>
 
       <ConfirmDialog
         open={confirmingDelete}
