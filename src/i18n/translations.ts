@@ -171,7 +171,7 @@ export type Dict = {
     subscriptionEnd: string;
     fromTariff: string;
     subscriptionPrice: string;
-    subscriptionRealCost: string;
+    subscriptionPriceHint: string;
     subscriptionFinalCost: string;
     discount: string;
     activateSubscription: string;
@@ -185,7 +185,6 @@ export type Dict = {
     paymentAmount: string;
     paymentType: string;
     paymentReceiver: string;
-    paymentSubscriptionRange: string;
     paymentTypeAdd: string;
     paymentTypeWithdraw: string;
     paymentTypeRefund: string;
@@ -400,6 +399,17 @@ export type Dict = {
     tariffActive: string;
     deleteTariffTitle: string;
     deleteTariffDesc: (code: string) => string;
+    priceLines: string;
+    noPriceLines: string;
+    addPriceLine: string;
+    unitType: string;
+    unitStage: string;
+    unitTypeResidential: string;
+    unitTypeCommercial: string;
+    unitTypeParking: string;
+    unitTypeBasement: string;
+    unitStageActive: string;
+    unitStageCompleted: string;
     errors: { loadTariffs: string; loadPackages: string; saveTariff: string; deleteTariff: string };
     toasts: { saved: string; created: string; deleted: string };
   };
@@ -674,7 +684,7 @@ export const translations: Record<Language, Dict> = {
       subscriptionEnd: "Дата окончания",
       fromTariff: "Входит в тариф",
       subscriptionPrice: "Цена",
-      subscriptionRealCost: "Реальная стоимость",
+      subscriptionPriceHint: "Итоговая цена может включать дополнительные начисления по юнитам компании.",
       subscriptionFinalCost: "Итого со скидкой",
       discount: "Скидка",
       activateSubscription: "Активировать",
@@ -688,7 +698,6 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Сумма",
       paymentType: "Тип",
       paymentReceiver: "Получатель",
-      paymentSubscriptionRange: "Период подписки",
       paymentTypeAdd: "Пополнение",
       paymentTypeWithdraw: "Списание",
       paymentTypeRefund: "Возврат",
@@ -908,6 +917,17 @@ export const translations: Record<Language, Dict> = {
       tariffActive: "Тариф активен",
       deleteTariffTitle: "Удалить тариф?",
       deleteTariffDesc: (code) => `Удалить тариф «${code}»? Это действие необратимо.`,
+      priceLines: "Цены по юнитам",
+      noPriceLines: "Строк пока нет.",
+      addPriceLine: "Добавить строку",
+      unitType: "Тип юнита",
+      unitStage: "Стадия",
+      unitTypeResidential: "Жилой",
+      unitTypeCommercial: "Коммерческий",
+      unitTypeParking: "Паркинг",
+      unitTypeBasement: "Подвал",
+      unitStageActive: "В эксплуатации",
+      unitStageCompleted: "Сдан",
       errors: {
         loadTariffs: "Не удалось загрузить тарифы",
         loadPackages: "Не удалось загрузить пакеты",
@@ -1199,7 +1219,7 @@ export const translations: Record<Language, Dict> = {
       subscriptionEnd: "End date",
       fromTariff: "Included in tariff",
       subscriptionPrice: "Price",
-      subscriptionRealCost: "Real cost",
+      subscriptionPriceHint: "The final price may include additional charges based on the company's units.",
       subscriptionFinalCost: "Total after discount",
       discount: "Discount",
       activateSubscription: "Activate",
@@ -1213,7 +1233,6 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Amount",
       paymentType: "Type",
       paymentReceiver: "Receiver",
-      paymentSubscriptionRange: "Subscription period",
       paymentTypeAdd: "Top-up",
       paymentTypeWithdraw: "Withdrawal",
       paymentTypeRefund: "Refund",
@@ -1433,6 +1452,17 @@ export const translations: Record<Language, Dict> = {
       tariffActive: "Tariff is active",
       deleteTariffTitle: "Delete tariff?",
       deleteTariffDesc: (code) => `Delete tariff "${code}"? This action cannot be undone.`,
+      priceLines: "Unit price lines",
+      noPriceLines: "No price lines yet.",
+      addPriceLine: "Add line",
+      unitType: "Unit type",
+      unitStage: "Stage",
+      unitTypeResidential: "Residential",
+      unitTypeCommercial: "Commercial",
+      unitTypeParking: "Parking",
+      unitTypeBasement: "Basement",
+      unitStageActive: "Active",
+      unitStageCompleted: "Completed",
       errors: {
         loadTariffs: "Failed to load tariffs",
         loadPackages: "Failed to load packages",
@@ -1724,7 +1754,7 @@ export const translations: Record<Language, Dict> = {
       subscriptionEnd: "Санаи анҷом",
       fromTariff: "Дар тариф дохил аст",
       subscriptionPrice: "Нарх",
-      subscriptionRealCost: "Арзиши воқеӣ",
+      subscriptionPriceHint: "Нархи ниҳоӣ метавонад боваситаи воҳидҳои ширкатро низ дар бар гирад.",
       subscriptionFinalCost: "Ҷамъ бо тахфиф",
       discount: "Тахфиф",
       activateSubscription: "Фаъол кардан",
@@ -1738,7 +1768,6 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Маблағ",
       paymentType: "Навъ",
       paymentReceiver: "Қабулкунанда",
-      paymentSubscriptionRange: "Давраи обуна",
       paymentTypeAdd: "Пуркунӣ",
       paymentTypeWithdraw: "Бардошт",
       paymentTypeRefund: "Баргардонидан",
@@ -1958,6 +1987,17 @@ export const translations: Record<Language, Dict> = {
       tariffActive: "Тариф фаъол аст",
       deleteTariffTitle: "Тарифро нест кардан?",
       deleteTariffDesc: (code) => `Тарифи «${code}»-ро нест кардан? Ин амал баргарданашаванда аст.`,
+      priceLines: "Нархҳо аз рӯи воҳидҳо",
+      noPriceLines: "Ҳанӯз сатре нест.",
+      addPriceLine: "Илова кардани сатр",
+      unitType: "Навъи воҳид",
+      unitStage: "Марҳила",
+      unitTypeResidential: "Истиқоматӣ",
+      unitTypeCommercial: "Тиҷоратӣ",
+      unitTypeParking: "Боргоҳ",
+      unitTypeBasement: "Таҳхона",
+      unitStageActive: "Дар истифода",
+      unitStageCompleted: "Супорида шуда",
       errors: {
         loadTariffs: "Боргирии тарифҳо ноком шуд",
         loadPackages: "Боргирии бастаҳо ноком шуд",

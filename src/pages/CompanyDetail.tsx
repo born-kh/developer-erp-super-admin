@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, ImageUp, Info, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Copy, ImageUp, Info, Loader2, RefreshCw } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -9,9 +9,9 @@ import {
   deleteUser,
   getAllCitiesCached,
   getCompanyById,
+  getCompanySubscription,
   getUserById,
   listCompanyPaymentHistories,
-  listPackages,
   listTariffsWithPackages,
   listUsers,
   refundCompanyBalance,
@@ -24,7 +24,7 @@ import {
   type CityListItem,
   type CompanyDetail as CompanyDetailData,
   type CompanyStatus,
-  type PackageListItem,
+  type CompanySubscriptionDetail,
   type PaymentHistoryItem,
   type PaymentMethod,
   type TariffIncludingPackages,
@@ -72,7 +72,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Textarea } from "@/components/ui/textarea";
 
 const CITY_NONE = "none";
-const TARIFF_NONE = "none";
 const TRIAL_DEFAULT_DAYS = 10;
 const ACTIVE_SUBSCRIPTION_DAYS = 30;
 
@@ -80,7 +79,6 @@ type SubscriptionForm = {
   tariffId: string;
   status: CompanyStatus;
   startDate: string;
-  packageIds: string[];
   discount: number;
 };
 
@@ -190,7 +188,8 @@ export function CompanyDetail() {
   const [confirmDeleteOwnerId, setConfirmDeleteOwnerId] = useState<string | null>(null);
 
   const [tariffs, setTariffs] = useState<TariffIncludingPackages[]>([]);
-  const [allPackages, setAllPackages] = useState<PackageListItem[]>([]);
+  const [subscription, setSubscription] = useState<CompanySubscriptionDetail | null>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const [subForm, setSubForm] = useState<SubscriptionForm | null>(null);
   const [subSubmitting, setSubSubmitting] = useState(false);
@@ -212,9 +211,6 @@ export function CompanyDetail() {
     listTariffsWithPackages({ pageSize: 100 })
       .then((res) => setTariffs(res.items ?? []))
       .catch(() => {});
-    listPackages({ pageSize: 100 })
-      .then((res) => setAllPackages(res.items ?? []))
-      .catch(() => {});
   }, []);
 
   const load = () => {
@@ -227,6 +223,18 @@ export function CompanyDetail() {
         setCompany(null);
       })
       .finally(() => setLoading(false));
+  };
+
+  const loadSubscription = async () => {
+    if (!id) return;
+    setSubscriptionLoading(true);
+    try {
+      setSubscription(await getCompanySubscription(id));
+    } catch {
+      setSubscription(null);
+    } finally {
+      setSubscriptionLoading(false);
+    }
   };
 
   const loadOwners = async () => {
@@ -285,6 +293,7 @@ export function CompanyDetail() {
 
   useEffect(() => {
     load();
+    loadSubscription();
     loadOwners();
     loadWorkers();
     loadClients();
@@ -507,11 +516,10 @@ export function CompanyDetail() {
 
   const openEditSubscription = () => {
     setSubForm({
-      tariffId: company.subscription?.tariffId ?? "",
-      status: company.subscription?.status ?? "Trial",
-      startDate: company.subscription?.date.startDate?.slice(0, 10) ?? todayStr(),
-      packageIds: (company.subscription?.packages ?? []).map((p) => p.id),
-      discount: company.subscription?.discount ?? 0,
+      tariffId: subscription?.tariff?.id ?? "",
+      status: subscription?.status ?? "Trial",
+      startDate: subscription?.period.startDate?.slice(0, 10) ?? todayStr(),
+      discount: subscription?.discount ?? 0,
     });
     setSubscriptionModalOpen(true);
   };
@@ -523,6 +531,7 @@ export function CompanyDetail() {
       await activateCompanySubscription(company.id);
       toast.success(t.companyDetail.toasts.subscriptionActivated);
       load();
+      loadSubscription();
     } catch (err) {
       toast.error(errorMessage(err, t.companyDetail.errors.activateSubscription));
     } finally {
@@ -566,45 +575,20 @@ export function CompanyDetail() {
   const setSubField = <K extends keyof SubscriptionForm>(key: K, value: SubscriptionForm[K]) =>
     setSubForm((f) => (f ? { ...f, [key]: value } : f));
 
-  const tariffPackageIds = (tariffId: string) =>
-    (tariffs.find((tr) => tr.id === tariffId)?.packages ?? []).map((p) => p.id);
-
-  const selectSubTariff = (tariffId: string) => {
-    const newTariffId = tariffId === TARIFF_NONE ? "" : tariffId;
-    setSubForm((f) => (f ? { ...f, tariffId: newTariffId, packageIds: tariffPackageIds(newTariffId) } : f));
-  };
-
-  const addPackageToSub = (pkgId: string) => {
-    if (!pkgId || subForm?.packageIds.includes(pkgId)) return;
-    setSubForm((f) => (f ? { ...f, tariffId: "", packageIds: [...f.packageIds, pkgId] } : f));
-  };
-
-  const removePackageFromSub = (pkgId: string) => {
-    setSubForm((f) => {
-      if (!f) return f;
-      const isTariffPackage = tariffPackageIds(f.tariffId).includes(pkgId);
-      return {
-        ...f,
-        tariffId: isTariffPackage ? "" : f.tariffId,
-        packageIds: f.packageIds.filter((id) => id !== pkgId),
-      };
-    });
-  };
-
   const submitSubscription = async () => {
-    if (!subForm || subSubmitting) return;
+    if (!subForm || !subForm.tariffId || subSubmitting) return;
     setSubSubmitting(true);
     try {
       await updateCompanySubscription(company.id, {
-        tariffId: subForm.tariffId || undefined,
+        tariffId: subForm.tariffId,
         status: subForm.status,
         startDate: subForm.startDate,
-        packageIds: subForm.packageIds,
         discount: subForm.discount || 0,
       });
       toast.success(t.companyDetail.toasts.subscriptionSaved);
       setSubscriptionModalOpen(false);
       load();
+      loadSubscription();
     } catch (err) {
       toast.error(errorMessage(err, t.companyDetail.errors.saveSubscription));
     } finally {
@@ -612,15 +596,7 @@ export function CompanyDetail() {
     }
   };
 
-  const selectedSubPackages = (subForm?.packageIds ?? [])
-    .map((id) => allPackages.find((p) => p.id === id))
-    .filter((p): p is PackageListItem => Boolean(p));
-  const availableSubPackages = allPackages.filter((p) => !(subForm?.packageIds ?? []).includes(p.id));
-  const subTariffPackageIds = tariffPackageIds(subForm?.tariffId ?? "");
-  const subCost = selectedSubPackages.reduce((sum, p) => sum + p.cost, 0);
   const selectedFormTariff = tariffs.find((tr) => tr.id === subForm?.tariffId);
-  const subExtraPackageIds = (subForm?.packageIds ?? []).filter((id) => !subTariffPackageIds.includes(id));
-  const showTariffPrice = Boolean(selectedFormTariff) && subExtraPackageIds.length === 0;
   const subEndDate =
     subForm && subForm.status !== "Suspended"
       ? addDays(
@@ -632,21 +608,33 @@ export function CompanyDetail() {
       : null;
 
   const editDiscount = subForm?.discount || 0;
-  const editListPrice = showTariffPrice ? selectedFormTariff!.cost : subCost;
+  const editListPrice = selectedFormTariff?.baseCost ?? 0;
   const editFinalPrice = Math.max(0, editListPrice * (1 - editDiscount / 100));
 
-  const subscriptionTariff = tariffs.find((tr) => tr.id === company.subscription?.tariffId);
-  const subscriptionTariffPackageIds = (subscriptionTariff?.packages ?? []).map((p) => p.id);
-  const subscriptionExtraPackages = (company.subscription?.packages ?? []).filter(
-    (p) => !subscriptionTariffPackageIds.includes(p.id),
-  );
-  const showSubscriptionTariffPrice = Boolean(subscriptionTariff) && subscriptionExtraPackages.length === 0;
-  const subDiscount = company.subscription?.discount ?? 0;
-  const subListPrice = showSubscriptionTariffPrice ? subscriptionTariff!.cost : company.subscription?.originalCost ?? 0;
-  const subFinalPrice = subDiscount > 0 ? company.subscription?.costAfterDiscount ?? subListPrice : subListPrice;
+  const subDiscount = subscription?.discount ?? 0;
+  const subPriceInfo = subscription?.priceInformation;
+  const subListPrice = subPriceInfo?.totalCost ?? 0;
+  const subFinalPrice = subPriceInfo?.totalCostAfterDiscount ?? subListPrice;
   const canActivateSubscription =
-    Boolean(company.subscription) &&
-    (company.subscription?.status === "Trial" || company.subscription?.status === "Suspended");
+    Boolean(subscription) && (subscription?.status === "Trial" || subscription?.status === "Suspended");
+
+  const unitTypeLabel = (type: string) => {
+    switch (type) {
+      case "Residential":
+        return t.tariffs.unitTypeResidential;
+      case "Commercial":
+        return t.tariffs.unitTypeCommercial;
+      case "Parking":
+        return t.tariffs.unitTypeParking;
+      case "Basement":
+        return t.tariffs.unitTypeBasement;
+      default:
+        return type;
+    }
+  };
+
+  const unitStageLabel = (stage: string) =>
+    stage === "Active" ? t.tariffs.unitStageActive : t.tariffs.unitStageCompleted;
 
   const paymentTypeLabel = (type: string) => {
     switch (type) {
@@ -680,7 +668,32 @@ export function CompanyDetail() {
 
   return (
     <>
-      <PageHead title={company.name || "—"} sub={t.companyDetail.sub} onBack={() => nav(-1)} />
+      <PageHead
+        title={company.name || "—"}
+        sub={t.companyDetail.sub}
+        onBack={() => nav(-1)}
+        actions={
+          editing ? (
+            <>
+              <Button type="button" variant="outline" onClick={cancelEdit} disabled={submitting}>
+                {t.common.cancel}
+              </Button>
+              <Button type="button" onClick={save} disabled={submitting}>
+                {t.common.save}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button type="button" variant="outline" onClick={startEdit}>
+                {t.common.edit}
+              </Button>
+              <Button type="button" variant="destructive" onClick={() => setConfirmingDelete(true)}>
+                {t.common.delete}
+              </Button>
+            </>
+          )
+        }
+      />
 
       <div className="detail-layout">
         <Card className="detail-media gap-0 overflow-hidden py-0">
@@ -688,56 +701,21 @@ export function CompanyDetail() {
             <CompanyPhoto photoName={company.photoName} alt={company.name ?? ""} />
           </div>
           <div className="flex items-center justify-center gap-3 p-3.5">
-            {editing ? (
-              <>
-                <Button type="button" className="flex-1" disabled={submitting} onClick={save}>
-                  {t.common.save}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={photoUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label={t.common.chooseImage}
+                >
+                  <ImageUp />
                 </Button>
-                <Button type="button" variant="outline" className="flex-1" onClick={cancelEdit}>
-                  {t.common.cancel}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      disabled={photoUploading}
-                      onClick={() => fileInputRef.current?.click()}
-                      aria-label={t.common.chooseImage}
-                    >
-                      <ImageUp />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{t.common.chooseImage}</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" size="icon" onClick={startEdit} aria-label={t.common.edit}>
-                      <Pencil />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{t.common.edit}</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => setConfirmingDelete(true)}
-                      aria-label={t.common.delete}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{t.common.delete}</TooltipContent>
-                </Tooltip>
-              </>
-            )}
+              </TooltipTrigger>
+              <TooltipContent>{t.common.chooseImage}</TooltipContent>
+            </Tooltip>
           </div>
           <input
             ref={fileInputRef}
@@ -819,7 +797,7 @@ export function CompanyDetail() {
                     {t.common.status}
                   </div>
                   <div className="mt-1.5 flex gap-1.5">
-                    <CompanyStatusBadge status={company.subscription?.status ?? ""} />
+                    <CompanyStatusBadge status={subscription?.status ?? ""} />
                   </div>
                 </div>
                 <div className="mb-4">
@@ -876,74 +854,92 @@ export function CompanyDetail() {
               </Button>
             </div>
           </div>
-          {company.subscription ? (
-            <div className="grid grid-cols-6 gap-4 max-[1024px]:grid-cols-3 max-[640px]:grid-cols-2 max-[420px]:grid-cols-1">
-              <div>
-                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-                  {t.tariffs.title}
+          {subscriptionLoading ? (
+            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
+          ) : subscription ? (
+            <>
+              <div className="grid grid-cols-6 gap-4 max-[1024px]:grid-cols-3 max-[640px]:grid-cols-2 max-[420px]:grid-cols-1">
+                <div>
+                  <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                    {t.tariffs.title}
+                  </div>
+                  <div className="mt-1 font-semibold">{subscription.tariff?.code || t.companyDetail.noTariff}</div>
                 </div>
-                <div className="mt-1 font-semibold">{subscriptionTariff?.code || t.companyDetail.noTariff}</div>
-              </div>
-              <div>
-                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-                  {t.tariffs.packagesLabel}
-                </div>
-                <div className="mt-1">
-                  {company.subscription.packages?.length ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {company.subscription.packages.map((p) => (
-                        <span className="tag-chip static" key={p.id}>
-                          {p.title}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-                  {t.common.status}
-                </div>
-                <div className="mt-1.5">
-                  <CompanyStatusBadge status={company.subscription.status} />
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-                  {t.companyDetail.subscriptionStart}
-                </div>
-                <div className="mt-1 font-semibold">{formatDate(company.subscription.date.startDate, language)}</div>
-              </div>
-              <div>
-                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-                  {t.companyDetail.subscriptionEnd}
-                </div>
-                <div className="mt-1 font-semibold">
-                  {company.subscription.date.endDate ? formatDate(company.subscription.date.endDate, language) : "—"}
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-                  {t.companyDetail.subscriptionPrice}
-                </div>
-                <div className="mt-1 font-semibold">
-                  {formatMoney(subFinalPrice, settings.subscriptionCurrencyCode)}
-                  {subDiscount > 0 && (
-                    <span className="ml-1 font-normal text-muted-foreground">(-{subDiscount}%)</span>
-                  )}
-                </div>
-                {(subDiscount > 0 || showSubscriptionTariffPrice) && (
-                  <div className="text-xs text-muted-foreground line-through">
-                    {formatMoney(
-                      subDiscount > 0 ? subListPrice : company.subscription.originalCost,
-                      settings.subscriptionCurrencyCode,
+                <div>
+                  <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                    {t.tariffs.packagesLabel}
+                  </div>
+                  <div className="mt-1">
+                    {subscription.packages?.length ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {subscription.packages.map((p) => (
+                          <span className="tag-chip static" key={p.id}>
+                            {p.title}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </div>
-                )}
+                </div>
+                <div>
+                  <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                    {t.common.status}
+                  </div>
+                  <div className="mt-1.5">
+                    <CompanyStatusBadge status={subscription.status} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                    {t.companyDetail.subscriptionStart}
+                  </div>
+                  <div className="mt-1 font-semibold">{formatDate(subscription.period.startDate, language)}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                    {t.companyDetail.subscriptionEnd}
+                  </div>
+                  <div className="mt-1 font-semibold">
+                    {subscription.period.endDate ? formatDate(subscription.period.endDate, language) : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                    {t.companyDetail.subscriptionPrice}
+                  </div>
+                  <div className="mt-1 font-semibold">
+                    {formatMoney(subFinalPrice, settings.subscriptionCurrencyCode)}
+                    {subDiscount > 0 && (
+                      <span className="ml-1 font-normal text-muted-foreground">(-{subDiscount}%)</span>
+                    )}
+                  </div>
+                  {subDiscount > 0 && (
+                    <div className="text-xs text-muted-foreground line-through">
+                      {formatMoney(subListPrice, settings.subscriptionCurrencyCode)}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+              {subPriceInfo?.priceLines?.length ? (
+                <div className="mt-4 rounded-md border divide-y">
+                  {subPriceInfo.priceLines.map((pl) => (
+                    <div
+                      key={`${pl.unitType}-${pl.unitStage}`}
+                      className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                    >
+                      <span className="text-muted-foreground">
+                        {unitTypeLabel(pl.unitType)} · {unitStageLabel(pl.unitStage)} × {pl.quantity}
+                      </span>
+                      <span className="font-medium tabular-nums">
+                        {formatMoney(pl.totalCost, settings.subscriptionCurrencyCode)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">{t.companyDetail.noSubscription}</p>
           )}
@@ -984,7 +980,6 @@ export function CompanyDetail() {
                   <TableHead>{t.companyDetail.paymentType}</TableHead>
                   <TableHead>{t.companyDetail.paymentMethod}</TableHead>
                   <TableHead>{t.companyDetail.paymentReceiver}</TableHead>
-                  <TableHead>{t.companyDetail.paymentSubscriptionRange}</TableHead>
                   <TableHead>{t.common.created}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -992,7 +987,7 @@ export function CompanyDetail() {
                 {paymentHistoryLoading ? (
                   Array.from({ length: 3 }, (_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={6}>
+                      <TableCell colSpan={5}>
                         <Skeleton className="h-4 w-full" />
                       </TableCell>
                     </TableRow>
@@ -1006,13 +1001,6 @@ export function CompanyDetail() {
                       <TableCell>{paymentTypeLabel(ph.type)}</TableCell>
                       <TableCell>{ph.method ? paymentMethodLabel(ph.method) : "—"}</TableCell>
                       <TableCell>{ph.receiverInfo?.name || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {ph.subscriptionRange
-                          ? `${formatDate(ph.subscriptionRange.startDate, language)} – ${
-                              ph.subscriptionRange.endDate ? formatDate(ph.subscriptionRange.endDate, language) : "—"
-                            }`
-                          : "—"}
-                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(ph.createdAt, language)}
                       </TableCell>
@@ -1263,12 +1251,11 @@ export function CompanyDetail() {
           {subForm && (
             <div className="grid gap-3">
               <Field label={t.tariffs.title}>
-                <Select value={subForm.tariffId || TARIFF_NONE} onValueChange={selectSubTariff}>
+                <Select value={subForm.tariffId} onValueChange={(v) => setSubField("tariffId", v)}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={t.companyDetail.noTariff} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={TARIFF_NONE}>{t.companyDetail.noTariff}</SelectItem>
                     {tariffs
                       .filter((tr) => tr.isActive || tr.id === subForm.tariffId)
                       .map((tr) => (
@@ -1306,41 +1293,6 @@ export function CompanyDetail() {
                   {t.companyDetail.subscriptionEnd}: <span className="font-medium text-foreground">{formatDate(subEndDate, language)}</span>
                 </p>
               )}
-              <Field label={t.tariffs.packagesLabel}>
-                <div className="tag-input">
-                  {selectedSubPackages.length > 0 && (
-                    <div className="tag-list">
-                      {selectedSubPackages.map((p) => (
-                        <span
-                          className={`tag-chip ${subTariffPackageIds.includes(p.id) ? "tag-chip-tariff" : ""}`}
-                          key={p.id}
-                          title={subTariffPackageIds.includes(p.id) ? t.companyDetail.fromTariff : undefined}
-                        >
-                          {subTariffPackageIds.includes(p.id) && <span className="tag-chip-dot" aria-hidden />}
-                          {p.title}
-                          <button type="button" onClick={() => removePackageFromSub(p.id)} aria-label={t.common.delete}>
-                            ✕
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {availableSubPackages.length > 0 && (
-                    <Select key={subForm.packageIds.join(",")} onValueChange={addPackageToSub}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t.tariffs.choosePackage} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableSubPackages.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              </Field>
               <Field label={`${t.companyDetail.discount} (%)`}>
                 <Input
                   type="number"
@@ -1351,29 +1303,24 @@ export function CompanyDetail() {
                   onChange={(e) => setSubField("discount", Number(e.target.value) || 0)}
                 />
               </Field>
-              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t.companyDetail.subscriptionPrice}</span>
-                  <span className="font-semibold">{formatMoney(editListPrice, settings.subscriptionCurrencyCode)}</span>
+              {selectedFormTariff && (
+                <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">{t.companyDetail.subscriptionPrice}</span>
+                    <span className="font-semibold">{formatMoney(editListPrice, settings.subscriptionCurrencyCode)}</span>
+                  </div>
+                  {editDiscount > 0 && (
+                    <div className="mt-1 flex items-center justify-between border-t pt-1">
+                      <span className="text-xs text-muted-foreground">{t.companyDetail.subscriptionFinalCost}</span>
+                      <span className="text-sm font-semibold">
+                        {formatMoney(editFinalPrice, settings.subscriptionCurrencyCode)}{" "}
+                        <span className="font-normal text-muted-foreground">(-{editDiscount}%)</span>
+                      </span>
+                    </div>
+                  )}
+                  <p className="mt-1.5 text-xs text-muted-foreground">{t.companyDetail.subscriptionPriceHint}</p>
                 </div>
-                {showTariffPrice && (
-                  <div className="mt-1 flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">{t.companyDetail.subscriptionRealCost}</span>
-                    <span className="text-xs text-muted-foreground line-through">
-                      {formatMoney(selectedFormTariff!.originalCost, settings.subscriptionCurrencyCode)}
-                    </span>
-                  </div>
-                )}
-                {editDiscount > 0 && (
-                  <div className="mt-1 flex items-center justify-between border-t pt-1">
-                    <span className="text-xs text-muted-foreground">{t.companyDetail.subscriptionFinalCost}</span>
-                    <span className="text-sm font-semibold">
-                      {formatMoney(editFinalPrice, settings.subscriptionCurrencyCode)}{" "}
-                      <span className="font-normal text-muted-foreground">(-{editDiscount}%)</span>
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -1382,7 +1329,7 @@ export function CompanyDetail() {
             </Button>
             <Button
               type="button"
-              disabled={subSubmitting || !subForm || subForm.packageIds.length === 0}
+              disabled={subSubmitting || !subForm || !subForm.tariffId}
               onClick={submitSubscription}
             >
               {t.common.save}

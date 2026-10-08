@@ -56,6 +56,10 @@ type ApiError = {
   message?: string | null;
   originalMessage?: string | null;
   businessCode?: number;
+  // ASP.NET's default ProblemDetails shape, returned for framework-level
+  // failures (e.g. [Authorize] rejections) instead of the app's own error envelope.
+  title?: string | null;
+  detail?: string | null;
 };
 
 export class ApiRequestError extends Error {
@@ -93,7 +97,7 @@ async function performRequest<T>(path: string, options: RequestInit = {}): Promi
   if (!res.ok) {
     const err = body as ApiError | null;
     throw new ApiRequestError(
-      err?.message || err?.originalMessage || "Ошибка запроса",
+      err?.message || err?.originalMessage || err?.title || err?.detail || `Ошибка запроса (${res.status})`,
       err?.businessCode,
       res.status,
     );
@@ -664,7 +668,7 @@ export function updatePermission(id: string, titleTranslations: Record<string, s
 export type TariffListItem = {
   id: string;
   code?: string | null;
-  cost: number;
+  baseCost: number;
   isActive: boolean;
   description?: string | null;
 };
@@ -672,26 +676,28 @@ export type TariffListItem = {
 export type TariffDetail = {
   id: string;
   code?: string | null;
-  cost: number;
+  baseCost: number;
   isActive: boolean;
   description?: Record<string, string> | null;
+  priceLines?: TariffPriceLine[] | null;
 };
 
 export type TariffIncludingPackages = {
   id: string;
   code?: string | null;
-  cost: number;
+  baseCost: number;
   isActive: boolean;
   description?: string | null;
-  originalCost: number;
+  originalBaseCost: number;
   packages: PackageListItem[] | null;
 };
 
 export type TariffInput = {
   code: string;
-  cost: number;
+  baseCost: number;
   isActive: boolean;
   descriptionTranslations: Record<string, string>;
+  priceLines?: TariffPriceLine[] | null;
 };
 
 export function listTariffs(params: { search?: string; page?: number; pageSize?: number } = {}) {
@@ -905,15 +911,40 @@ export type CompanyListItem = {
   status?: CompanyStatus | null;
 };
 
-export type CompanySubscription = {
-  tariffId?: string | null;
-  status: CompanyStatus;
-  date: { startDate: string; endDate?: string | null };
-  packages?: PackageListItem[] | null;
-  originalCost: number;
+export type BillableUnitCategoryType = "Residential" | "Commercial" | "Parking" | "Basement";
+export type BillableUnitStage = "Active" | "Completed";
+
+export type TariffPriceLine = {
+  unitType: BillableUnitCategoryType;
+  unitStage: BillableUnitStage;
   cost: number;
+};
+
+export type SubscriptionPriceLine = {
+  tariffId: string;
+  unitType: BillableUnitCategoryType;
+  unitStage: BillableUnitStage;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+};
+
+export type SubscriptionPriceInformation = {
+  baseCost: number;
+  priceLines?: SubscriptionPriceLine[] | null;
+  totalCost: number;
   discount?: number | null;
-  costAfterDiscount?: number | null;
+  totalCostAfterDiscount: number;
+};
+
+export type CompanySubscriptionDetail = {
+  companyId: string;
+  status: CompanyStatus;
+  period: { startDate: string; endDate?: string | null };
+  discount?: number | null;
+  tariff?: TariffDetail | null;
+  packages?: PackageListItem[] | null;
+  priceInformation?: SubscriptionPriceInformation | null;
 };
 
 export type CompanyDetail = {
@@ -926,7 +957,7 @@ export type CompanyDetail = {
   addressTranslations?: Record<string, string> | null;
   descriptionTranslations?: Record<string, string> | null;
   createdAt: string;
-  subscription?: CompanySubscription | null;
+  hasSubscription: boolean;
   balance: number;
 };
 
@@ -973,6 +1004,42 @@ export function getCompanyById(id: string) {
   return authRequest<CompanyDetail>(`/core/api/companies/${id}`);
 }
 
+export function getCompanySubscription(id: string) {
+  return authRequest<CompanySubscriptionDetail>(`/core/api/companies/${id}/subscription`);
+}
+
+export type SubscriptionPaymentHistoryItem = {
+  id: string;
+  companyId: string;
+  tariffId: string;
+  paymentHistoryId: string;
+  baseCost: number;
+  discount?: number | null;
+  subscriptionPeriod: { startDate: string; endDate: string };
+  priceLines?: SubscriptionPriceLine[] | null;
+  totalCost: number;
+  totalCostAfterDiscount: number;
+  createdAt: string;
+};
+
+export function listCompanySubscriptionPaymentHistories(
+  companyId: string,
+  params: { page?: number; pageSize?: number } = {},
+) {
+  const query = new URLSearchParams();
+  query.set("Page", String(params.page ?? 1));
+  query.set("PageSize", String(params.pageSize ?? 10));
+  return authRequest<PagedResult<SubscriptionPaymentHistoryItem>>(
+    `/core/api/companies/${companyId}/subscription-payment-histories?${query.toString()}`,
+  );
+}
+
+export function getSubscriptionPaymentHistory(paymentHistoryId: string) {
+  return authRequest<SubscriptionPaymentHistoryItem>(
+    `/core/api/companies/subscription-payment-histories/${paymentHistoryId}`,
+  );
+}
+
 export function createCompany(data: CreateCompanyInput) {
   return authRequest<string>("/core/api/companies", {
     method: "POST",
@@ -992,10 +1059,9 @@ export function deleteCompanyById(id: string) {
 }
 
 export type UpdateSubscriptionInput = {
-  tariffId?: string | null;
+  tariffId: string;
   status: CompanyStatus;
   startDate: string;
-  packageIds: string[];
   discount?: number | null;
 };
 
@@ -1033,7 +1099,6 @@ export type PaymentHistoryItem = {
   type: PaymentType;
   method?: PaymentMethod | null;
   receiverInfo?: { id: string; name?: string | null } | null;
-  subscriptionRange?: { startDate: string; endDate?: string | null } | null;
   createdAt: string;
 };
 

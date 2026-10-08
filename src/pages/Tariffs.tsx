@@ -10,8 +10,12 @@ import {
   removeTariffPackages,
   updateTariff,
   ApiRequestError,
+  type BillableUnitCategoryType,
+  type BillableUnitStage,
   type PackageListItem,
   type TariffIncludingPackages,
+  type TariffInput,
+  type TariffPriceLine,
 } from "../lib/api";
 import { formatMoney } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
@@ -52,15 +56,24 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 const DEFAULT_PAGE_SIZE = 10;
+const UNIT_TYPES: BillableUnitCategoryType[] = ["Residential", "Commercial", "Parking", "Basement"];
+const UNIT_STAGES: BillableUnitStage[] = ["Active", "Completed"];
 
 type Translations = Record<string, string>;
 
+type PriceLineForm = {
+  unitType: BillableUnitCategoryType;
+  unitStage: BillableUnitStage;
+  cost: string;
+};
+
 type TariffForm = {
   code: string;
-  cost: string;
+  baseCost: string;
   description: Translations;
   active: boolean;
   packageIds: string[];
+  priceLines: PriceLineForm[];
 };
 
 const emptyTranslations = (langs: string[]): Translations =>
@@ -81,10 +94,11 @@ export function Tariffs() {
   const defaultLang = settings.defaultLanguage;
   const makeEmptyForm = (): TariffForm => ({
     code: "",
-    cost: "",
+    baseCost: "",
     description: emptyTranslations(langs),
     active: true,
     packageIds: [],
+    priceLines: [],
   });
   const [tariffs, setTariffs] = useState<TariffIncludingPackages[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -98,6 +112,7 @@ export function Tariffs() {
   const [form, setForm] = useState<TariffForm>(() => makeEmptyForm());
   const [activeLang, setActiveLang] = useState<string>(defaultLang);
   const [originalPackageIds, setOriginalPackageIds] = useState<string[]>([]);
+  const [newLine, setNewLine] = useState<PriceLineForm>({ unitType: "Residential", unitStage: "Active", cost: "" });
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -142,6 +157,7 @@ export function Tariffs() {
     setForm(makeEmptyForm());
     setActiveLang(defaultLang);
     setOriginalPackageIds([]);
+    setNewLine({ unitType: "Residential", unitStage: "Active", cost: "" });
     setConfirmDelete(false);
     setModal({ mode: "create" });
   };
@@ -151,16 +167,22 @@ export function Tariffs() {
     setForm(makeEmptyForm());
     setOriginalPackageIds(packageIds);
     setActiveLang(defaultLang);
+    setNewLine({ unitType: "Residential", unitStage: "Active", cost: "" });
     setConfirmDelete(false);
     setModal({ mode: "edit", id: row.id });
     try {
       const detail = await getTariff(row.id);
       setForm({
         code: detail.code ?? row.code ?? "",
-        cost: String(detail.cost),
+        baseCost: String(detail.baseCost),
         description: toTranslations(detail.description, langs),
         active: detail.isActive,
         packageIds,
+        priceLines: (detail.priceLines ?? []).map((pl) => ({
+          unitType: pl.unitType,
+          unitStage: pl.unitStage,
+          cost: String(pl.cost),
+        })),
       });
     } catch (err) {
       toast.error(errorMessage(err, t.tariffs.errors.loadTariffs));
@@ -170,6 +192,20 @@ export function Tariffs() {
   const addPackageToForm = (pkgId: string) => {
     if (!pkgId || form.packageIds.includes(pkgId)) return;
     set("packageIds", [...form.packageIds, pkgId]);
+  };
+
+  const addPriceLine = () => {
+    if (!newLine.cost.trim()) return;
+    if (form.priceLines.some((pl) => pl.unitType === newLine.unitType && pl.unitStage === newLine.unitStage)) return;
+    set("priceLines", [...form.priceLines, newLine]);
+    setNewLine({ unitType: "Residential", unitStage: "Active", cost: "" });
+  };
+
+  const removePriceLine = (index: number) => {
+    set(
+      "priceLines",
+      form.priceLines.filter((_, i) => i !== index),
+    );
   };
 
   const removePackageFromForm = (pkgId: string) => {
@@ -185,11 +221,16 @@ export function Tariffs() {
   const submit = async () => {
     if (!form.code.trim() || submitting) return;
     setSubmitting(true);
-    const payload = {
+    const payload: TariffInput = {
       code: form.code.trim(),
-      cost: Number(form.cost) || 0,
+      baseCost: Number(form.baseCost) || 0,
       isActive: form.active,
       descriptionTranslations: collectTranslations(form.description),
+      priceLines: form.priceLines.map((pl): TariffPriceLine => ({
+        unitType: pl.unitType,
+        unitStage: pl.unitStage,
+        cost: Number(pl.cost) || 0,
+      })),
     };
     try {
       if (modal?.mode === "edit" && modal.id) {
@@ -238,6 +279,24 @@ export function Tariffs() {
     .map((id) => allPackages.find((p) => p.id === id))
     .filter((p): p is PackageListItem => Boolean(p));
   const availablePackages = allPackages.filter((p) => !form.packageIds.includes(p.id));
+
+  const unitTypeLabel = (type: BillableUnitCategoryType) => {
+    switch (type) {
+      case "Residential":
+        return t.tariffs.unitTypeResidential;
+      case "Commercial":
+        return t.tariffs.unitTypeCommercial;
+      case "Parking":
+        return t.tariffs.unitTypeParking;
+      case "Basement":
+        return t.tariffs.unitTypeBasement;
+      default:
+        return type;
+    }
+  };
+
+  const unitStageLabel = (stage: BillableUnitStage) =>
+    stage === "Active" ? t.tariffs.unitStageActive : t.tariffs.unitStageCompleted;
 
   return (
     <>
@@ -315,12 +374,7 @@ export function Tariffs() {
                         </div>
                       </TableCell>
                       <TableCell className="tabular-nums font-medium">
-                        {formatMoney(row.cost, settings.subscriptionCurrencyCode)} {t.tariffs.perMonth}
-                        {row.originalCost > row.cost && (
-                          <div className="text-xs text-muted-foreground line-through">
-                            {formatMoney(row.originalCost, settings.subscriptionCurrencyCode)}
-                          </div>
-                        )}
+                        {formatMoney(row.baseCost, settings.subscriptionCurrencyCode)} {t.tariffs.perMonth}
                       </TableCell>
                       <TableCell>
                         {pkgs.length === 0 ? (
@@ -376,9 +430,83 @@ export function Tariffs() {
                 <Input value={form.code} onChange={(e) => set("code", e.target.value)} autoFocus />
               </Field>
               <Field label={t.common.price(settings.subscriptionCurrencyCode || "USD")}>
-                <Input type="number" min="0" value={form.cost} onChange={(e) => set("cost", e.target.value)} />
+                <Input type="number" min="0" value={form.baseCost} onChange={(e) => set("baseCost", e.target.value)} />
               </Field>
             </div>
+            <Field label={t.tariffs.priceLines}>
+              <div className="grid gap-2">
+                {form.priceLines.length > 0 && (
+                  <div className="rounded-md border divide-y">
+                    {form.priceLines.map((pl, idx) => (
+                      <div
+                        key={`${pl.unitType}-${pl.unitStage}`}
+                        className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                      >
+                        <span>
+                          {unitTypeLabel(pl.unitType)} · {unitStageLabel(pl.unitStage)}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium tabular-nums">
+                            {formatMoney(Number(pl.cost) || 0, settings.subscriptionCurrencyCode)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removePriceLine(idx)}
+                            aria-label={t.common.delete}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    value={newLine.unitType}
+                    onValueChange={(v) => setNewLine((l) => ({ ...l, unitType: v as BillableUnitCategoryType }))}
+                  >
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder={t.tariffs.unitType} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UNIT_TYPES.map((ut) => (
+                        <SelectItem key={ut} value={ut}>
+                          {unitTypeLabel(ut)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={newLine.unitStage}
+                    onValueChange={(v) => setNewLine((l) => ({ ...l, unitStage: v as BillableUnitStage }))}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder={t.tariffs.unitStage} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UNIT_STAGES.map((us) => (
+                        <SelectItem key={us} value={us}>
+                          {unitStageLabel(us)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    min="0"
+                    className="w-28"
+                    placeholder={t.common.price(settings.subscriptionCurrencyCode || "USD")}
+                    value={newLine.cost}
+                    onChange={(e) => setNewLine((l) => ({ ...l, cost: e.target.value }))}
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={addPriceLine}>
+                    {t.tariffs.addPriceLine}
+                  </Button>
+                </div>
+              </div>
+            </Field>
             <Field label={t.tariffs.packagesLabel}>
               <div className="tag-input">
                 {selectedPackages.length > 0 && (
