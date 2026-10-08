@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, ImageUp, Info, Loader2, RefreshCw } from "lucide-react";
+import { ChevronRight, Copy, ImageUp, Info, Loader2, RefreshCw } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -11,7 +11,6 @@ import {
   getCompanyById,
   getCompanySubscription,
   getUserById,
-  listCompanyPaymentHistories,
   listTariffsWithPackages,
   listUsers,
   refundCompanyBalance,
@@ -25,7 +24,6 @@ import {
   type CompanyDetail as CompanyDetailData,
   type CompanyStatus,
   type CompanySubscriptionDetail,
-  type PaymentHistoryItem,
   type PaymentMethod,
   type TariffIncludingPackages,
   type UserListItem,
@@ -35,7 +33,6 @@ import { useFileUrl } from "../hooks/useFileUrl";
 import { formatDate, formatMoney, randomPassword } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { PageHead } from "../AppShell";
-import { AppPagination } from "@/components/AppPagination";
 import { CompanyPhoto } from "@/components/CompanyPhoto";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Field } from "@/components/Field";
@@ -43,15 +40,6 @@ import { CompanyStatusBadge } from "@/components/StatusBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -89,7 +77,6 @@ type BalanceForm = {
 };
 
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "Card", "BankTransfer", "Wallet", "Other"];
-const PAYMENT_HISTORY_PAGE_SIZE = 10;
 
 function formatDateInput(date: Date): string {
   const y = date.getFullYear();
@@ -176,10 +163,6 @@ export function CompanyDetail() {
 
   const [owners, setOwners] = useState<UserListItem[]>([]);
   const [ownersLoading, setOwnersLoading] = useState(true);
-  const [workers, setWorkers] = useState<UserListItem[]>([]);
-  const [workersLoading, setWorkersLoading] = useState(true);
-  const [clients, setClients] = useState<UserListItem[]>([]);
-  const [clientsLoading, setClientsLoading] = useState(true);
   const [ownerModal, setOwnerModal] = useState<{ mode: "create" | "edit"; id?: string } | null>(null);
   const [ownerForm, setOwnerForm] = useState<OwnerForm>(emptyOwnerForm);
   const [ownerSubmitting, setOwnerSubmitting] = useState(false);
@@ -197,12 +180,6 @@ export function CompanyDetail() {
 
   const [balanceForm, setBalanceForm] = useState<BalanceForm | null>(null);
   const [balanceSubmitting, setBalanceSubmitting] = useState(false);
-
-  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
-  const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(true);
-  const [paymentHistoryPage, setPaymentHistoryPage] = useState(1);
-  const [paymentHistoryHasNext, setPaymentHistoryHasNext] = useState(false);
-  const [paymentHistoryHasPrev, setPaymentHistoryHasPrev] = useState(false);
 
   useEffect(() => {
     getAllCitiesCached()
@@ -250,60 +227,12 @@ export function CompanyDetail() {
     }
   };
 
-  const loadWorkers = async () => {
-    if (!id) return;
-    setWorkersLoading(true);
-    try {
-      const res = await listUsers({ companyId: id, userType: "Worker", pageSize: 100 });
-      setWorkers(res.items ?? []);
-    } catch (err) {
-      toast.error(errorMessage(err, t.companyDetail.errors.loadUsers));
-    } finally {
-      setWorkersLoading(false);
-    }
-  };
-
-  const loadClients = async () => {
-    if (!id) return;
-    setClientsLoading(true);
-    try {
-      const res = await listUsers({ companyId: id, userType: "Customer", pageSize: 100 });
-      setClients(res.items ?? []);
-    } catch (err) {
-      toast.error(errorMessage(err, t.companyDetail.errors.loadUsers));
-    } finally {
-      setClientsLoading(false);
-    }
-  };
-
-  const loadPaymentHistory = async (pageArg: number) => {
-    if (!id) return;
-    setPaymentHistoryLoading(true);
-    try {
-      const res = await listCompanyPaymentHistories(id, { page: pageArg, pageSize: PAYMENT_HISTORY_PAGE_SIZE });
-      setPaymentHistory(res.items ?? []);
-      setPaymentHistoryHasNext(res.pagination.hasNextPage);
-      setPaymentHistoryHasPrev(res.pagination.hasPreviousPage ?? pageArg > 1);
-    } catch (err) {
-      toast.error(errorMessage(err, t.companyDetail.errors.loadPaymentHistory));
-    } finally {
-      setPaymentHistoryLoading(false);
-    }
-  };
-
   useEffect(() => {
     load();
     loadSubscription();
     loadOwners();
-    loadWorkers();
-    loadClients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
-  useEffect(() => {
-    loadPaymentHistory(paymentHistoryPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, paymentHistoryPage]);
 
   const ownerAvatarUrl = useFileUrl(ownerForm.avatarName);
 
@@ -564,7 +493,6 @@ export function CompanyDetail() {
       }
       setBalanceForm(null);
       load();
-      loadPaymentHistory(paymentHistoryPage);
     } catch (err) {
       toast.error(errorMessage(err, t.companyDetail.errors.saveBalance));
     } finally {
@@ -596,7 +524,6 @@ export function CompanyDetail() {
     }
   };
 
-  const selectedFormTariff = tariffs.find((tr) => tr.id === subForm?.tariffId);
   const subEndDate =
     subForm && subForm.status !== "Suspended"
       ? addDays(
@@ -606,10 +533,6 @@ export function CompanyDetail() {
             : ACTIVE_SUBSCRIPTION_DAYS,
         )
       : null;
-
-  const editDiscount = subForm?.discount || 0;
-  const editListPrice = selectedFormTariff?.baseCost ?? 0;
-  const editFinalPrice = Math.max(0, editListPrice * (1 - editDiscount / 100));
 
   const subDiscount = subscription?.discount ?? 0;
   const subPriceInfo = subscription?.priceInformation;
@@ -635,19 +558,6 @@ export function CompanyDetail() {
 
   const unitStageLabel = (stage: string) =>
     stage === "Active" ? t.tariffs.unitStageActive : t.tariffs.unitStageCompleted;
-
-  const paymentTypeLabel = (type: string) => {
-    switch (type) {
-      case "Add":
-        return t.companyDetail.paymentTypeAdd;
-      case "Withdraw":
-        return t.companyDetail.paymentTypeWithdraw;
-      case "Refund":
-        return t.companyDetail.paymentTypeRefund;
-      default:
-        return type;
-    }
-  };
 
   const paymentMethodLabel = (method: string) => {
     switch (method) {
@@ -863,7 +773,19 @@ export function CompanyDetail() {
                   <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
                     {t.tariffs.title}
                   </div>
-                  <div className="mt-1 font-semibold">{subscription.tariff?.code || t.companyDetail.noTariff}</div>
+                  <div className="mt-1 font-semibold">
+                    {subscription.tariff ? (
+                      <button
+                        type="button"
+                        className="text-primary hover:underline"
+                        onClick={() => nav("/tariffs")}
+                      >
+                        {subscription.tariff.code}
+                      </button>
+                    ) : (
+                      t.companyDetail.noTariff
+                    )}
+                  </div>
                 </div>
                 <div>
                   <div className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
@@ -938,7 +860,8 @@ export function CompanyDetail() {
                       className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
                     >
                       <span className="text-muted-foreground">
-                        {unitTypeLabel(pl.unitType)} · {unitStageLabel(pl.unitStage)} × {pl.quantity}
+                        {unitTypeLabel(pl.unitType)} · {unitStageLabel(pl.unitStage)} ·{" "}
+                        {formatMoney(pl.unitCost, settings.subscriptionCurrencyCode)} × {pl.quantity}
                       </span>
                       <span className="font-medium tabular-nums">
                         {formatMoney(pl.totalCost, settings.subscriptionCurrencyCode)}
@@ -970,60 +893,6 @@ export function CompanyDetail() {
           <div className="mt-1 text-2xl font-semibold">
             {formatMoney(company.balance, settings.nationalCurrencyCode)}
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="mt-3.5">
-        <CardContent>
-          <div className="list-head">
-            <h3>{t.companyDetail.paymentHistoryTitle}</h3>
-          </div>
-          {!paymentHistoryLoading && paymentHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t.companyDetail.noPaymentHistory}</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t.companyDetail.paymentAmount}</TableHead>
-                  <TableHead>{t.companyDetail.paymentType}</TableHead>
-                  <TableHead>{t.companyDetail.paymentMethod}</TableHead>
-                  <TableHead>{t.companyDetail.paymentReceiver}</TableHead>
-                  <TableHead>{t.common.created}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paymentHistoryLoading ? (
-                  Array.from({ length: 3 }, (_, i) => (
-                    <TableRow key={i}>
-                      <TableCell colSpan={5}>
-                        <Skeleton className="h-4 w-full" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  paymentHistory.map((ph) => (
-                    <TableRow key={ph.id}>
-                      <TableCell className="font-medium">
-                        {formatMoney(ph.amount, settings.nationalCurrencyCode)}
-                      </TableCell>
-                      <TableCell>{paymentTypeLabel(ph.type)}</TableCell>
-                      <TableCell>{ph.method ? paymentMethodLabel(ph.method) : "—"}</TableCell>
-                      <TableCell>{ph.receiverInfo?.name || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(ph.createdAt, language)}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          )}
-          <AppPagination
-            page={paymentHistoryPage}
-            onPage={setPaymentHistoryPage}
-            hasNextPage={paymentHistoryHasNext}
-            hasPreviousPage={paymentHistoryHasPrev}
-          />
         </CardContent>
       </Card>
 
@@ -1076,74 +945,31 @@ export function CompanyDetail() {
         </CardContent>
       </Card>
 
-      <Card className="mt-3.5">
-        <CardContent>
-          <div className="list-head">
-            <h3>{t.companyDetail.workersTitle}</h3>
-          </div>
-          {workersLoading ? (
-            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
-          ) : workers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t.companyDetail.noWorkers}</p>
-          ) : (
-            workers.map((u) => (
-              <div
-                className="owner-row cursor-pointer"
-                key={u.id}
-                tabIndex={0}
-                onClick={() => nav(`/users/${u.id}`)}
-                onKeyDown={(e) => e.key === "Enter" && nav(`/users/${u.id}`)}
-              >
-                <div className="owner-row-main flex items-center gap-3">
-                  <Avatar className="size-9 shrink-0">
-                    <AvatarFallback className="bg-secondary text-xs font-semibold text-muted-foreground">
-                      {initials(u.fullName ?? "")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <b>{u.fullName}</b>
-                    <div className="text-sm text-muted-foreground">{u.email}</div>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="mt-3.5">
-        <CardContent>
-          <div className="list-head">
-            <h3>{t.companyDetail.clientsTitle}</h3>
-          </div>
-          {clientsLoading ? (
-            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
-          ) : clients.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t.companyDetail.noClients}</p>
-          ) : (
-            clients.map((u) => (
-              <div
-                className="owner-row cursor-pointer"
-                key={u.id}
-                tabIndex={0}
-                onClick={() => nav(`/users/${u.id}`)}
-                onKeyDown={(e) => e.key === "Enter" && nav(`/users/${u.id}`)}
-              >
-                <div className="owner-row-main flex items-center gap-3">
-                  <Avatar className="size-9 shrink-0">
-                    <AvatarFallback className="bg-secondary text-xs font-semibold text-muted-foreground">
-                      {initials(u.fullName ?? "")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <b>{u.fullName}</b>
-                    <div className="text-sm text-muted-foreground">{u.email}</div>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
+      <Card className="mt-3.5 gap-0 overflow-hidden py-0">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 border-b px-4 py-3.5 text-left hover:bg-accent/50"
+          onClick={() => nav(`/users?companyId=${company.id}&type=Worker`)}
+        >
+          <span className="text-sm font-medium">{t.companyDetail.workersTitle}</span>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </button>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 border-b px-4 py-3.5 text-left hover:bg-accent/50"
+          onClick={() => nav(`/users?companyId=${company.id}&type=Customer`)}
+        >
+          <span className="text-sm font-medium">{t.companyDetail.clientsTitle}</span>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </button>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 px-4 py-3.5 text-left hover:bg-accent/50"
+          onClick={() => nav(`/payment-histories?companyId=${company.id}`)}
+        >
+          <span className="text-sm font-medium">{t.companyDetail.paymentHistoryTitle}</span>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </button>
       </Card>
 
       <ConfirmDialog
@@ -1268,7 +1094,7 @@ export function CompanyDetail() {
                       .filter((tr) => tr.isActive || tr.id === subForm.tariffId)
                       .map((tr) => (
                         <SelectItem key={tr.id} value={tr.id}>
-                          {tr.code}
+                          {tr.code} ({formatMoney(tr.baseCost, settings.subscriptionCurrencyCode)})
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -1311,24 +1137,6 @@ export function CompanyDetail() {
                   onChange={(e) => setSubField("discount", Number(e.target.value) || 0)}
                 />
               </Field>
-              {selectedFormTariff && (
-                <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{t.companyDetail.subscriptionPrice}</span>
-                    <span className="font-semibold">{formatMoney(editListPrice, settings.subscriptionCurrencyCode)}</span>
-                  </div>
-                  {editDiscount > 0 && (
-                    <div className="mt-1 flex items-center justify-between border-t pt-1">
-                      <span className="text-xs text-muted-foreground">{t.companyDetail.subscriptionFinalCost}</span>
-                      <span className="text-sm font-semibold">
-                        {formatMoney(editFinalPrice, settings.subscriptionCurrencyCode)}{" "}
-                        <span className="font-normal text-muted-foreground">(-{editDiscount}%)</span>
-                      </span>
-                    </div>
-                  )}
-                  <p className="mt-1.5 text-xs text-muted-foreground">{t.companyDetail.subscriptionPriceHint}</p>
-                </div>
-              )}
             </div>
           )}
           <DialogFooter>

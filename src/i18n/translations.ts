@@ -157,9 +157,7 @@ export type Dict = {
     ownerModalTitleEdit: string;
     ownerModalTitleCreate: string;
     workersTitle: string;
-    noWorkers: string;
     clientsTitle: string;
-    noClients: string;
     deleteCompanyTitle: string;
     deleteCompanyDesc: (name: string) => string;
     ownerWillBeDeleted: string;
@@ -171,8 +169,6 @@ export type Dict = {
     subscriptionEnd: string;
     fromTariff: string;
     subscriptionPrice: string;
-    subscriptionPriceHint: string;
-    subscriptionFinalCost: string;
     tariffBaseCost: string;
     discount: string;
     activateSubscription: string;
@@ -182,7 +178,6 @@ export type Dict = {
     amount: string;
     paymentMethod: string;
     paymentHistoryTitle: string;
-    noPaymentHistory: string;
     paymentAmount: string;
     paymentType: string;
     paymentReceiver: string;
@@ -672,9 +667,7 @@ export const translations: Record<Language, Dict> = {
       ownerModalTitleEdit: "Редактировать владельца",
       ownerModalTitleCreate: "Новый владелец",
       workersTitle: "Сотрудники",
-      noWorkers: "Сотрудников пока нет.",
       clientsTitle: "Клиенты",
-      noClients: "Клиентов пока нет.",
       deleteCompanyTitle: "Удалить компанию?",
       deleteCompanyDesc: (name) => `Удалить компанию «${name}»? Это действие необратимо.`,
       ownerWillBeDeleted: "Владелец будет удалён.",
@@ -686,8 +679,6 @@ export const translations: Record<Language, Dict> = {
       subscriptionEnd: "Дата окончания",
       fromTariff: "Входит в тариф",
       subscriptionPrice: "Цена",
-      subscriptionPriceHint: "Итоговая цена может включать дополнительные начисления по юнитам компании.",
-      subscriptionFinalCost: "Итого со скидкой",
       tariffBaseCost: "Базовая цена тарифа",
       discount: "Скидка",
       activateSubscription: "Активировать",
@@ -697,7 +688,6 @@ export const translations: Record<Language, Dict> = {
       amount: "Сумма",
       paymentMethod: "Способ оплаты",
       paymentHistoryTitle: "История платежей",
-      noPaymentHistory: "Платежей пока нет.",
       paymentAmount: "Сумма",
       paymentType: "Тип",
       paymentReceiver: "Получатель",
@@ -1209,9 +1199,7 @@ export const translations: Record<Language, Dict> = {
       ownerModalTitleEdit: "Edit owner",
       ownerModalTitleCreate: "New owner",
       workersTitle: "Workers",
-      noWorkers: "No workers yet.",
       clientsTitle: "Clients",
-      noClients: "No clients yet.",
       deleteCompanyTitle: "Delete company?",
       deleteCompanyDesc: (name) => `Delete company "${name}"? This action cannot be undone.`,
       ownerWillBeDeleted: "The owner will be deleted.",
@@ -1223,8 +1211,6 @@ export const translations: Record<Language, Dict> = {
       subscriptionEnd: "End date",
       fromTariff: "Included in tariff",
       subscriptionPrice: "Price",
-      subscriptionPriceHint: "The final price may include additional charges based on the company's units.",
-      subscriptionFinalCost: "Total after discount",
       tariffBaseCost: "Tariff base price",
       discount: "Discount",
       activateSubscription: "Activate",
@@ -1234,7 +1220,6 @@ export const translations: Record<Language, Dict> = {
       amount: "Amount",
       paymentMethod: "Payment method",
       paymentHistoryTitle: "Payment history",
-      noPaymentHistory: "No payments yet.",
       paymentAmount: "Amount",
       paymentType: "Type",
       paymentReceiver: "Receiver",
@@ -1746,9 +1731,7 @@ export const translations: Record<Language, Dict> = {
       ownerModalTitleEdit: "Таҳрири соҳиб",
       ownerModalTitleCreate: "Соҳиби нав",
       workersTitle: "Кормандон",
-      noWorkers: "Ҳанӯз корманде нест.",
       clientsTitle: "Мизоҷон",
-      noClients: "Ҳанӯз мизоҷе нест.",
       deleteCompanyTitle: "Ширкатро нест кардан?",
       deleteCompanyDesc: (name) => `Ширкати «${name}»-ро нест кардан? Ин амал баргарданашаванда аст.`,
       ownerWillBeDeleted: "Соҳиб нест карда мешавад.",
@@ -1760,8 +1743,6 @@ export const translations: Record<Language, Dict> = {
       subscriptionEnd: "Санаи анҷом",
       fromTariff: "Дар тариф дохил аст",
       subscriptionPrice: "Нарх",
-      subscriptionPriceHint: "Нархи ниҳоӣ метавонад боваситаи воҳидҳои ширкатро низ дар бар гирад.",
-      subscriptionFinalCost: "Ҷамъ бо тахфиф",
       tariffBaseCost: "Нархи асосии тариф",
       discount: "Тахфиф",
       activateSubscription: "Фаъол кардан",
@@ -1771,6 +1752,8 @@ export const translations: Record<Language, Dict> = {
       amount: "Маблағ",
       paymentMethod: "Усули пардохт",
       paymentHistoryTitle: "Таърихи пардохтҳо",
+      subPaymentHistoryTitle: "Таърихи пардохти обуна",
+      paymentSubscriptionPeriod: "Давраи обуна",
       noPaymentHistory: "Ҳанӯз пардохте нест.",
       paymentAmount: "Маблағ",
       paymentType: "Навъ",

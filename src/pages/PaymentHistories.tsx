@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -63,6 +64,8 @@ function errorMessage(err: unknown, fallback: string) {
 export function PaymentHistories() {
   const { t, language } = useTranslation();
   const { settings } = useModuleSettings();
+  const [searchParams] = useSearchParams();
+  const initialCompanyId = searchParams.get("companyId") ?? "";
 
   const [items, setItems] = useState<CompanyPaymentHistoryItem[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -71,8 +74,8 @@ export function PaymentHistories() {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
-  const [filters, setFilters] = useState<Filters>(emptyFilters);
-  const [appliedFilters, setAppliedFilters] = useState<Filters>(emptyFilters);
+  const [filters, setFilters] = useState<Filters>({ ...emptyFilters, companyId: initialCompanyId });
+  const [appliedFilters, setAppliedFilters] = useState<Filters>({ ...emptyFilters, companyId: initialCompanyId });
   const [filtersOpen, setFiltersOpen] = useState(true);
 
   const [companies, setCompanies] = useState<CompanyListItem[]>([]);
@@ -93,6 +96,11 @@ export function PaymentHistories() {
       .catch(() => {})
       .finally(() => setCompaniesLoading(false));
   };
+
+  useEffect(() => {
+    if (initialCompanyId) loadCompaniesOnce();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handle = setTimeout(() => {
