@@ -321,6 +321,7 @@ export function PaymentHistories() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t.paymentHistories.tableCompany}</TableHead>
+                <TableHead>{t.companyDetail.paymentRequester}</TableHead>
                 <TableHead>{t.companyDetail.paymentAmount}</TableHead>
                 <TableHead>{t.companyDetail.paymentType}</TableHead>
                 <TableHead>{t.companyDetail.paymentMethod}</TableHead>
@@ -334,7 +335,7 @@ export function PaymentHistories() {
               {loadingList ? (
                 Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                   <TableRow key={i} className="animate-in fade-in duration-300">
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={9}>
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
                   </TableRow>
@@ -358,6 +359,19 @@ export function PaymentHistories() {
                         >
                           {item.companyName || "—"}
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        {item.requesterInfo?.executedBy ? (
+                          <Link
+                            to={`/users/${item.requesterInfo.executedBy.id}`}
+                            className="hover:text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {item.requesterInfo.executedBy.name || "—"}
+                          </Link>
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                       <TableCell>{formatMoney(item.amount, settings.nationalCurrencyCode)}</TableCell>
                       <TableCell>{typeLabel(item.type)}</TableCell>

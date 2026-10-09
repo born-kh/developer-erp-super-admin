@@ -268,6 +268,7 @@ export function TopUpRequests() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t.topUpRequests.tableCompany}</TableHead>
+                <TableHead>{t.companyDetail.paymentRequester}</TableHead>
                 <TableHead>{t.companyDetail.paymentAmount}</TableHead>
                 <TableHead>{t.companyDetail.paymentMethod}</TableHead>
                 <TableHead>{t.common.status}</TableHead>
@@ -279,7 +280,7 @@ export function TopUpRequests() {
               {loadingList ? (
                 Array.from({ length: Math.min(pageSize, 10) }, (_, i) => (
                   <TableRow key={i} className="animate-in fade-in duration-300">
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={7}>
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
                   </TableRow>
@@ -301,6 +302,19 @@ export function TopUpRequests() {
                       >
                         {item.companyName || "—"}
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      {item.requesterInfo?.executedBy ? (
+                        <Link
+                          to={`/users/${item.requesterInfo.executedBy.id}`}
+                          className="hover:text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {item.requesterInfo.executedBy.name || "—"}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell>{formatMoney(item.amount, settings.nationalCurrencyCode)}</TableCell>
                     <TableCell>{item.method ? methodLabel(item.method) : "—"}</TableCell>

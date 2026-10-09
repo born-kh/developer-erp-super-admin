@@ -188,6 +188,7 @@ export type Dict = {
     totalAmount: string;
     paymentType: string;
     paymentReceiver: string;
+    paymentRequester: string;
     paymentDate: string;
     paymentStatusPending: string;
     paymentStatusConfirmed: string;
@@ -726,7 +727,8 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Сумма",
       totalAmount: "Итоговая цена",
       paymentType: "Тип",
-      paymentReceiver: "Получатель",
+      paymentReceiver: "Исполнитель",
+      paymentRequester: "Клиент",
       paymentDate: "Дата операции",
       paymentStatusPending: "Ожидает",
       paymentStatusConfirmed: "Подтверждено",
@@ -1287,7 +1289,8 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Amount",
       totalAmount: "Total price",
       paymentType: "Type",
-      paymentReceiver: "Receiver",
+      paymentReceiver: "Processed by",
+      paymentRequester: "Client",
       paymentDate: "Operation date",
       paymentStatusPending: "Pending",
       paymentStatusConfirmed: "Confirmed",
@@ -1848,7 +1851,8 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Маблағ",
       totalAmount: "Ҳамагӣ",
       paymentType: "Навъ",
-      paymentReceiver: "Қабулкунанда",
+      paymentReceiver: "Иҷрокунанда",
+      paymentRequester: "Мизоҷ",
       paymentDate: "Санаи амалиёт",
       paymentStatusPending: "Интизор",
       paymentStatusConfirmed: "Тасдиқ шуд",
