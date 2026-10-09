@@ -19,7 +19,7 @@ import {
 import { clearTokens } from "./auth";
 import { useCurrentUser } from "./data/currentUserStore";
 import { useFileUrl } from "./hooks/useFileUrl";
-import { logout as logoutRequest } from "./lib/api";
+import { listTopUpRequests, logout as logoutRequest } from "./lib/api";
 import { initials } from "./lib/format";
 import { useTranslation } from "./i18n/LanguageContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -63,6 +63,18 @@ export function AppShell() {
   const { t } = useTranslation();
   const avatarUrl = useFileUrl(user?.avatarName);
 
+  const [topUpBadge, setTopUpBadge] = useState<string | null>(null);
+
+  useEffect(() => {
+    listTopUpRequests({ pageSize: 50 })
+      .then((res) => {
+        const count = (res.items ?? []).length;
+        if (count === 0) return;
+        setTopUpBadge(res.pagination.hasNextPage ? `${count}+` : String(count));
+      })
+      .catch(() => {});
+  }, []);
+
   const links = [
     { to: "/", label: t.nav.overview, icon: LayoutDashboard },
     { to: "/companies", label: t.nav.companies, icon: Building2 },
@@ -74,7 +86,7 @@ export function AppShell() {
     { to: "/cities", label: t.nav.cities, icon: MapPin },
     { to: "/activity-logs", label: t.nav.activityLogs, icon: History },
     { to: "/payment-histories", label: t.nav.paymentHistories, icon: Receipt },
-    { to: "/top-up-requests", label: t.nav.topUpRequests, icon: Wallet },
+    { to: "/top-up-requests", label: t.nav.topUpRequests, icon: Wallet, badge: topUpBadge },
   ];
 
   const titles: Record<string, string> = {
@@ -139,6 +151,11 @@ export function AppShell() {
                         <NavLink to={l.to} end={l.to === "/"}>
                           <l.icon />
                           <span>{l.label}</span>
+                          {"badge" in l && l.badge && (
+                            <span className="ml-auto inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
+                              {l.badge}
+                            </span>
+                          )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -249,6 +266,11 @@ export function AppShell() {
                 >
                   <l.icon className="size-4" />
                   {l.label}
+                  {"badge" in l && l.badge && (
+                    <span className="ml-auto inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
+                      {l.badge}
+                    </span>
+                  )}
                 </NavLink>
               ))}
               <Separator className="my-2" />
