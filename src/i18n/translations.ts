@@ -188,7 +188,10 @@ export type Dict = {
     totalAmount: string;
     paymentType: string;
     paymentReceiver: string;
+    paymentRequester: string;
     paymentDate: string;
+    paymentInfoTitle: string;
+    rejectionReason: string;
     paymentStatusPending: string;
     paymentStatusConfirmed: string;
     paymentStatusRejected: string;
@@ -726,8 +729,11 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Сумма",
       totalAmount: "Итоговая цена",
       paymentType: "Тип",
-      paymentReceiver: "Получатель",
+      paymentReceiver: "Обработал",
+      paymentRequester: "Заявитель",
       paymentDate: "Дата операции",
+      paymentInfoTitle: "Информация о платеже",
+      rejectionReason: "Причина отклонения",
       paymentStatusPending: "Ожидает",
       paymentStatusConfirmed: "Подтверждено",
       paymentStatusRejected: "Отклонено",
@@ -790,7 +796,7 @@ export const translations: Record<Language, Dict> = {
       lastName: "Фамилия",
       middleName: "Отчество",
       userActive: "Пользователь активен",
-      typeSuperAdmin: "Супер-администратор",
+      typeSuperAdmin: "Супер-админ",
       typeAdmin: "Администратор",
       typeOwner: "Владелец",
       typeWorker: "Сотрудник",
@@ -1287,8 +1293,11 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Amount",
       totalAmount: "Total price",
       paymentType: "Type",
-      paymentReceiver: "Receiver",
+      paymentReceiver: "Processed by",
+      paymentRequester: "Requester",
       paymentDate: "Operation date",
+      paymentInfoTitle: "Payment info",
+      rejectionReason: "Rejection reason",
       paymentStatusPending: "Pending",
       paymentStatusConfirmed: "Confirmed",
       paymentStatusRejected: "Rejected",
@@ -1848,8 +1857,11 @@ export const translations: Record<Language, Dict> = {
       paymentAmount: "Маблағ",
       totalAmount: "Ҳамагӣ",
       paymentType: "Навъ",
-      paymentReceiver: "Қабулкунанда",
+      paymentReceiver: "Коркарда",
+      paymentRequester: "Дархосткунанда",
       paymentDate: "Санаи амалиёт",
+      paymentInfoTitle: "Маълумоти пардохт",
+      rejectionReason: "Сабаби рад",
       paymentStatusPending: "Интизор",
       paymentStatusConfirmed: "Тасдиқ шуд",
       paymentStatusRejected: "Рад шуд",

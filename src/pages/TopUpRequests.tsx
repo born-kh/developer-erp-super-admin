@@ -11,7 +11,7 @@ import {
   type CompanyListItem,
   type CompanyPaymentHistoryItem,
 } from "../lib/api";
-import { formatDate, formatMoney } from "../lib/format";
+import { formatDateTime, formatMoney } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { useModuleSettings } from "../data/moduleSettingsStore";
 import { useFileUrl } from "../hooks/useFileUrl";
@@ -308,7 +308,7 @@ export function TopUpRequests() {
                       <PaymentStatusBadge status={item.status} />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {formatDate(item.operationDateTime, language)}
+                      {formatDateTime(item.operationDateTime, language)}
                     </TableCell>
                     <TableCell className="w-8 text-muted-foreground">
                       <ChevronRight className="size-4" />

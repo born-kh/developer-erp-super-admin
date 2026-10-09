@@ -1,17 +1,41 @@
 const DATE_LOCALES: Record<string, string> = { ru: "ru-RU", en: "en-US", tj: "tg-TJ" };
 
+// Browsers ship no ICU data for "tg"/"tg-TJ", so Intl silently falls back to en-US.
+// Tajik month names are spelled out manually instead of relying on Intl for them.
+const TJ_MONTHS_SHORT = ["янв.", "фев.", "мар.", "апр.", "май", "июн.", "июл.", "авг.", "сен.", "окт.", "ноя.", "дек."];
+const TJ_MONTHS_LONG = [
+  "январ",
+  "феврал",
+  "март",
+  "апрел",
+  "май",
+  "июн",
+  "июл",
+  "август",
+  "сентябр",
+  "октябр",
+  "ноябр",
+  "декабр",
+];
+
+function monthShort(date: Date, language: string) {
+  if (language === "tj") return TJ_MONTHS_SHORT[date.getMonth()];
+  return new Intl.DateTimeFormat(DATE_LOCALES[language] ?? language, { month: "short" }).format(date);
+}
+
 export function formatDateTime(iso: string, language: string) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat(DATE_LOCALES[language] ?? language, {
-    dateStyle: "long",
-    timeStyle: "medium",
-  }).format(date);
+  const locale = DATE_LOCALES[language] ?? language;
+  const datePart = `${date.getDate()} ${monthShort(date, language)}`;
+  const timePart = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+  return `${datePart} ${date.getFullYear()}, ${timePart}`;
 }
 
 export function formatDate(iso: string, language: string) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
+  if (language === "tj") return `${date.getDate()} ${TJ_MONTHS_LONG[date.getMonth()]} ${date.getFullYear()}`;
   return new Intl.DateTimeFormat(DATE_LOCALES[language] ?? language, {
     dateStyle: "long",
   }).format(date);
@@ -21,7 +45,9 @@ export function formatTime(iso: string, language: string) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
   return new Intl.DateTimeFormat(DATE_LOCALES[language] ?? language, {
-    timeStyle: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   }).format(date);
 }
 

@@ -12,7 +12,7 @@ import {
   type SubscriptionPriceLine,
   type TariffIncludingPackages,
 } from "../lib/api";
-import { formatDate, formatMoney } from "../lib/format";
+import { formatDate, formatDateTime, formatMoney } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { useModuleSettings } from "../data/moduleSettingsStore";
 import { PageHead } from "../AppShell";
@@ -179,7 +179,7 @@ export function CompanySubscriptionPayments() {
                         </span>
                       ) : null}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{formatDate(sp.createdAt, language)}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDateTime(sp.createdAt, language)}</TableCell>
                     <TableCell className="w-8 text-muted-foreground">
                       <Info className="size-4" />
                     </TableCell>

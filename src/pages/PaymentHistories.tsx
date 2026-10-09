@@ -15,9 +15,10 @@ import {
   type SubscriptionPriceLine,
   type TariffIncludingPackages,
 } from "../lib/api";
-import { formatDate, formatMoney } from "../lib/format";
+import { formatDate, formatDateTime, formatMoney } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { useModuleSettings } from "../data/moduleSettingsStore";
+import { useFileUrl } from "../hooks/useFileUrl";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,9 @@ export function PaymentHistories() {
   const [companiesLoaded, setCompaniesLoaded] = useState(false);
   const [companiesLoading, setCompaniesLoading] = useState(false);
 
+  const [infoItem, setInfoItem] = useState<CompanyPaymentHistoryItem | null>(null);
+  const infoReceiptUrl = useFileUrl(infoItem?.receiptPhotoName);
+
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((f) => ({ ...f, [key]: value }));
 
@@ -176,6 +180,11 @@ export function PaymentHistories() {
       .then(setDetail)
       .catch((err) => toast.error(errorMessage(err, t.paymentHistories.errors.loadList)))
       .finally(() => setDetailLoading(false));
+  };
+
+  const openRow = (item: CompanyPaymentHistoryItem) => {
+    if (item.type === "Withdraw") openDetail(item.id);
+    else setInfoItem(item);
   };
 
   const unitTypeLabel = (type: string) => {
@@ -340,35 +349,46 @@ export function PaymentHistories() {
                   </TableRow>
                 ))
               ) : (
-                items.map((item) => {
-                  const isWithdraw = item.type === "Withdraw";
-                  return (
-                    <TableRow
-                      key={item.id}
-                      className={isWithdraw ? "cursor-pointer" : undefined}
-                      tabIndex={isWithdraw ? 0 : undefined}
-                      onClick={() => isWithdraw && openDetail(item.id)}
-                      onKeyDown={(e) => isWithdraw && e.key === "Enter" && openDetail(item.id)}
-                    >
-                      <TableCell className="font-medium">
+                items.map((item) => (
+                  <TableRow
+                    key={item.id}
+                    className="cursor-pointer"
+                    tabIndex={0}
+                    onClick={() => openRow(item)}
+                    onKeyDown={(e) => e.key === "Enter" && openRow(item)}
+                  >
+                    <TableCell className="font-medium">
+                      <Link
+                        to={`/companies/${item.companyId}`}
+                        className="hover:text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {item.companyName || "—"}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{formatMoney(item.amount, settings.nationalCurrencyCode)}</TableCell>
+                    <TableCell>{typeLabel(item.type)}</TableCell>
+                    <TableCell>{item.method ? methodLabel(item.method) : "—"}</TableCell>
+                    <TableCell>
+                      {item.receiverInfo?.executedBy?.id ? (
                         <Link
-                          to={`/companies/${item.companyId}`}
+                          to={`/users/${item.receiverInfo.executedBy.id}`}
                           className="hover:text-primary hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {item.companyName || "—"}
+                          {item.receiverInfo.executedBy.name || "—"}
                         </Link>
-                      </TableCell>
-                      <TableCell>{formatMoney(item.amount, settings.nationalCurrencyCode)}</TableCell>
-                      <TableCell>{typeLabel(item.type)}</TableCell>
-                      <TableCell>{item.method ? methodLabel(item.method) : "—"}</TableCell>
-                      <TableCell>{item.receiverInfo?.executedBy?.name || "—"}</TableCell>
-                      <TableCell><PaymentStatusBadge status={item.status} /></TableCell>
-                      <TableCell className="text-muted-foreground">{formatDate(item.operationDateTime, language)}</TableCell>
-                      <TableCell className="w-8 text-muted-foreground">{isWithdraw && <Info className="size-4" />}</TableCell>
-                    </TableRow>
-                  );
-                })
+                      ) : (
+                        item.receiverInfo?.executedBy?.name || "—"
+                      )}
+                    </TableCell>
+                    <TableCell><PaymentStatusBadge status={item.status} /></TableCell>
+                    <TableCell className="text-muted-foreground">{formatDateTime(item.operationDateTime, language)}</TableCell>
+                    <TableCell className="w-8 text-muted-foreground">
+                      <Info className="size-4" />
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
@@ -479,6 +499,98 @@ export function PaymentHistories() {
               </div>
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(infoItem)} onOpenChange={(open) => !open && setInfoItem(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t.companyDetail.paymentInfoTitle}</DialogTitle>
+          </DialogHeader>
+          {infoItem && (
+            <div className="grid gap-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.paymentHistories.tableCompany}</span>
+                <Link to={`/companies/${infoItem.companyId}`} className="text-primary hover:underline">
+                  {infoItem.companyName || "—"}
+                </Link>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.companyDetail.paymentAmount}</span>
+                <span className="font-semibold tabular-nums">
+                  {formatMoney(infoItem.amount, settings.nationalCurrencyCode)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.companyDetail.paymentType}</span>
+                <span>{typeLabel(infoItem.type)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.companyDetail.paymentMethod}</span>
+                <span>{infoItem.method ? methodLabel(infoItem.method) : "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.common.status}</span>
+                <PaymentStatusBadge status={infoItem.status} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.companyDetail.paymentRequester}</span>
+                <span>
+                  {infoItem.requesterInfo?.executedBy?.id ? (
+                    <Link
+                      to={`/users/${infoItem.requesterInfo.executedBy.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {infoItem.requesterInfo.executedBy.name || "—"}
+                    </Link>
+                  ) : (
+                    infoItem.requesterInfo?.executedBy?.name || "—"
+                  )}
+                  {infoItem.requesterInfo?.executedAt
+                    ? ` · ${formatDateTime(infoItem.requesterInfo.executedAt, language)}`
+                    : ""}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t.companyDetail.paymentReceiver}</span>
+                <span>
+                  {infoItem.receiverInfo?.executedBy?.id ? (
+                    <Link
+                      to={`/users/${infoItem.receiverInfo.executedBy.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {infoItem.receiverInfo.executedBy.name || "—"}
+                    </Link>
+                  ) : (
+                    infoItem.receiverInfo?.executedBy?.name || "—"
+                  )}
+                  {infoItem.receiverInfo?.executedAt
+                    ? ` · ${formatDateTime(infoItem.receiverInfo.executedAt, language)}`
+                    : ""}
+                </span>
+              </div>
+              {infoItem.status === "Rejected" && (
+                <div className="flex items-start justify-between gap-4">
+                  <span className="shrink-0 text-muted-foreground">{t.companyDetail.rejectionReason}</span>
+                  <span className="text-right">{infoItem.rejectionReason || "—"}</span>
+                </div>
+              )}
+              {infoItem.receiptPhotoName && (
+                <div className="grid gap-2">
+                  <span className="text-muted-foreground">{t.companyDetail.receiptPhoto}</span>
+                  {infoReceiptUrl ? (
+                    <img
+                      src={infoReceiptUrl}
+                      alt={t.companyDetail.receiptPhoto}
+                      className="max-h-[50vh] w-full rounded-lg object-contain"
+                    />
+                  ) : (
+                    <p className="text-muted-foreground">{t.common.loading}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

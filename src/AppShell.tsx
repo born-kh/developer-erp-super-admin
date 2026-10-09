@@ -173,12 +173,10 @@ export function AppShell() {
                       {avatarUrl && <AvatarImage src={avatarUrl} alt={user?.fullName ?? ""} />}
                       <AvatarFallback>{user?.fullName ? initials(user.fullName) : "?"}</AvatarFallback>
                     </Avatar>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate text-sm font-semibold">{user?.fullName || "—"}</span>
-                        {user && <UserTypeBadge type={user.type} className="shrink-0 px-1.5 py-0 text-[10px]" />}
-                      </div>
-                      <div className="mt-1 truncate text-xs text-muted-foreground">{user?.email || "—"}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold">{user?.fullName || "—"}</div>
+                      <div className="mt-0.5 truncate text-xs text-muted-foreground">{user?.email || "—"}</div>
+                      {user && <UserTypeBadge type={user.type} className="mt-1.5 px-1.5 py-0 text-[10px]" />}
                     </div>
                   </div>
                   <Separator className="my-2" />
