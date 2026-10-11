@@ -54,10 +54,7 @@ export function Login() {
       <div className="login-card">
         <div className="login-mark">
           <div className="login-logo-wrap">
-            <LottieSplash size={120} />
-          </div>
-          <div>
-            <strong>Enterprise Resource Planning</strong>
+            <LottieSplash size={200} />
           </div>
         </div>
         <form onSubmit={submit} className="grid gap-4">
