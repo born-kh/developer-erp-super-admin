@@ -9,6 +9,7 @@ import { useTranslation } from "../i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LottieSplash } from "@/components/LottieSplash";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -53,7 +54,7 @@ export function Login() {
       <div className="login-card">
         <div className="login-mark">
           <div className="login-logo-wrap">
-            <img src="/logo.png" alt="Enterprise Resource Planning" className="login-logo" />
+            <LottieSplash size={120} />
           </div>
           <div>
             <strong>Enterprise Resource Planning</strong>

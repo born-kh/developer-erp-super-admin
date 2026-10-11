@@ -128,14 +128,8 @@ export function AppShell() {
       <SidebarProvider>
         <Sidebar collapsible="none" className="hidden h-svh sticky top-0 min-[861px]:flex border-r border-sidebar-border">
           <SidebarHeader className="px-3 pt-4 pb-3">
-            <div className="flex items-center gap-2.5 px-1">
-              <div className="grid size-8 shrink-0 place-items-center rounded-md bg-white p-1">
-                <img src="/logo.png" alt="Enterprise Resource Planning" className="size-full object-contain" />
-              </div>
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-sidebar-foreground">ERP</div>
-                <div className="text-[11px] text-sidebar-foreground/50">Super Admin</div>
-              </div>
+            <div className="flex items-center px-1">
+              <img src="/logo-dark.png" alt="Enterprise Resource Planning" className="h-6 w-auto" />
             </div>
           </SidebarHeader>
           <SidebarContent>

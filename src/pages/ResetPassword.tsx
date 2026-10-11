@@ -4,6 +4,7 @@ import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { forgotPassword, resetPassword, ApiRequestError } from "../lib/api";
 import { useTranslation } from "../i18n/LanguageContext";
+import { AppLogo } from "@/components/AppLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,7 +95,7 @@ export function ResetPassword() {
       <div className="login-card">
         <div className="login-mark">
           <div className="login-logo-wrap">
-            <img src="/logo.png" alt="Enterprise Resource Planning" className="login-logo" />
+            <AppLogo className="login-logo" />
           </div>
           <div>
             <strong>Enterprise Resource Planning</strong>
