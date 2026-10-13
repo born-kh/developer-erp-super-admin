@@ -6,6 +6,7 @@ import { CurrentUserProvider } from "./data/currentUserStore";
 import { UsersProvider } from "./data/usersStore";
 import { CityCatalogProvider } from "./data/cityCatalogStore";
 import { ModuleSettingsProvider } from "./data/moduleSettingsStore";
+import { TopUpRequestsProvider } from "./data/topUpRequestsStore";
 import { Login } from "./pages/Login";
 import { ResetPassword } from "./pages/ResetPassword";
 import { Overview } from "./pages/Overview";
@@ -44,7 +45,9 @@ export default function App() {
               element={
                 <Guard>
                   <ModuleSettingsProvider>
-                    <AppShell />
+                    <TopUpRequestsProvider>
+                      <AppShell />
+                    </TopUpRequestsProvider>
                   </ModuleSettingsProvider>
                 </Guard>
               }

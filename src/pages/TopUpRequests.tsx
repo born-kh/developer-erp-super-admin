@@ -14,6 +14,7 @@ import {
 import { formatDateTime, formatMoney } from "../lib/format";
 import { useTranslation } from "../i18n/LanguageContext";
 import { useModuleSettings } from "../data/moduleSettingsStore";
+import { useTopUpRequestsBadge } from "../data/topUpRequestsStore";
 import { useFileUrl } from "../hooks/useFileUrl";
 import { PageHead } from "../AppShell";
 import { AppPagination } from "@/components/AppPagination";
@@ -91,6 +92,12 @@ export function TopUpRequests() {
   const [rejecting, setRejecting] = useState(false);
 
   const receiptUrl = useFileUrl(receiptItem?.receiptPhotoName);
+  const { refresh: refreshBadge } = useTopUpRequestsBadge();
+
+  useEffect(() => {
+    refreshBadge();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((f) => ({ ...f, [key]: value }));
@@ -172,6 +179,7 @@ export function TopUpRequests() {
       setConfirmItem(null);
       setReceiptItem(null);
       fetchItems(page, pageSize, appliedFilters);
+      refreshBadge();
     } catch (err) {
       toast.error(errorMessage(err, t.companyDetail.errors.confirmTopUp));
     } finally {
@@ -193,6 +201,7 @@ export function TopUpRequests() {
       setRejectItem(null);
       setReceiptItem(null);
       fetchItems(page, pageSize, appliedFilters);
+      refreshBadge();
     } catch (err) {
       toast.error(errorMessage(err, t.companyDetail.errors.rejectTopUp));
     } finally {

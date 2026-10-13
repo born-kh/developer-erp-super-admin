@@ -56,6 +56,9 @@ export function Login() {
           <div className="login-logo-wrap">
             <LottieSplash size={200} />
           </div>
+          <div>
+            <strong>{t.login.title}</strong>
+          </div>
         </div>
         <form onSubmit={submit} className="grid gap-4">
           <div className="grid gap-1.5">
@@ -100,7 +103,7 @@ export function Login() {
               </button>
             </div>
           </div>
-          <Button type="submit" size="lg" className="mt-1 w-full rounded-md" disabled={submitting}>
+          <Button type="submit" size="lg" className="mt-3 w-full rounded-md" disabled={submitting}>
             {submitting && <Loader2 className="size-4 animate-spin" />}
             {t.login.submit}
           </Button>

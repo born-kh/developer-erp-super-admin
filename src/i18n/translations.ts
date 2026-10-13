@@ -107,6 +107,7 @@ export type Dict = {
     };
   };
   login: {
+    title: string;
     lead: string;
     email: string;
     password: string;
@@ -645,6 +646,7 @@ export const translations: Record<Language, Dict> = {
       },
     },
     login: {
+      title: "Вход в систему",
       lead: "Войдите, чтобы управлять компаниями, тарифами и пользователями.",
       email: "Email",
       password: "Пароль",
@@ -1209,6 +1211,7 @@ export const translations: Record<Language, Dict> = {
       },
     },
     login: {
+      title: "Sign in",
       lead: "Sign in to manage companies, tariffs and users.",
       email: "Email",
       password: "Password",
@@ -1773,6 +1776,7 @@ export const translations: Record<Language, Dict> = {
       },
     },
     login: {
+      title: "Воридшавӣ ба система",
       lead: "Барои идоракунии ширкатҳо, тарифҳо ва корбарон ворид шавед.",
       email: "Email",
       password: "Парол",

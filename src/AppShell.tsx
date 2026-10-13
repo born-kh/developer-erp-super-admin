@@ -18,8 +18,9 @@ import {
 } from "lucide-react";
 import { clearTokens } from "./auth";
 import { useCurrentUser } from "./data/currentUserStore";
+import { useTopUpRequestsBadge } from "./data/topUpRequestsStore";
 import { useFileUrl } from "./hooks/useFileUrl";
-import { listTopUpRequests, logout as logoutRequest } from "./lib/api";
+import { logout as logoutRequest } from "./lib/api";
 import { initials } from "./lib/format";
 import { useTranslation } from "./i18n/LanguageContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -62,18 +63,7 @@ export function AppShell() {
   const { user, clear: clearCurrentUser } = useCurrentUser();
   const { t } = useTranslation();
   const avatarUrl = useFileUrl(user?.avatarName);
-
-  const [topUpBadge, setTopUpBadge] = useState<string | null>(null);
-
-  useEffect(() => {
-    listTopUpRequests({ pageSize: 50 })
-      .then((res) => {
-        const count = (res.items ?? []).length;
-        if (count === 0) return;
-        setTopUpBadge(res.pagination.hasNextPage ? `${count}+` : String(count));
-      })
-      .catch(() => {});
-  }, []);
+  const { badge: topUpBadge } = useTopUpRequestsBadge();
 
   const links = [
     { to: "/", label: t.nav.overview, icon: LayoutDashboard },

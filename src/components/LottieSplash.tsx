@@ -33,7 +33,19 @@ function buildDarkData() {
 
 let darkSplashData: unknown = null;
 
-export function LottieSplash({ size = 200, className }: { size?: number; className?: string }) {
+// The artwork is a wide, short mark centered in a square 512x512 viewBox, so
+// rendering it at size x size leaves large empty bands above and below. Crop
+// those away by rendering the square at `size` but clipping the wrapper to
+// `height` (the artwork's actual visual height) and centering within it.
+export function LottieSplash({
+  size = 200,
+  height,
+  className,
+}: {
+  size?: number;
+  height?: number;
+  className?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -58,5 +70,21 @@ export function LottieSplash({ size = 200, className }: { size?: number; classNa
     return () => anim.destroy();
   }, [mounted, resolvedTheme]);
 
-  return <div ref={containerRef} className={className} style={{ width: size, height: size }} />;
+  const cropHeight = height ?? size * 0.46;
+
+  return (
+    <div
+      className={className}
+      style={{
+        width: size,
+        height: cropHeight,
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div ref={containerRef} style={{ width: size, height: size, flexShrink: 0 }} />
+    </div>
+  );
 }
