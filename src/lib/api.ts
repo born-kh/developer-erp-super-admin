@@ -1,10 +1,11 @@
 import { getAccessToken, getRefreshToken, setTokens, clearTokens, isAccessTokenExpired } from "../auth";
 import { getStoredLanguage, type Language } from "../i18n/LanguageContext";
 
-// Empty by default so requests go to the same origin and are proxied
-// server-side (see vercel.json / vite.config.ts), avoiding mixed-content
-// blocks when the app is served over HTTPS but the backend is plain HTTP.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+// VITE_API_BASE_URL is normally left unset so requests go to the same origin
+// and are proxied server-side (see vercel.json / vite.config.ts / nginx.conf.template).
+// This fallback only kicks in when that proxying isn't available (e.g. Azure
+// Static Web Apps has no server-side proxy) and the build forgot to set it.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://api.buildingerp.pro";
 
 // The backend uses "tg" for Tajik, while the app's internal language code is "tj".
 const ACCEPT_LANGUAGE: Record<Language, string> = { ru: "ru", en: "en", tj: "tg" };
