@@ -192,7 +192,7 @@ function redirectToLogin() {
   }
 }
 
-const PLATFORM_TYPE_HEADER = { "X-Platform": "SuperAdminPanel" };
+const PLATFORM_TYPE_HEADER = { "X-Platform-Type": "SuperAdminPanel" };
 
 export function login(email: string, password: string) {
   return request<TokenInfo>("/core/api/auth/token", {
