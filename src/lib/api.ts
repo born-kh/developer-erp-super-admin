@@ -61,6 +61,12 @@ type ApiError = {
   // failures (e.g. [Authorize] rejections) instead of the app's own error envelope.
   title?: string | null;
   detail?: string | null;
+  // ASP.NET's automatic model-validation-failure response skips the app's
+  // envelope/casing config entirely and comes back PascalCase, with the
+  // actually useful per-field messages nested instead of in `message`.
+  Message?: string | null;
+  OriginalMessage?: string | null;
+  Data?: { Details?: { Property?: string | null; Messages?: string[] | null }[] | null } | null;
 };
 
 export class ApiRequestError extends Error {
@@ -97,8 +103,19 @@ async function performRequest<T>(path: string, options: RequestInit = {}): Promi
 
   if (!res.ok) {
     const err = body as ApiError | null;
+    const validationMessage = err?.Data?.Details
+      ?.flatMap((d) => d.Messages ?? [])
+      .filter(Boolean)
+      .join(" ");
     throw new ApiRequestError(
-      err?.message || err?.originalMessage || err?.title || err?.detail || `Ошибка запроса (${res.status})`,
+      err?.message ||
+        err?.originalMessage ||
+        validationMessage ||
+        err?.Message ||
+        err?.OriginalMessage ||
+        err?.title ||
+        err?.detail ||
+        `Ошибка запроса (${res.status})`,
       err?.businessCode,
       res.status,
     );

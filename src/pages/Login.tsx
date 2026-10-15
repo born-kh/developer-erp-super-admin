@@ -17,8 +17,8 @@ export function Login() {
   const nav = useNavigate();
   const { refresh: refreshCurrentUser } = useCurrentUser();
   const { t } = useTranslation();
-  const [email, setEmail] = useState("admin@erp.tj");
-  const [password, setPassword] = useState("admin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
