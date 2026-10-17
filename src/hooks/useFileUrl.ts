@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { getAccessToken } from "../auth";
-import { getFileUrl } from "../lib/api";
+import { getFileUrl, getImageUrl } from "../lib/api";
 
-export function useFileUrl(fileName?: string | null): string | null {
+// Pass `resized` to fetch via the image endpoint: true for a small/thumbnail
+// copy, false for the full-size original. Omit it for non-image files (e.g.
+// payment receipts), which always come from the plain file endpoint.
+export function useFileUrl(fileName?: string | null, resized?: boolean): string | null {
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -12,7 +15,8 @@ export function useFileUrl(fileName?: string | null): string | null {
     let cancelled = false;
 
     const token = getAccessToken();
-    fetch(getFileUrl(fileName), {
+    const target = resized === undefined ? getFileUrl(fileName) : getImageUrl(fileName, resized);
+    fetch(target, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((res) => (res.ok ? res.blob() : Promise.reject()))
@@ -27,7 +31,7 @@ export function useFileUrl(fileName?: string | null): string | null {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [fileName]);
+  }, [fileName, resized]);
 
   return url;
 }

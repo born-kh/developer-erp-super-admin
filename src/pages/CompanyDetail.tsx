@@ -28,7 +28,7 @@ import {
   updateCompanyById,
   updateCompanySubscription,
   updateUser,
-  uploadFile,
+  uploadImage,
   ApiRequestError,
   type CityListItem,
   type CompanyDetail as CompanyDetailData,
@@ -245,7 +245,7 @@ export function CompanyDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const ownerAvatarUrl = useFileUrl(ownerForm.avatarName);
+  const ownerAvatarUrl = useFileUrl(ownerForm.avatarName, true);
 
   if (loading) {
     return (
@@ -312,7 +312,7 @@ export function CompanyDetail() {
     if (!file) return;
     setOwnerAvatarUploading(true);
     try {
-      const avatarName = await uploadFile(file);
+      const avatarName = await uploadImage(file);
       setOwnerField("avatarName", avatarName);
     } catch (err) {
       toast.error(errorMessage(err, t.companyDetail.errors.saveOwner));
@@ -436,7 +436,7 @@ export function CompanyDetail() {
     if (!file) return;
     setPhotoUploading(true);
     try {
-      const photoName = await uploadFile(file);
+      const photoName = await uploadImage(file);
       await updateCompanyById(company.id, {
         name: company.name ?? undefined,
         phoneNumber: company.phoneNumber ?? undefined,
@@ -631,7 +631,7 @@ export function CompanyDetail() {
       <div className="detail-layout">
         <Card className="detail-media gap-0 overflow-hidden py-0">
           <div className="aspect-[4/3] w-full overflow-hidden bg-secondary">
-            <CompanyPhoto photoName={company.photoName} alt={company.name ?? ""} />
+            <CompanyPhoto photoName={company.photoName} alt={company.name ?? ""} resized={false} />
           </div>
           <div className="flex items-center justify-center gap-3 p-3.5">
             <Tooltip>

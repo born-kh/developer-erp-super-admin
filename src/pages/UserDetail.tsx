@@ -13,7 +13,7 @@ import {
   unassignUserRoles,
   updateUser,
   updateUserPassword,
-  uploadFile,
+  uploadImage,
   ApiRequestError,
   type RoleLookup,
   type UserDetail as UserDetailData,
@@ -163,7 +163,7 @@ export function UserDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.companyId, user?.type]);
 
-  const avatarUrl = useFileUrl(editing ? form?.avatarName : user?.avatarName);
+  const avatarUrl = useFileUrl(editing ? form?.avatarName : user?.avatarName, false);
 
   if (loading) {
     return <PageHead title={t.common.loading} onBack={() => nav(-1)} />;
@@ -211,7 +211,7 @@ export function UserDetail() {
     if (!file) return;
     setAvatarUploading(true);
     try {
-      const avatarName = await uploadFile(file);
+      const avatarName = await uploadImage(file);
       setField("avatarName", avatarName);
     } catch (err) {
       toast.error(errorMessage(err, t.userDetail.errors.uploadAvatar));

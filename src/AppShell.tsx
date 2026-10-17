@@ -62,7 +62,7 @@ export function AppShell() {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const { user, clear: clearCurrentUser } = useCurrentUser();
   const { t } = useTranslation();
-  const avatarUrl = useFileUrl(user?.avatarName);
+  const avatarUrl = useFileUrl(user?.avatarName, true);
   const { badge: topUpBadge } = useTopUpRequestsBadge();
 
   const links = [

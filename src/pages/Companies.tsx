@@ -7,7 +7,7 @@ import {
   getAllCitiesCached,
   listCompanies,
   updateCompanyById,
-  uploadFile,
+  uploadImage,
   ApiRequestError,
   type CityListItem,
   type CompanyListItem,
@@ -177,7 +177,7 @@ export function Companies() {
       });
       if (photoFile) {
         try {
-          const photoName = await uploadFile(photoFile);
+          const photoName = await uploadImage(photoFile);
           await updateCompanyById(id, {
             name: form.name.trim(),
             phoneNumber: form.phoneNumber.trim() || undefined,

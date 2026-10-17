@@ -5,7 +5,12 @@ import { getStoredLanguage, type Language } from "../i18n/LanguageContext";
 // and are proxied server-side (see vercel.json / vite.config.ts / nginx.conf.template).
 // This fallback only kicks in when that proxying isn't available (e.g. Azure
 // Static Web Apps has no server-side proxy) and the build forgot to set it.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://api.buildingerp.pro";
+// `import.meta.env.DEV`/`PROD` are set by Vite itself (dev server vs `vite build`),
+// so local dev falls back to the dev backend and production builds to the live one.
+const DEV_API_BASE_URL = "http://195.246.102.223:9595";
+const PROD_API_BASE_URL = "https://api.buildingerp.pro";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? DEV_API_BASE_URL : PROD_API_BASE_URL);
 
 // The backend uses "tg" for Tajik, while the app's internal language code is "tj".
 const ACCEPT_LANGUAGE: Record<Language, string> = { ru: "ru", en: "en", tj: "tg" };
@@ -1222,4 +1227,21 @@ export async function uploadFile(file: File) {
 
 export function getFileUrl(fileName: string) {
   return `${API_BASE_URL}/core/api/files/${fileName}`;
+}
+
+// Uses the resize-capable image endpoint (keeps the original alongside a
+// resized copy by default) instead of the generic /files upload, so avatars
+// and photos can be fetched either small (list/thumbnail) or at full size.
+export async function uploadImage(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await authRequest<{ fileName: string }>("/core/api/files/image", {
+    method: "POST",
+    body: formData,
+  });
+  return res.fileName;
+}
+
+export function getImageUrl(fileName: string, resized: boolean) {
+  return `${API_BASE_URL}/core/api/files/image?fileName=${encodeURIComponent(fileName)}&resized=${resized}`;
 }
