@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { setTokens } from "../auth";
 import { useCurrentUser } from "../data/currentUserStore";
-import { login as loginRequest, ApiRequestError } from "../lib/api";
+import {
+  login as loginRequest,
+  getServerOverride,
+  setServerOverride,
+  ApiRequestError,
+  type ServerOverride,
+} from "../lib/api";
 import { useTranslation } from "../i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +18,15 @@ import { Label } from "@/components/ui/label";
 import { LottieSplash } from "@/components/LottieSplash";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const LOGO_TAP_THRESHOLD = 5;
+const LOGO_TAP_WINDOW_MS = 1500;
 
 export function Login() {
   const nav = useNavigate();
@@ -21,6 +36,27 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [serverDialogOpen, setServerDialogOpen] = useState(false);
+  const logoTapCount = useRef(0);
+  const logoTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLogoClick = () => {
+    logoTapCount.current += 1;
+    if (logoTapTimer.current) clearTimeout(logoTapTimer.current);
+    if (logoTapCount.current >= LOGO_TAP_THRESHOLD) {
+      logoTapCount.current = 0;
+      setServerDialogOpen(true);
+      return;
+    }
+    logoTapTimer.current = setTimeout(() => {
+      logoTapCount.current = 0;
+    }, LOGO_TAP_WINDOW_MS);
+  };
+
+  const chooseServer = (value: ServerOverride | null) => {
+    setServerOverride(value);
+    window.location.reload();
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +89,7 @@ export function Login() {
       </div>
       <div className="login-card">
         <div className="login-mark">
-          <div className="login-logo-wrap">
+          <div className="login-logo-wrap" onClick={handleLogoClick}>
             <LottieSplash size={200} />
           </div>
           <div>
@@ -109,6 +145,32 @@ export function Login() {
           </Button>
         </form>
       </div>
+
+      <Dialog open={serverDialogOpen} onOpenChange={setServerDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t.login.serverDialogTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            {(["prod", "dev", null] as const).map((value) => {
+              const label =
+                value === "prod" ? t.login.serverProd : value === "dev" ? t.login.serverDev : t.login.serverAuto;
+              const active = getServerOverride() === value;
+              return (
+                <Button
+                  key={value ?? "auto"}
+                  type="button"
+                  variant={active ? "default" : "outline"}
+                  className="justify-start"
+                  onClick={() => chooseServer(value)}
+                >
+                  {label}
+                </Button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

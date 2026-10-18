@@ -117,6 +117,10 @@ export type Dict = {
     fillFields: string;
     loginFailed: string;
     forgotPassword: string;
+    serverDialogTitle: string;
+    serverProd: string;
+    serverDev: string;
+    serverAuto: string;
   };
   overview: {
     title: string;
@@ -656,6 +660,10 @@ export const translations: Record<Language, Dict> = {
       fillFields: "Заполните email и пароль",
       loginFailed: "Не удалось войти",
       forgotPassword: "Забыли пароль?",
+      serverDialogTitle: "Выбор сервера",
+      serverProd: "Production",
+      serverDev: "Dev",
+      serverAuto: "Авто (по умолчанию)",
     },
     overview: {
       title: "Обзор платформы",
@@ -1221,6 +1229,10 @@ export const translations: Record<Language, Dict> = {
       fillFields: "Enter your email and password",
       loginFailed: "Failed to sign in",
       forgotPassword: "Forgot password?",
+      serverDialogTitle: "Choose server",
+      serverProd: "Production",
+      serverDev: "Dev",
+      serverAuto: "Auto (default)",
     },
     overview: {
       title: "Platform overview",
@@ -1786,6 +1798,10 @@ export const translations: Record<Language, Dict> = {
       fillFields: "Email ва паролро ворид кунед",
       loginFailed: "Ворид шудан имконнопазир аст",
       forgotPassword: "Пароли худро фаромӯш кардед?",
+      serverDialogTitle: "Интихоби сервер",
+      serverProd: "Production",
+      serverDev: "Dev",
+      serverAuto: "Худкор (пешфарз)",
     },
     overview: {
       title: "Дурнамои платформа",
