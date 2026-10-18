@@ -149,7 +149,17 @@ export function AppShell() {
             </SidebarGroup>
           </SidebarContent>
           <SidebarFooter className="px-3 pb-4">
-            <p className="text-[11px] text-sidebar-foreground/40">© {new Date().getFullYear()} erp.tj</p>
+            <p className="text-[11px] text-sidebar-foreground/40">
+              © {new Date().getFullYear()}{" "}
+              <a
+                href="https://buildingerp.pro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-sidebar-foreground/70 hover:underline"
+              >
+                buildingerp.pro
+              </a>
+            </p>
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="min-w-0 bg-background">
