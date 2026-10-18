@@ -3,50 +3,21 @@ import { getStoredLanguage, type Language } from "../i18n/LanguageContext";
 
 // VITE_API_BASE_URL is normally left unset so requests go to the same origin
 // and are proxied server-side (see vercel.json / vite.config.ts / nginx.conf.template).
-// In dev this means relative/"" — Vite's own dev-server proxy (vite.config.ts)
-// forwards to the dev backend, which has no CORS headers and would otherwise
-// reject direct cross-origin calls from the browser. Only the prod fallback is
-// absolute, since e.g. Azure Static Web Apps has no server-side proxy, and the
-// live backend does allow cross-origin requests.
-// `import.meta.env.DEV`/`PROD` are set by Vite itself (dev server vs `vite build`).
-const DEV_API_BASE_URL = "http://195.246.102.223:9595";
+// Without it, the default backend depends on where this was built: Vite dev
+// server and Vercel both resolve to relative/"" (proxied — to the dev backend
+// on Vercel, since it has no CORS and needs a server-side hop to reach it);
+// everywhere else (Azure, Docker, local preview) defaults to the absolute
+// prod URL directly, since that backend's CORS is open.
+// `import.meta.env.DEV` is set by Vite itself (true only for the dev server).
 const PROD_API_BASE_URL = "https://api.buildingerp.pro";
 
-// Hidden runtime override (tap the login logo 5x) so the same build can be
-// pointed at either backend without a rebuild. Persisted so it survives reloads.
-export type ServerOverride = "dev" | "prod";
-const SERVER_OVERRIDE_KEY = "derp-sa-server-override";
-
-export function getServerOverride(): ServerOverride | null {
-  try {
-    const v = localStorage.getItem(SERVER_OVERRIDE_KEY);
-    return v === "dev" || v === "prod" ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-export function setServerOverride(value: ServerOverride | null) {
-  try {
-    if (value) localStorage.setItem(SERVER_OVERRIDE_KEY, value);
-    else localStorage.removeItem(SERVER_OVERRIDE_KEY);
-  } catch {
-    // ignore (private browsing, storage disabled, etc.)
-  }
-}
-
 function resolveApiBaseUrl(): string {
-  const override = getServerOverride();
-  if (override === "prod") return PROD_API_BASE_URL;
-  if (override === "dev") {
-    // The dev backend sends no CORS headers, so a direct cross-origin fetch
-    // only works when this page is itself served by Vite's dev server, which
-    // proxies same-origin "/core/api" requests to it (see vite.config.ts).
-    // Anywhere else (a built bundle) this resolves to an absolute URL that
-    // will fail in the browser — an accepted limitation of that backend.
-    return import.meta.env.DEV ? "" : DEV_API_BASE_URL;
-  }
-  return import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "" : PROD_API_BASE_URL);
+  if (import.meta.env.VITE_API_BASE_URL !== undefined) return import.meta.env.VITE_API_BASE_URL;
+  if (import.meta.env.DEV) return "";
+  // No VITE_API_BASE_URL set: Vercel builds default to the dev backend
+  // (relative — see vercel.json's /core/api rewrite), every other build
+  // (Azure, Docker, local preview) defaults to prod.
+  return __IS_VERCEL__ ? "" : PROD_API_BASE_URL;
 }
 
 const API_BASE_URL = resolveApiBaseUrl();

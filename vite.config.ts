@@ -8,6 +8,12 @@ const root = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Vercel sets VERCEL=1 in its build environment automatically — bake that
+  // into the client bundle so api.ts can default Vercel deploys to the dev
+  // backend (via vercel.json's rewrite) without any manual dashboard env var.
+  define: {
+    __IS_VERCEL__: JSON.stringify(Boolean(process.env.VERCEL)),
+  },
   resolve: {
     alias: {
       "@": path.resolve(root, "src"),
