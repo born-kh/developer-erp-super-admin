@@ -3,14 +3,14 @@ import { getStoredLanguage, type Language } from "../i18n/LanguageContext";
 
 // VITE_API_BASE_URL is normally left unset so requests go to the same origin
 // and are proxied server-side (see vercel.json / vite.config.ts / nginx.conf.template).
-// This fallback only kicks in when that proxying isn't available (e.g. Azure
-// Static Web Apps has no server-side proxy) and the build forgot to set it.
-// `import.meta.env.DEV`/`PROD` are set by Vite itself (dev server vs `vite build`),
-// so local dev falls back to the dev backend and production builds to the live one.
-const DEV_API_BASE_URL = "http://195.246.102.223:9595";
+// In dev this means relative/"" — Vite's own dev-server proxy (vite.config.ts)
+// forwards to the dev backend, which has no CORS headers and would otherwise
+// reject direct cross-origin calls from the browser. Only the prod fallback is
+// absolute, since e.g. Azure Static Web Apps has no server-side proxy, and the
+// live backend does allow cross-origin requests.
+// `import.meta.env.DEV`/`PROD` are set by Vite itself (dev server vs `vite build`).
 const PROD_API_BASE_URL = "https://api.buildingerp.pro";
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? DEV_API_BASE_URL : PROD_API_BASE_URL);
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "" : PROD_API_BASE_URL);
 
 // The backend uses "tg" for Tajik, while the app's internal language code is "tj".
 const ACCEPT_LANGUAGE: Record<Language, string> = { ru: "ru", en: "en", tj: "tg" };

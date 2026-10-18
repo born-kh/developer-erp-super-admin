@@ -460,7 +460,13 @@ export function Tariffs() {
                 <Input value={form.code} onChange={(e) => set("code", e.target.value)} autoFocus />
               </Field>
               <Field label={t.common.price(settings.subscriptionCurrencyCode || "USD")}>
-                <Input type="number" min="0" value={form.baseCost} onChange={(e) => set("baseCost", e.target.value)} />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.baseCost}
+                  onChange={(e) => set("baseCost", e.target.value)}
+                />
               </Field>
             </div>
             <Field label={t.tariffs.priceLines}>
@@ -480,6 +486,7 @@ export function Tariffs() {
                             <Input
                               type="number"
                               min="0"
+                              step="0.01"
                               autoFocus
                               className="h-7 w-24 text-right tabular-nums"
                               value={pl.cost}
@@ -556,6 +563,7 @@ export function Tariffs() {
                     <Input
                       type="number"
                       min="0"
+                      step="0.01"
                       className="w-28"
                       placeholder={t.common.price(settings.subscriptionCurrencyCode || "USD")}
                       value={newLine.cost}
