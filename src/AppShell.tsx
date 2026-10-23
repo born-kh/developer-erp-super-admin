@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
+  MoreHorizontal,
   Receipt,
   ShieldCheck,
   User,
@@ -233,11 +234,19 @@ export function AppShell() {
         </SidebarInset>
         <nav className="bottom-nav">
           <NavLink to="/" end>
+            <LayoutDashboard className="size-5" />
             {t.nav.overview}
           </NavLink>
-          <NavLink to="/companies">{t.nav.companies}</NavLink>
-          <NavLink to="/packages">{t.nav.packages}</NavLink>
+          <NavLink to="/companies">
+            <Building2 className="size-5" />
+            {t.nav.companies}
+          </NavLink>
+          <NavLink to="/packages">
+            <Boxes className="size-5" />
+            {t.nav.packages}
+          </NavLink>
           <button type="button" className={more ? "active" : ""} onClick={() => setMore(true)}>
+            <MoreHorizontal className="size-5" />
             {t.bottomNav.more}
           </button>
         </nav>

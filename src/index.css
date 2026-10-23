@@ -474,6 +474,11 @@
     z-index: 20;
   }
   .bottom-nav a, .bottom-nav button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
     color: color-mix(in srgb, var(--sidebar-foreground) 62%, transparent);
     font-size: 11px;
     text-align: center;
